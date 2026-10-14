@@ -14,18 +14,26 @@ intuition behind them.
 
 ## The app
 
-Guided chapters, each a sequence of short steps with one control and a live caption, built on a three-site
-chain whose Hilbert space is the ℝ³ you can see. The 3D view carries the state as an arrow; the chain at the
-bottom of the view shows the sites, their probabilities, hop arrows and the clock of each complex amplitude.
+**Lecture 1** (`app/index.html`): one instrument, five acts, meant to be narrated live. A particle in three
+wells is shown as the real continuous wave and, at the same time, as the three numbers that replace it.
+Everything later in the course (SSH chains, edge states, pumping) uses the same picture with more sites.
 
-1. **Hilbert space** — sites become axes on a 3D grid; a state is an arrow; probabilities are squared components.
-2. **The space of states** — only the direction counts; the unit sphere; two dials; ψ and −ψ are one state; the map of the sphere.
-3. **Hamiltonian = matrix** — hopping to the neighbours, on-site energy, the three columns, symmetry.
-4. **Phase** — a clock on every site; site measurements ignore the phase, other bases see it; two guides feeding the middle one cancel at 180°: the dark state.
+1. **Discrete** — a beam enters well 1 of a real potential (Crank–Nicolson on a grid). Deep wells: the wave
+   is three numbers with three clocks, and the 3 × 3 Hamiltonian is *computed* from the wells (Wannier
+   projection). Shallow wells: the wave spills out and the numbers miss part of it.
+2. **State** — the list (ψ₁, ψ₂, ψ₃): a length and a clock per site; squared lengths add to 100%.
+3. **Rule** — J pushes the neighbours, ε sets a clock rate; play and the rule moves the light. The pushes on
+   the clock of site 2 are drawn head to tail: the Schrödinger equation as a picture.
+4. **Motion** — the three modes. For a mode every push is at right angles to its hand: hands turn at one
+   rate, bars never move. Anything else is a mix of modes and moves.
+5. **Hilbert space** — the same state in site coordinates and in mode coordinates; optional 3D arrow with the
+   site axes and the mode axes.
 
-Planned next, in the same form: eigenvectors (states that stand still), measurement, time evolution, and bands
-(the N-site chain, SSH edge states). The earlier text-heavy versions of those chapters are in the git history
-(commit `014c94f`, folder `app/js/chapters/`).
+**Geometry appendix** (`app/chapters.html`): four guided chapters on the 3D picture of a three-site Hilbert
+space (sites become axes, the sphere of states, the Hamiltonian as a matrix, phase and the dark state).
+
+Conventions follow the coding sessions: ħ = 1, i dψ/dt = Hψ, hopping H<sub>n,n+1</sub> = +J (the hop
+computed from the wells comes out negative; the sign is a convention), site 1 is an A site.
 
 ### Run it locally
 
@@ -44,7 +52,8 @@ Enable it once: repository **Settings → Pages → Source: GitHub Actions**.
 
 ### Verify the numerics
 
-`app/js/linalg.js` carries the eigensolver (cyclic Jacobi), the SSH chain builder and the integrators.
+`app/js/linalg.js` carries the eigensolver (cyclic Jacobi), the SSH chain builder and the integrators;
+`app/js/lecture1/continuum.js` the grid Schrödinger solver and the Wannier projection.
 Quick checks from the repository root:
 
 ```bash
