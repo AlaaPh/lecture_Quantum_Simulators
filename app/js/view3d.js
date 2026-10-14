@@ -20,6 +20,7 @@ export class View3D {
     this.camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
     this.camera.up.set(0, 0, 1);
     this.orbit = { ...DEFAULT_ORBIT };
+    this.target = [0, 0, 0];
     this.scene.add(new THREE.HemisphereLight(0xffffff, 0x667788, 1.1));
     const key = new THREE.DirectionalLight(0xffffff, 2.0); key.position.set(1.5, 2.5, 3);
     this.camera.add(key); this.scene.add(this.camera);
@@ -46,9 +47,10 @@ export class View3D {
     const { az, el } = this.orbit;
     const dist = this.orbit.dist * Math.max(1, 1 / this.camera.aspect); // keep the scene framed in tall stages too
     this.camera.position.set(dist * Math.cos(el) * Math.cos(az), dist * Math.cos(el) * Math.sin(az), dist * Math.sin(el));
-    this.camera.lookAt(0, 0, 0);
+    this.camera.lookAt(this.target[0], this.target[1], this.target[2]);
   }
-  resetCamera() { this.orbit = { ...DEFAULT_ORBIT }; this.dirty = true; }
+  setTarget(x, y, z) { this.target = [x, y, z]; this.dirty = true; }
+  resetCamera() { this.orbit = { ...DEFAULT_ORBIT }; this.target = [0, 0, 0]; this.dirty = true; }
   setVisible(v) { this.container.hidden = !v; this.running = v; if (v) { this._resize(); this.dirty = true; } }
   requestRender() { this.dirty = true; }
   addTicker(fn) { this.tickers.add(fn); return () => this.tickers.delete(fn); }

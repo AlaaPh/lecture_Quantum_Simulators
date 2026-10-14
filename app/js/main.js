@@ -59,7 +59,8 @@ function show(id) {
   $('stage2d').hidden = chap.use3d !== false; $('stage2d').innerHTML = '';
   $('hint').hidden = chap.use3d === false;
   document.querySelectorAll('.rail a.chap').forEach((a) => a.classList.toggle('active', a.id === 'nav-' + chap.id));
-  const ctx = { view, tweens, store, panel: $('panel'), controls: $('controls'), stage2d: $('stage2d'), onThemeChange: (cb) => themeCbs.push(cb) };
+  const ctx = { view, tweens, store, panel: $('panel'), controls: $('controls'), stage: $('stage'), stage2d: $('stage2d'), onThemeChange: (cb) => themeCbs.push(cb) };
+  document.querySelector('.content').classList.toggle('wide-stage', chap.layout === 'wide');
   current = chap.mount(ctx) || {};
   currentId = chap.id;
   const pager = $('pager'); pager.innerHTML = '';
