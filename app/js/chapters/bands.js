@@ -84,7 +84,7 @@ Swap to <span class="m"><i>J</i><sub>1</sub> = 2, <i>J</i><sub>2</sub> = 1</span
       pLevels.dots([sel + 1], [eig.values[sel]], { color: 'transparent', r: 7 });
       { const ctx = pLevels.ctx; ctx.strokeStyle = c.fg; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(pLevels.x(sel + 1), pLevels.y(eig.values[sel]), 7, 0, 2 * Math.PI); ctx.stroke(); }
       pLevels.end();
-      pLevels.legend([{ color: c.psi, label: 'bulk' }, { color: c.hpsi, label: 'in the gap' }], { x: 0, y: -12, align: 'right' });
+      pLevels.legend([{ color: c.psi, label: 'bulk' }, { color: c.hpsi, label: 'in the gap' }], { x: 6, y: pLevels.h - pLevels.opts.pad.b - pLevels.opts.pad.t - 12, align: 'right' });
       // (B) bands in k-space with the finite levels as lines
       const ks = Array.from({ length: 121 }, (_, i) => -Math.PI + (i * 2 * Math.PI) / 120);
       pBands.begin({ xlim: [-Math.PI, Math.PI], ylim: [-Emax, Emax], xlabel: 'wavenumber k', ylabel: 'E(k)', title: 'Infinite chain: E±(k), with the N levels as lines', xticks: [-Math.PI, -Math.PI / 2, 0, Math.PI / 2, Math.PI], xtickFmt: (v) => ({ '-3.14': '−π', '-1.57': '−π/2', '0': '0', '1.57': 'π/2', '3.14': 'π' })[v.toFixed(2)] || '' });
