@@ -15,21 +15,17 @@ intuition behind them.
 ## The app
 
 Guided chapters, each a sequence of short steps with one control and a live caption, built on a three-site
-chain whose Hilbert space is the ℝ³ you can see:
+chain whose Hilbert space is the ℝ³ you can see. The 3D view carries the state as an arrow; the chain at the
+bottom of the view shows the sites, their probabilities, hop arrows and the clock of each complex amplitude.
 
 1. **Hilbert space** — sites become axes on a 3D grid; a state is an arrow; probabilities are squared components.
 2. **The space of states** — only the direction counts; the unit sphere; two dials; ψ and −ψ are one state; the map of the sphere.
-3. **Hamiltonian = matrix** — hopping to the neighbours, on-site energy, the three columns, linearity, the deformed cube, symmetry.
+3. **Hamiltonian = matrix** — hopping to the neighbours, on-site energy, the three columns, symmetry.
 4. **Phase** — a clock on every site; site measurements ignore the phase, other bases see it; two guides feeding the middle one cancel at 180°: the dark state.
-5. **Eigenvectors** — the directions *H* only stretches; the energy landscape ⟨ψ|H|ψ⟩ on the sphere; the energy basis.
-6. **Measurement** — projection onto a basis, Born rule as Pythagoras, collapse, incompatible questions.
-7. **Time evolution** — eigen-components as clocks, stationary states, beats; exact evolution versus RK4 and its stability limit.
-8. **Bands** — from 3 to 80 sites: levels fill a band, dimerization opens a gap, edge states appear (SSH, tasks 0–4).
 
-Chapters 5 to 8 are still in the first, text-heavy form and are being converted one by one.
-
-Conventions follow the coding sessions: ħ = 1, i dψ/dt = Hψ, hopping H<sub>n,n+1</sub> = +J, site 1 is an A site,
-J₁ sits inside the unit cell.
+Planned next, in the same form: eigenvectors (states that stand still), measurement, time evolution, and bands
+(the N-site chain, SSH edge states). The earlier text-heavy versions of those chapters are in the git history
+(commit `014c94f`, folder `app/js/chapters/`).
 
 ### Run it locally
 

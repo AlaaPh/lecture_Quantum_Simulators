@@ -25,7 +25,7 @@ export function makeGuide({ panel, steps, nextHref, nextLabel = 'Next chapter �
       steps[step].enter(ctl);
       afterStep && afterStep(step);
       const back = button('← Back', () => api.go(step - 1), { id: 'step-back' }); back.disabled = step === 0;
-      nav.append(back, step < steps.length - 1 ? button('Next →', () => api.go(step + 1), { kind: 'primary', id: 'step-next' }) : el('a', { class: 'btn primary', href: nextHref, html: nextLabel }));
+      nav.append(back, step < steps.length - 1 ? button('Next →', () => api.go(step + 1), { kind: 'primary', id: 'step-next' }) : nextHref ? el('a', { class: 'btn primary', href: nextHref, html: nextLabel }) : el('span', { class: 'step-end', html: nextLabel }));
       api.refresh();
     },
     dispose() { window.removeEventListener('keydown', keyHandler); },

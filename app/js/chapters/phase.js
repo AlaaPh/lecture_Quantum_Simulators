@@ -19,7 +19,7 @@ export function cstr(re, im) {
 }
 
 export default {
-  id: 'phase', title: 'Phase: a clock on every site', nav: 'Phase', use3d: true, layout: 'wide',
+  id: 'phase', title: 'Phase: a clock on every site', nav: 'Phase',
   mount({ view, tweens, store, panel, stage, onThemeChange }) {
     const c = colors();
     const siteColor = [c.v1, c.v2, c.v3];
@@ -105,7 +105,7 @@ export default {
           ctl.append(row([playBtn, button('Restart', restart)]), s.root, row([button('in phase 0°', () => s.set(0, true)), button('90°', () => s.set(90, true)), button('opposite 180°', () => s.set(180, true))]));
           plot.onRedraw = () => drawPlot(); } },
     ];
-    const guide = makeGuide({ panel, steps, nextHref: '#eigen', nextLabel: 'Next chapter: eigenvectors →', beforeStep: () => { tweens.cancelAll(); playing = false; }, afterStep: () => render() });
+    const guide = makeGuide({ panel, steps, nextHref: null, nextLabel: 'End of the demo. Next: eigenvectors.', beforeStep: () => { tweens.cancelAll(); playing = false; }, afterStep: () => render() });
     guide.slot.append(plotBox);
     onThemeChange(() => { const cc = colors(); [cc.v1, cc.v2, cc.v3].forEach((col, i) => { siteColor[i] = col; axes[i].setColor(col); }); hud.setColors(siteColor); reA.setColor(cc.psi); imA.setColor(cc.psi); render(); });
     guide.go(0);

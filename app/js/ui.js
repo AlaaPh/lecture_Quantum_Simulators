@@ -11,8 +11,6 @@ export function el(tag, attrs = {}, children = []) {
   for (const c of [].concat(children)) if (c) e.append(c);
   return e;
 }
-export const html = (s) => { const t = document.createElement('template'); t.innerHTML = s.trim(); return t.content; };
-
 export function slider({ id, label, min, max, step = 0.01, value, format = (v) => v.toFixed(2), onInput }) {
   const input = el('input', { type: 'range', id, min, max, step, value });
   const out = el('output', { class: 'val', for: id, text: format(+value) });
@@ -35,29 +33,6 @@ export function toggle({ id, label, checked = false, onChange }) {
   const root = el('label', { class: 'ctl ctl-toggle', for: id }, [input, el('span', { html: label })]);
   return { root, input, get: () => input.checked, set: (v) => { input.checked = v; } };
 }
-export function segmented({ id, options, value, onChange }) {
-  const root = el('div', { class: 'seg', role: 'group', id });
-  const btns = options.map((o) => el('button', { type: 'button', class: 'seg-btn' + (o.value === value ? ' active' : ''), html: o.label, 'data-value': o.value }));
-  btns.forEach((b) => { b.addEventListener('click', () => { set(b.dataset.value); onChange && onChange(b.dataset.value); }); root.append(b); });
-  function set(v) { value = v; btns.forEach((b) => b.classList.toggle('active', b.dataset.value === String(v))); }
-  return { root, get: () => value, set };
-}
-// Key/value readout with tabular numbers.
-export function readout(rows) {
-  const root = el('dl', { class: 'readout' });
-  const vals = {};
-  for (const [key, label, init] of rows) {
-    const dd = el('dd', { text: init ?? '' });
-    vals[key] = dd;
-    root.append(el('dt', { html: label }), dd);
-  }
-  return { root, set: (key, v) => { vals[key].innerHTML = v; } };
-}
-export function group(title, children, { open = true } = {}) {
-  const d = el('details', { class: 'ctl-group' }, [el('summary', { html: title }), el('div', { class: 'ctl-group-body' }, children)]);
-  d.open = open;
-  return d;
-}
 // Matrix display with brackets. set(M, {hiCol, hiRow, fmt})
 export function matrixView(n, m, { label = '', cls = '' } = {}) {
   const cells = [];
@@ -75,8 +50,3 @@ export function matrixView(n, m, { label = '', cls = '' } = {}) {
     },
   };
 }
-// Column vector display.
-export function vectorView(n, opts = {}) { return matrixView(n, 1, opts); }
-
-export const math = (s) => `<span class="m">${s}</span>`;
-export const fmtNum = (x, d = 2) => (Math.abs(x) < 0.5 * 10 ** -d ? (0).toFixed(d) : x.toFixed(d));

@@ -8,7 +8,7 @@ import { makeHud, psiEquation, probsOf, pct, comp } from '../hud.js';
 import { randomUnit, siteAxes } from './kit.js';
 
 export default {
-  id: 'states', title: 'Hilbert space: sites become axes', nav: 'Hilbert space', use3d: true, layout: 'wide',
+  id: 'states', title: 'Hilbert space: sites become axes', nav: 'Hilbert space',
   mount({ view, tweens, store, panel, stage, onThemeChange }) {
     const c = colors();
     const siteColor = [c.v1, c.v2, c.v3];
