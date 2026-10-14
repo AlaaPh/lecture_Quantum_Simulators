@@ -200,25 +200,6 @@ export class View3D {
     this.root.add(m);
     return m;
   }
-  makeAxes({ length = 1.6, labels = ['<i>e</i><sub>1</sub>', '<i>e</i><sub>2</sub>', '<i>e</i><sub>3</sub>'], negative = true } = {}) {
-    const c = colors();
-    const dirs = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
-    const items = [];
-    dirs.forEach((d, i) => {
-      const pos = this.makeSegment({ color: c.axis });
-      pos.set([0, 0, 0], d.map((x) => x * length));
-      const cone = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.12, 16), this._mat(c.axis));
-      cone.position.set(d[0] * length, d[1] * length, d[2] * length);
-      cone.quaternion.setFromUnitVectors(Y, v3(d));
-      this.root.add(cone);
-      let neg = null;
-      if (negative) { neg = this.makeSegment({ color: c.axis, dashed: true, opacity: 0.5 }); neg.set([0, 0, 0], d.map((x) => -x * length * 0.8)); }
-      const lab = this.addLabel(labels[i], d.map((x) => x * (length + 0.17)), 'lbl-axis');
-      items.push({ pos, neg, cone, lab });
-    });
-    this.themed.push(() => { const cc = colors(); items.forEach((it) => { it.pos.setColor(cc.axis); it.cone.material.color.set(cc.axis); if (it.neg) it.neg.setColor(cc.axis); }); });
-    return { setLabels: (ls) => items.forEach((it, i) => it.lab.setText(ls[i])) };
-  }
   makeSphere({ opacity = 0.16, grid = true } = {}) {
     const c = colors();
     const geom = new THREE.SphereGeometry(1, 96, 64);

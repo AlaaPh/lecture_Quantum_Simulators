@@ -6,19 +6,11 @@ import states from './chapters/states.js';
 import sphere from './chapters/sphere.js';
 import operator from './chapters/operator.js';
 import phase from './chapters/phase.js';
-import eigen from './chapters/eigen.js';
-import measure from './chapters/measure.js';
-import evolve from './chapters/evolve.js';
-import bands from './chapters/bands.js';
 
-const chapters = [states, sphere, operator, phase, eigen, measure, evolve, bands];
+const chapters = [states, sphere, operator, phase];
 
 // Shared model: the three-site Hamiltonian and the current state follow the reader from chapter to chapter.
-const store = {
-  eps: [0, 0, 0],
-  J: [1, 1],
-  psi: [0.5, 0.7071, 0.5],
-};
+const store = { eps: [0, 0, 0], J: [1, 1], psi: [0.5, 0.7071, 0.5] };
 
 const $ = (id) => document.getElementById(id);
 const view = new View3D($('view3d'));
@@ -32,11 +24,7 @@ function applyTheme(t) {
   try { if (t) localStorage.setItem('qsl-theme', t); else localStorage.removeItem('qsl-theme'); } catch (e) { /* storage unavailable */ }
   onThemeChanged();
 }
-function onThemeChanged() {
-  invalidateTheme();
-  view.applyTheme();
-  for (const cb of themeCbs) cb();
-}
+function onThemeChanged() { invalidateTheme(); view.applyTheme(); for (const cb of themeCbs) cb(); }
 try { const t = localStorage.getItem('qsl-theme'); if (t) root.dataset.theme = t; } catch (e) { /* ignore */ }
 $('theme-btn').addEventListener('click', () => {
   const dark = root.dataset.theme === 'dark' || (!root.dataset.theme && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -55,19 +43,11 @@ function show(id) {
   if (currentId === chap.id) return;
   if (current) { current.unmount && current.unmount(); }
   tweens.cancelAll(); view.clear(); view.resetCamera(); themeCbs = [];
-  $('panel').innerHTML = ''; $('controls').innerHTML = '';
-  view.setVisible(chap.use3d !== false);
-  $('stage2d').hidden = chap.use3d !== false; $('stage2d').innerHTML = '';
-  $('hint').hidden = chap.use3d === false;
+  $('panel').innerHTML = '';
   document.querySelectorAll('.rail a.chap').forEach((a) => a.classList.toggle('active', a.id === 'nav-' + chap.id));
-  const ctx = { view, tweens, store, panel: $('panel'), controls: $('controls'), stage: $('stage'), stage2d: $('stage2d'), onThemeChange: (cb) => themeCbs.push(cb) };
-  document.querySelector('.content').classList.toggle('wide-stage', chap.layout === 'wide');
+  const ctx = { view, tweens, store, panel: $('panel'), stage: $('stage'), onThemeChange: (cb) => themeCbs.push(cb) };
   current = chap.mount(ctx) || {};
   currentId = chap.id;
-  const pager = $('pager'); pager.innerHTML = ''; pager.hidden = chap.layout === 'wide';
-  const prev = chapters[idx - 1], next = chapters[idx + 1];
-  pager.append(prev ? el('a', { href: '#' + prev.id, html: '&larr; ' + prev.title }) : el('span'));
-  pager.append(next ? el('a', { href: '#' + next.id, html: next.title + ' &rarr;' }) : el('span'));
   $('panel-wrap').scrollTop = 0;
   document.title = `${idx + 1}. ${chap.title} · Quantum Simulators Lab`;
 }

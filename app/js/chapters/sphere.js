@@ -9,7 +9,7 @@ import { siteAxes, deg } from './kit.js';
 const SITE = ['site 1', 'site 2', 'site 3'];
 
 export default {
-  id: 'sphere', title: 'All states live on a sphere', nav: 'The space of states', use3d: true, layout: 'wide',
+  id: 'sphere', title: 'All states live on a sphere', nav: 'The space of states',
   mount({ view, tweens, store, panel, stage, onThemeChange }) {
     const c = colors();
     const siteColor = [c.v1, c.v2, c.v3];
