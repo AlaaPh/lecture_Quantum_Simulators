@@ -12,7 +12,7 @@ function slerp(a, b, t) {
 }
 
 // tween({from, to, duration, onUpdate, onDone, mode:'linear'|'slerp'}) -> cancel()
-export function tween({ from, to, duration = 600, onUpdate, onDone, mode = 'linear' }) {
+export function tween({ from, to, duration = 600, onUpdate, onDone, mode = 'linear', ease = easeInOut }) {
   if (reduced()) duration = 0;
   const isArr = Array.isArray(from);
   const interp = (t) => (isArr ? (mode === 'slerp' ? slerp(from, to, t) : from.map((v, i) => v + (to[i] - v) * t)) : from + (to - from) * t);
@@ -20,7 +20,7 @@ export function tween({ from, to, duration = 600, onUpdate, onDone, mode = 'line
   let raf = 0; const t0 = performance.now();
   const step = (now) => {
     const u = Math.min(1, (now - t0) / duration);
-    onUpdate(interp(easeInOut(u)));
+    onUpdate(interp(ease(u)));
     if (u < 1) raf = requestAnimationFrame(step); else onDone && onDone();
   };
   raf = requestAnimationFrame(step);

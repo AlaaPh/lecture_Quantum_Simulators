@@ -63,7 +63,7 @@ function show(id) {
   document.querySelector('.content').classList.toggle('wide-stage', chap.layout === 'wide');
   current = chap.mount(ctx) || {};
   currentId = chap.id;
-  const pager = $('pager'); pager.innerHTML = '';
+  const pager = $('pager'); pager.innerHTML = ''; pager.hidden = chap.layout === 'wide';
   const prev = chapters[idx - 1], next = chapters[idx + 1];
   pager.append(prev ? el('a', { href: '#' + prev.id, html: '&larr; ' + prev.title }) : el('span'));
   pager.append(next ? el('a', { href: '#' + next.id, html: next.title + ' &rarr;' }) : el('span'));
