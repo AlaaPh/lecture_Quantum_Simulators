@@ -6,13 +6,14 @@ export function makeGuide({ panel, steps, nextHref, nextLabel = 'Next chapter â†
   const title = el('h2', { class: 'step-title' });
   const text = el('p', { class: 'step-text' });
   const caption = el('div', { class: 'caption' });
+  const slot = el('div', { class: 'guide-slot' }); // chapter widgets (plots, dials) go here, between caption and controls
   const ctl = el('div', { class: 'controls' });
   const nav = el('div', { class: 'row step-nav' });
-  panel.append(stepsBar, title, text, caption, ctl, nav);
+  panel.append(stepsBar, title, text, caption, slot, ctl, nav);
   let step = 0;
   const api = {
     get step() { return step; },
-    ctl, caption,
+    ctl, caption, slot,
     refresh() { caption.innerHTML = steps[step].caption(); },
     go(i) {
       step = Math.max(0, Math.min(steps.length - 1, i));

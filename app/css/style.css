@@ -81,6 +81,13 @@ a { color: var(--accent); }
 .hud-chain .hop-head { fill: var(--hpsi); }
 .hud-chain .hop-self { fill: none; stroke: var(--hpsi); stroke-width: 2; stroke-dasharray: 4 3; }
 .hud-chain .hop-label { font: 11px var(--font-mono); fill: var(--hpsi); }
+.hud-chain .dial-ref { stroke: var(--line); stroke-width: 1; }
+.hud-chain .hand { stroke: var(--psi); stroke-width: 2.5; stroke-linecap: round; }
+.hud-chain .hand-tip { fill: var(--psi); }
+.hud-chain .part { stroke-width: 2; stroke-linecap: round; opacity: 0.9; }
+.hud-chain .part-tip { opacity: 0.9; }
+.hud-chain .hand-sum { stroke: var(--hpsi); stroke-width: 3; stroke-linecap: round; }
+.hud-chain .hand-sum-tip { fill: var(--hpsi); }
 .hud-dim { color: var(--fg-2); font-size: 15px; margin-left: 10px; }
 .hud-chain { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); width: min(340px, 80%); height: 140px; pointer-events: auto; }
 .hud-chain .bond { stroke: var(--axis); stroke-width: 3; }
