@@ -14,26 +14,30 @@ intuition behind them.
 
 ## The app
 
-**Lecture 1** (`app/index.html`): one instrument, five acts, meant to be narrated live. A particle in three
-wells is shown as the real continuous wave and, at the same time, as the three numbers that replace it.
-Everything later in the course (SSH chains, edge states, pumping) uses the same picture with more sites.
+**Exercise 1** (`app/index.html`): one instrument, six acts, meant to be narrated live. Three coupled
+waveguides are shown as the real field ψ(x) in a refractive-index profile n(x) and, at the same time, as
+the three numbers that replace it. Everything later in the course (SSH chains, edge states, pumping) uses
+the same picture with more guides.
 
-1. **Discrete** — a beam enters well 1 of a real potential (Crank–Nicolson on a grid). Deep wells: the wave
-   is three numbers with three clocks, and the 3 × 3 Hamiltonian is *computed* from the wells (Wannier
-   projection). Shallow wells: the wave spills out and the numbers miss part of it.
-2. **State** — the list (ψ₁, ψ₂, ψ₃): a length and a clock per site; squared lengths add to 100%.
-3. **Rule** — J pushes the neighbours, ε sets a clock rate; play and the rule moves the light. The pushes on
-   the clock of site 2 are drawn head to tail: the Schrödinger equation as a picture.
-4. **Motion** — the three modes. For a mode every push is at right angles to its hand: hands turn at one
-   rate, bars never move. Anything else is a mix of modes and moves.
-5. **Hilbert space** — the same state in site coordinates and in mode coordinates; optional 3D arrow with the
-   site axes and the mode axes.
+1. **Waveguides** — a beam enters guide 1 of a real index profile (Crank–Nicolson on a grid; z plays the
+   role of time). High index contrast: the field is three amplitudes with three phases, and the 3 × 3
+   coupled-mode matrix is *computed* from n(x) (Wannier projection). Low contrast: the light spills out.
+2. **State** — the list (ψ₁, ψ₂, ψ₃): an intensity and a phase per guide; intensities add to 100%.
+3. **Coupling** — i dψ/dt = Hψ as a table: J pushes the neighbours, ε sets a phase rate. Play: the
+   directional coupler. The pushes on the phase of guide 2 are drawn head to tail.
+4. **Supermodes** — the three eigenstates. For a supermode every push is at right angles to its hand: the
+   phases advance at one rate E, the intensities never move. Anything else is a mix and moves.
+5. **Hilbert space** — the same state in guide coordinates and in supermode coordinates; optional 3D arrow
+   with the guide axes and the supermode axes.
+6. **Task 1** — the chain of N guides (default 20, J = 1): the eigenvalues as dots with the closed form
+   2J cos(nπ/(N+1)), the eigenstates as a colour plot, and the propagation map of one excited guide
+   (discrete diffraction) or of one supermode (nothing moves). Click a dot or a row to launch that mode.
 
-**Geometry appendix** (`app/chapters.html`): four guided chapters on the 3D picture of a three-site Hilbert
-space (sites become axes, the sphere of states, the Hamiltonian as a matrix, phase and the dark state).
+**Geometry appendix** (`app/chapters.html`): four guided chapters on the 3D picture of a three-guide Hilbert
+space (guides become axes, the sphere of states, the Hamiltonian as a matrix, phase and the dark state).
 
-Conventions follow the coding sessions: ħ = 1, i dψ/dt = Hψ, hopping H<sub>n,n+1</sub> = +J (the hop
-computed from the wells comes out negative; the sign is a convention), site 1 is an A site.
+Conventions follow the coding sessions: ħ = 1, i dψ/dt = Hψ, hopping H<sub>n,n+1</sub> = +J (the coupling
+computed from n(x) comes out negative; the sign is a convention), site 1 is an A site.
 
 ### Run it locally
 
@@ -53,7 +57,7 @@ Enable it once: repository **Settings → Pages → Source: GitHub Actions**.
 ### Verify the numerics
 
 `app/js/linalg.js` carries the eigensolver (cyclic Jacobi), the SSH chain builder and the integrators;
-`app/js/lecture1/continuum.js` the grid Schrödinger solver and the Wannier projection.
+`app/js/lecture1/continuum.js` the grid Schrödinger (paraxial Helmholtz) solver and the Wannier projection.
 Quick checks from the repository root:
 
 ```bash

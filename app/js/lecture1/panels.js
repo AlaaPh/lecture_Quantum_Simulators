@@ -34,7 +34,7 @@ export function arrow(ctx, x0, y0, x1, y1, color, width = 2, head = 7) {
 // ---------------------------------------------------------------------------------------------
 export class ContinuumPanel extends Canvas2D {
   // cont: Continuum; amps: overlaps c_k; siteColors
-  draw(cont, { siteColors, captured }) {
+  draw(cont, { siteColors, captured, labels, title }) {
     const c = colors(), ctx = this.ctx, w = this.w, h = this.h;
     this.clear();
     const padL = 16, padR = 16, top = 26, bottom = h - 34;
@@ -52,7 +52,7 @@ export class ContinuumPanel extends Canvas2D {
     for (const s of seps) { ctx.beginPath(); ctx.moveTo(X(s), top); ctx.lineTo(X(s), bottom); ctx.stroke(); }
     ctx.setLineDash([]);
     ctx.font = this.font(12, 500); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    cont.centers.forEach((cc, k) => { ctx.fillStyle = siteColors[k]; ctx.fillText(`well ${k + 1}`, X(cc), bottom + 8); });
+    cont.centers.forEach((cc, k) => { ctx.fillStyle = siteColors[k]; ctx.fillText(labels ? labels[k] : `well ${k + 1}`, X(cc), bottom + 8); });
     // |psi|^2 (and a thin Re psi line): fixed amplitude scale so the picture stays comparable
     const rho = new Float64Array(cont.N); let rmax = 0;
     for (let i = 0; i < cont.N; i++) { rho[i] = cont.re[i] ** 2 + cont.im[i] ** 2; if (rho[i] > rmax) rmax = rho[i]; }
@@ -66,9 +66,9 @@ export class ContinuumPanel extends Canvas2D {
     ctx.strokeStyle = rgbToCss(rgb, 0.45); ctx.lineWidth = 1; ctx.stroke();
     // header
     ctx.fillStyle = c['fg-2']; ctx.font = this.font(12); ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-    ctx.fillText('the wave ψ(x): |ψ|² filled, Re ψ thin', padL, 6);
+    ctx.fillText(title || 'the wave ψ(x): |ψ|² filled, Re ψ thin', padL, 6);
     ctx.textAlign = 'right'; ctx.fillStyle = captured > 0.97 ? c['fg-2'] : c.hpsi;
-    ctx.fillText(`${(captured * 100).toFixed(1)}% of the wave inside the three well modes`, w - padR, 6);
+    ctx.fillText(`${(captured * 100).toFixed(1)}% of the light in the three guided modes`, w - padR, 6);
   }
 }
 
@@ -78,8 +78,9 @@ export class ChainPanel extends Canvas2D {
   draw(s) {
     const c = colors(), ctx = this.ctx, w = this.w, h = this.h, n = s.psi.re.length;
     this.clear();
-    const r = Math.max(14, Math.min(h * 0.19, w / (n * 3.2)));
-    const xs = Array.from({ length: n }, (_, k) => w * ((k + 0.5) / n) * 0.8 + w * 0.1);
+    const r = Math.max(5, Math.min(h * 0.19, w / (n * 3.2)));
+    const xs = Array.from({ length: n }, (_, k) => w * ((k + 0.5) / n) * 0.86 + w * 0.07);
+    const every = n <= 12 ? 1 : n <= 30 ? 5 : 10;
     const yS = h * 0.64, barMax = h * 0.3, barTop = yS - r - 10;
     const p = s.psi.re.map((a, i) => a * a + s.psi.im[i] ** 2);
     if (s.title) { ctx.fillStyle = c['fg-2']; ctx.font = this.font(12); ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(s.title, 12, 6); }
@@ -105,7 +106,7 @@ export class ChainPanel extends Canvas2D {
     }
     // bars (population) above the sites
     for (let i = 0; i < n; i++) {
-      const bw = Math.max(8, r * 0.7), hgt = p[i] * barMax;
+      const bw = Math.max(8, r * 0.7), hgt = (p[i] / (s.barRef || 1)) * barMax;
       ctx.fillStyle = s.siteColors[i]; ctx.globalAlpha = 0.9; ctx.fillRect(xs[i] - bw / 2, barTop - hgt, bw, hgt); ctx.globalAlpha = 1;
       ctx.strokeStyle = c.line; ctx.beginPath(); ctx.moveTo(xs[i] - bw, barTop + 0.5); ctx.lineTo(xs[i] + bw, barTop + 0.5); ctx.stroke();
     }
@@ -115,7 +116,8 @@ export class ChainPanel extends Canvas2D {
       ctx.fillStyle = c.surface; ctx.fill();
       ctx.fillStyle = s.siteColors[i]; ctx.globalAlpha = 0.12 + 0.75 * p[i]; ctx.fill(); ctx.globalAlpha = 1;
       ctx.lineWidth = 2; ctx.strokeStyle = s.siteColors[i]; ctx.stroke();
-      if (!s.showDials) { ctx.fillStyle = c.fg; ctx.font = this.font(Math.round(r * 0.8), 600, true); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(i + 1), xs[i], yS + 1); }
+      if (!s.showDials && r >= 9) { ctx.fillStyle = c.fg; ctx.font = this.font(Math.round(r * 0.8), 600, true); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(i + 1), xs[i], yS + 1); }
+      else if (!s.showDials && ((i + 1) % every === 0 || i === 0)) { ctx.fillStyle = c['fg-2']; ctx.font = this.font(11, 500, true); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(String(i + 1), xs[i], yS + r + 6); }
       if (s.pct) { ctx.fillStyle = c['fg-2']; ctx.font = this.font(12, 500, true); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(`${Math.round(p[i] * 100)}%`, xs[i], yS + r + 8); }
       if (s.labels) { ctx.fillStyle = s.siteColors[i]; ctx.font = this.font(12, 500); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(s.labels[i], xs[i], yS + r + (s.pct ? 24 : 8)); }
     }

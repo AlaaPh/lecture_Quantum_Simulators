@@ -1,7 +1,7 @@
 // Minimal HiDPI canvas plotting with hover hits. Colors come from the theme tokens.
 import { colors, cmapSeq, cmapDiv, rgbToCss } from './theme.js';
 
-function niceTicks(lo, hi, n = 5) {
+export function niceTicks(lo, hi, n = 5) {
   const span = hi - lo || 1;
   const raw = span / n, p = Math.pow(10, Math.floor(Math.log10(raw)));
   const m = raw / p, step = (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p;
