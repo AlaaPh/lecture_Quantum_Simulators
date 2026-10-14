@@ -18,14 +18,47 @@ export function makeHud(stage, { siteColors, onSiteClick } = {}) {
     <line x1="48" y1="44" x2="272" y2="44" class="bond"/>
     <g class="hops"></g>
     ${[0, 1, 2].map((i) => `<g class="site" data-i="${i}"><circle cx="${X(i)}" cy="44" r="22" class="site-bg"/><circle cx="${X(i)}" cy="44" r="22" class="site-fill" fill="${cols[i]}" fill-opacity="0"/><circle cx="${X(i)}" cy="44" r="22" class="site-ring" stroke="${cols[i]}"/><text x="${X(i)}" y="48" class="site-name" text-anchor="middle">${i + 1}</text><text x="${X(i)}" y="86" class="site-p" text-anchor="middle"></text></g>`).join('')}
+    <g class="dials"></g>
   </svg>`;
   hud.append(eq, eq2, matBox, chain); stage.append(hud);
   const fills = [...chain.querySelectorAll('.site-fill')], rings = [...chain.querySelectorAll('.site-ring')], ptexts = [...chain.querySelectorAll('.site-p')];
-  const hopsG = chain.querySelector('.hops');
+  const hopsG = chain.querySelector('.hops'), dialsG = chain.querySelector('.dials');
+  const names = [...chain.querySelectorAll('.site-name')];
+  const R = 20;
+  const hand = (i, re, im, cls, scale = 1, from = [0, 0]) => {
+    const x0 = X(i) + from[0], y0 = 44 + from[1], x1 = x0 + R * scale * re, y1 = y0 - R * scale * im;
+    return { svg: `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" class="${cls}"/><circle cx="${x1}" cy="${y1}" r="2.6" class="${cls}-tip"/>`, tip: [x1 - X(i), y1 - 44] };
+  };
   chain.querySelectorAll('g.site').forEach((g) => { g.style.cursor = onSiteClick ? 'pointer' : 'default'; g.addEventListener('click', () => onSiteClick && onSiteClick(+g.dataset.i)); });
   return {
     eq(html) { eq.innerHTML = html || ''; },
     eq2(html) { eq2.innerHTML = html || ''; },
+    // complex amplitudes as clock hands inside the site circles; null hides them
+    dials(psi) {
+      names.forEach((n) => { n.style.opacity = psi ? 0.25 : 1; });
+      if (!psi) { dialsG.innerHTML = ''; return; }
+      dialsG.innerHTML = [0, 1, 2].map((i) => `<line x1="${X(i)}" y1="44" x2="${X(i) + R}" y2="44" class="dial-ref"/>` + hand(i, psi.re[i], psi.im[i], 'hand').svg).join('');
+    },
+    // in the dial of site i: contributions added head to tail, and their sum
+    dialParts(i, parts, scale = 0.7) {
+      let from = [0, 0], sre = 0, sim = 0, svg = '';
+      for (const p of parts) { const h = hand(i, p.re, p.im, 'part', scale, from); svg += h.svg.replace(/class="part"/, `class="part" style="stroke:${p.color}"`).replace(/class="part-tip"/, `class="part-tip" style="fill:${p.color}"`); from = h.tip; sre += p.re; sim += p.im; }
+      svg += hand(i, sre, sim, 'hand-sum', scale).svg;
+      dialsG.insertAdjacentHTML('beforeend', svg);
+    },
+    // hop arrows from both neighbours into site i
+    hopsInto(i, J) {
+      hopsG.innerHTML = '';
+      if (i === null || i === undefined) return;
+      const arcs = [];
+      for (const j of [i - 1, i + 1]) {
+        if (j < 0 || j > 2) continue;
+        const Jij = J[Math.min(i, j)];
+        const x0 = X(j) + (i > j ? 24 : -24), x1 = X(i) + (i > j ? -24 : 24), xm = (X(i) + X(j)) / 2;
+        arcs.push(`<path d="M${x0},${44 - 14} Q${xm},${-18} ${x1},${44 - 14}" class="hop" marker-end="url(#hop-arrow)" style="stroke-width:${Math.max(1, Math.min(5, 1 + 2 * Math.abs(Jij)))}"/><text x="${xm}" y="${-20}" class="hop-label" text-anchor="middle">J = ${fmt(Jij)}</text>`);
+      }
+      hopsG.innerHTML = arcs.join('');
+    },
     // 3x3 matrix under the equation; null hides it
     matrix(M, opts = {}) { matBox.hidden = !M; if (M) mat.set(M, opts); },
     // hop arrows from a source site to its neighbours (strength J) and a ring for its on-site energy; null hides them

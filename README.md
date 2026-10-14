@@ -14,16 +14,19 @@ intuition behind them.
 
 ## The app
 
-Seven chapters, each an interactive scene plus a short text, built on a three-site chain whose Hilbert
-space is the ℝ³ you can see:
+Guided chapters, each a sequence of short steps with one control and a live caption, built on a three-site
+chain whose Hilbert space is the ℝ³ you can see:
 
-1. **States are vectors** — amplitudes as coordinates, basis states as axes, superposition as a direction.
-2. **The space of states** — normalization puts every state on the unit sphere; ψ and −ψ are one state.
-3. **Hamiltonian = matrix** — the Schrödinger equation is linear; columns of *H* are the images of the basis states.
-4. **Eigenvectors** — the directions *H* only stretches; the energy landscape ⟨ψ|H|ψ⟩ on the sphere; the energy basis.
-5. **Measurement** — projection onto a basis, Born rule as Pythagoras, collapse, incompatible questions.
-6. **Time evolution** — eigen-components as clocks, stationary states, beats; exact evolution versus RK4 and its stability limit.
-7. **Bands** — from 3 to 80 sites: levels fill a band, dimerization opens a gap, edge states appear (SSH, tasks 0–4).
+1. **Hilbert space** — sites become axes on a 3D grid; a state is an arrow; probabilities are squared components.
+2. **The space of states** — only the direction counts; the unit sphere; two dials; ψ and −ψ are one state; the map of the sphere.
+3. **Hamiltonian = matrix** — hopping to the neighbours, on-site energy, the three columns, linearity, the deformed cube, symmetry.
+4. **Phase** — a clock on every site; site measurements ignore the phase, other bases see it; two guides feeding the middle one cancel at 180°: the dark state.
+5. **Eigenvectors** — the directions *H* only stretches; the energy landscape ⟨ψ|H|ψ⟩ on the sphere; the energy basis.
+6. **Measurement** — projection onto a basis, Born rule as Pythagoras, collapse, incompatible questions.
+7. **Time evolution** — eigen-components as clocks, stationary states, beats; exact evolution versus RK4 and its stability limit.
+8. **Bands** — from 3 to 80 sites: levels fill a band, dimerization opens a gap, edge states appear (SSH, tasks 0–4).
+
+Chapters 5 to 8 are still in the first, text-heavy form and are being converted one by one.
 
 Conventions follow the coding sessions: ħ = 1, i dψ/dt = Hψ, hopping H<sub>n,n+1</sub> = +J, site 1 is an A site,
 J₁ sits inside the unit cell.

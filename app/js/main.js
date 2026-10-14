@@ -5,12 +5,13 @@ import { el } from './ui.js';
 import states from './chapters/states.js';
 import sphere from './chapters/sphere.js';
 import operator from './chapters/operator.js';
+import phase from './chapters/phase.js';
 import eigen from './chapters/eigen.js';
 import measure from './chapters/measure.js';
 import evolve from './chapters/evolve.js';
 import bands from './chapters/bands.js';
 
-const chapters = [states, sphere, operator, eigen, measure, evolve, bands];
+const chapters = [states, sphere, operator, phase, eigen, measure, evolve, bands];
 
 // Shared model: the three-site Hamiltonian and the current state follow the reader from chapter to chapter.
 const store = {

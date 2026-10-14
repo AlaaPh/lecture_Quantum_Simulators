@@ -111,7 +111,7 @@ export default {
           ctl.append(s12.root, s23.root, row([button('Uniform chain (ε = 0, J = 1)', () => { store.eps = [0, 0, 0]; store.J = [1, 1]; s12.set(1); s23.set(1); render(); })]));
         } },
     ];
-    const guide = makeGuide({ panel, steps, nextHref: '#eigen', nextLabel: 'Next chapter: eigenvectors →', beforeStep: () => { tweens.cancelAll(); syncSliders = null; }, afterStep: () => render() });
+    const guide = makeGuide({ panel, steps, nextHref: '#phase', nextLabel: 'Next chapter: phase →', beforeStep: () => { tweens.cancelAll(); syncSliders = null; }, afterStep: () => render() });
     onThemeChange(() => {
       const cc = colors(); [cc.v1, cc.v2, cc.v3].forEach((col, i) => { siteColor[i] = col; axes[i].setColor(col); });
       hud.setColors(siteColor); psi.setColor(cc.psi); handle.material.color.set(cc.psi); hpsi.setColor(cc.hpsi); cols.forEach((a) => a.setColor(cc.hpsi)); parts.forEach((a) => a.setColor(cc.hpsi)); dashes.forEach((d) => d.setColor(cc.hpsi)); render();
