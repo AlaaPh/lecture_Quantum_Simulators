@@ -244,18 +244,22 @@ export class View3D {
     this.root.add(g);
     const baseOpacity = opacity;
     const tmpColor = new THREE.Color();
+    let fade = 1, colored = 0;
+    const applyOpacity = () => { mat.opacity = (colored || baseOpacity) * fade; if (lines) lines.material.opacity = 0.9 * fade; this.dirty = true; };
     return {
       obj: g, mesh,
+      // fade in/out everything (0..1) without losing the base opacity
+      setFade: (t) => { fade = t; applyOpacity(); },
       // fn(x,y,z) -> [r,g,b] in 0..255 (sRGB); null restores the plain sphere
       colorBy: (fn, op = 0.9) => {
-        if (!fn) { mat.vertexColors = false; mat.opacity = baseOpacity; mat.needsUpdate = true; this.dirty = true; return; }
+        if (!fn) { mat.vertexColors = false; colored = 0; mat.needsUpdate = true; applyOpacity(); return; }
         const P = geom.attributes.position, C = geom.attributes.color;
         for (let i = 0; i < n; i++) {
           const rgb = fn(P.getX(i), P.getY(i), P.getZ(i));
           tmpColor.setRGB(rgb[0] / 255, rgb[1] / 255, rgb[2] / 255, THREE.SRGBColorSpace);
           C.setXYZ(i, tmpColor.r, tmpColor.g, tmpColor.b);
         }
-        C.needsUpdate = true; mat.vertexColors = true; mat.opacity = op; mat.needsUpdate = true; this.dirty = true;
+        C.needsUpdate = true; mat.vertexColors = true; colored = op; mat.needsUpdate = true; applyOpacity();
       },
       setVisible: (v) => { g.visible = v; this.dirty = true; },
       setGridVisible: (v) => { if (lines) lines.visible = v; this.dirty = true; },
