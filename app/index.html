@@ -3,34 +3,36 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Quantum Simulators Lab</title>
-<meta name="description" content="Interactive companion to the Quantum Simulators lecture: states as vectors, Hamiltonians as matrices, eigenvectors, measurement, time evolution and bands, built on a three-site chain you can see.">
+<title>Quantum Simulators Lecture 1</title>
+<meta name="description" content="Lecture 1 of the Quantum Simulators course as one instrument: a particle in three wells becomes three numbers, a state, a rule, motion, eigenstates and Hilbert space.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400;1,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<div class="app" id="app">
+<div class="app lect">
   <header class="top">
-    <h1>Quantum Simulators Lab</h1>
-    <span class="sub">a three-site chain you can see</span>
+    <h1>Quantum Simulators · Lecture 1</h1>
+    <nav class="acts" id="acts" aria-label="Acts"></nav>
     <span class="spacer"></span>
+    <a class="theme-btn" href="chapters.html" title="The Hilbert-space geometry chapters">geometry appendix</a>
     <button class="theme-btn" id="theme-btn" type="button" title="Switch between light and dark">Theme</button>
   </header>
-  <div class="layout">
-    <nav class="rail" id="rail" aria-label="Chapters"><div class="eyebrow">Chapters</div></nav>
-    <div class="content">
-      <section class="stage" id="stage" aria-label="Visualization">
-        <div class="view3d" id="view3d"></div>
-        <div class="hint" id="hint">drag to orbit · scroll to zoom · double-click to reset</div>
-      </section>
-      <section class="panel" id="panel-wrap" aria-live="polite">
-        <div id="panel"></div>
-      </section>
+  <main class="lect-main">
+    <div class="lect-head"><h2 id="heading"></h2><p id="lead"></p></div>
+    <div class="stage-grid" id="stage" data-act="discrete">
+      <div class="pane" id="pane-cont"><canvas></canvas></div>
+      <div class="pane" id="pane-chain"><canvas></canvas></div>
+      <div class="pane" id="pane-modes"><canvas></canvas></div>
+      <div class="pane" id="pane-trace"><canvas></canvas></div>
+      <div class="pane pane-matrix" id="pane-matrix"></div>
+      <div class="pane pane-3d" id="pane-3d" hidden></div>
     </div>
-  </div>
+    <div class="caption" id="caption"></div>
+    <div class="controls-bar" id="controls"></div>
+  </main>
 </div>
-<script type="module" src="js/main.js"></script>
+<script type="module" src="js/lecture1/main.js"></script>
 </body>
 </html>
