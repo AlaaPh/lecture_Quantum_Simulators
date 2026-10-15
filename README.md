@@ -56,6 +56,19 @@ demand). The first run enables Pages by itself; if it fails, set repository **Se
 GitHub Actions** once and re-run it. The app is then at <https://alaaph.github.io/lecture_Quantum_Simulators/>
 (the geometry appendix at `/chapters.html`).
 
+### Publish with GitLab Pages (university GitLab)
+
+`.gitlab-ci.yml` does the same job on GitLab: every push to the default branch publishes `app/` as the
+site root. Create an empty project on the university GitLab, then push this repository to it:
+
+```bash
+git remote add gitlab https://<gitlab-host>/<group-or-user>/<project>.git
+git push -u gitlab HEAD
+```
+
+The site URL is shown in the GitLab project under **Deploy → Pages** once the pipeline is green. The
+project's **Settings → General → Visibility → Pages** must be enabled on that instance.
+
 ### Verify the numerics
 
 `app/js/linalg.js` carries the eigensolver (cyclic Jacobi), the SSH chain builder and the integrators;
