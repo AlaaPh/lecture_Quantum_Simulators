@@ -52,22 +52,36 @@ The app works offline.
 ### Publish with GitHub Pages
 
 The workflow in `.github/workflows/pages.yml` deploys `app/` on every push to the default branch (and on
-demand). The first run enables Pages by itself; if it fails, set repository **Settings → Pages → Source:
-GitHub Actions** once and re-run it. The app is then at <https://alaaph.github.io/lecture_Quantum_Simulators/>
-(the geometry appendix at `/chapters.html`).
+demand from the Actions tab). Three one-time settings on github.com, all of which only the owner can make:
+
+1. The repository must be public (GitHub Pages on a private repository needs a paid plan).
+2. **Settings → Pages → Build and deployment → Source: GitHub Actions.** The workflow cannot switch this on
+   by itself. Leave the custom-domain field empty unless you own a real domain.
+3. **Settings → Environments → github-pages → Deployment branches:** allow the default branch (or choose
+   "No restriction"), otherwise the job is rejected before it starts.
+
+The app is then at <https://alaaph.github.io/lecture_Quantum_Simulators/> and the geometry appendix at
+`/chapters.html`.
 
 ### Publish with GitLab Pages (university GitLab)
 
 `.gitlab-ci.yml` does the same job on GitLab: every push to the default branch publishes `app/` as the
-site root. Create an empty project on the university GitLab, then push this repository to it:
+site root. The course copy lives at <https://gitlab.rhrk.uni-kl.de/bayazeed/quantum-simulators> (visibility
+"internal": every RPTU login can open it). To update it from a clone of this repository:
 
 ```bash
-git remote add gitlab https://<gitlab-host>/<group-or-user>/<project>.git
-git push -u gitlab HEAD
+git pull origin claude/pensive-hawking-o7z2u8      # fetch the latest GitHub state
+git push gitlab HEAD:main                          # publish it on GitLab
 ```
 
-The site URL is shown in the GitLab project under **Deploy → Pages** once the pipeline is green. The
-project's **Settings → General → Visibility → Pages** must be enabled on that instance.
+The first push needs `git remote add gitlab https://gitlab.rhrk.uni-kl.de/bayazeed/quantum-simulators.git`
+and, if the project was created with its own first commit, `--force` once (allow it under **Settings →
+Repository → Protected branches → main → Allowed to force push**).
+
+The `pages` job only produces a site if the instance has GitLab Pages switched on:
+<https://gitlab.rhrk.uni-kl.de/help/instance_configuration> lists a "GitLab Pages" section with the domain
+when it does, and the project then shows **Deploy → Pages** with the address. Without it the pipeline is
+green but nothing is served; the GitHub address above is the fallback.
 
 ### Verify the numerics
 
