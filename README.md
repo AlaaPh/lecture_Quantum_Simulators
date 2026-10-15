@@ -51,8 +51,10 @@ The app works offline.
 
 ### Publish with GitHub Pages
 
-The workflow in `.github/workflows/pages.yml` deploys `app/` on every push to `main` (and on demand).
-Enable it once: repository **Settings → Pages → Source: GitHub Actions**.
+The workflow in `.github/workflows/pages.yml` deploys `app/` on every push to the default branch (and on
+demand). The first run enables Pages by itself; if it fails, set repository **Settings → Pages → Source:
+GitHub Actions** once and re-run it. The app is then at <https://alaaph.github.io/lecture_Quantum_Simulators/>
+(the geometry appendix at `/chapters.html`).
 
 ### Verify the numerics
 
