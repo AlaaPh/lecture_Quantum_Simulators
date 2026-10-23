@@ -178,13 +178,13 @@ const acts = [
       const sN = slider({ id: 'N', label: 'guides <i>N</i>', min: 3, max: 41, step: 1, value: N, format: (x) => x.toFixed(0), onInput: (v) => { setupN(v); } });
       const sM = slider({ id: 'mode', label: 'supermode <i>n</i>', min: 1, max: N, step: 1, value: 1, format: (x) => x.toFixed(0), onInput: (v) => { launchModeN(v - 1); } });
       ctl.append(group('excite', [button('middle guide', () => exciteN(Math.ceil(N / 2) - 1)), button('guide 1', () => exciteN(0))]), sM.root, sN.root,
-        toggle({ id: 'exact', label: 'compare with E = 2J cos(nπ/(N+1))', checked: true, onChange: () => render() }).root);
+        toggle({ id: 'exact', label: 'compare with Eₙ = −2J cos(nπ/(N+1)), n sorted ascending', checked: true, onChange: () => render() }).root);
       this._sM = sM;
     },
     caption() {
       const p = prob(psiN);
       const extra = selN >= 0 ? `supermode ${selN + 1}, <i>E</i> = ${fmt(eigN.values[selN], 3)}: the pattern does not change along the way, only its phase.` : `one guide excited: a mix of all ${N} supermodes, the light spreads ballistically (discrete diffraction).`;
-      return `<i>N</i> = ${N}, <i>J</i> = 1: ${N} supermodes with <i>E</i><sub>n</sub> = 2<i>J</i> cos(<i>n</i>π/(<i>N</i>+1)) · ${extra}`;
+      return `<i>N</i> = ${N}, <i>J</i> = 1: ${N} supermodes, sorted ascending: <i>E</i><sub>n</sub> = −2<i>J</i> cos(<i>n</i>π/(<i>N</i>+1)) · ${extra}`;
     },
     render() {
       const c = colors(), cols = siteColor();
