@@ -29,7 +29,8 @@ const cont = new Continuum({ V0: 12 });
 let act = 0, t = 0, playing = false, psi0 = real([1, 0, 0]), psi = real([1, 0, 0]), hist = [];
 let drivesOn = false, inset = null, insetOn = false, beam = 0;
 // Task 1: the N-guide chain
-let N = 20, eigN = symEig(sshChain(N, 1, 1, 0)), psi0N = null, psiN = null, selN = -1, propRows = [];
+const eigUp = (e) => ({ values: e.values, vectors: e.vectors.map((v) => (v[0] < 0 ? v.map((x) => -x) : v)) }); // display sign: guide 1 positive, the textbook sin(njπ/(N+1))
+let N = 20, eigN = eigUp(symEig(sshChain(N, 1, 1, 0))), psi0N = null, psiN = null, selN = -1, propRows = [];
 
 // ---------- panels ----------
 const contPanel = new ContinuumPanel($('pane-cont').querySelector('canvas'));
@@ -38,7 +39,9 @@ const modesPanel = new ModesPanel($('pane-modes').querySelector('canvas'));
 const trace = new Plot($('pane-trace').querySelector('canvas'), { pad: { l: 46, r: 12, t: 24, b: 30 } });
 const eigPlot = new Plot($('pane-eig').querySelector('canvas'), { pad: { l: 46, r: 12, t: 26, b: 32 } });
 const propPlot = new Plot($('pane-prop').querySelector('canvas'), { pad: { l: 46, r: 12, t: 26, b: 32 } });
-const vecPlot = new Plot($('pane-vec').querySelector('canvas'), { pad: { l: 46, r: 12, t: 26, b: 32 } });
+const vecPlot = new Plot($('pane-vec').querySelector('canvas.top'), { pad: { l: 46, r: 12, t: 26, b: 24 } });
+const rowPlot = new Plot($('pane-vec').querySelector('canvas.bottom'), { pad: { l: 46, r: 12, t: 24, b: 28 } });
+let hoverN = -1;
 const matBox = $('pane-matrix');
 const matTitle = el('div', { class: 'mat-title' }), mat = matrixView(3, 3, { label: '<i>H</i> =' }), matNote = el('div', { class: 'mat-note' });
 matBox.append(matTitle, mat.root, matNote);
@@ -57,7 +60,7 @@ const whichMode = () => { const cs = components(eig, psi0); for (let n = 0; n < 
 const maxPop2FromSite1 = () => { let m = 0; for (let tt = 0; tt < 30; tt += 0.05) m = Math.max(m, prob(evolveExact(eig, real([1, 0, 0]), tt))[1]); return m; };
 const intTicks = (n, count) => niceTicks(0, n, Math.max(2, count)).filter((v) => Number.isInteger(v) && v >= 1 && v <= n);
 const exactE = (n) => 2 * Math.cos(((N + 1 - n) * Math.PI) / (N + 1)); // ascending order, J = 1, hopping +J
-function setupN(n) { N = n; eigN = symEig(sshChain(N, 1, 1, 0)); selN = -1; exciteN(Math.ceil(N / 2) - 1); }
+function setupN(n) { N = n; eigN = eigUp(symEig(sshChain(N, 1, 1, 0))); selN = -1; exciteN(Math.ceil(N / 2) - 1); }
 function exciteN(k) { psi0N = real(Array.from({ length: N }, (_, i) => (i === k ? 1 : 0))); selN = -1; restartN(); }
 function launchModeN(n) { psi0N = real(eigN.vectors[n]); selN = n; restartN(); }
 const DT_ROW = 0.1, T_END = 10;
@@ -183,7 +186,7 @@ const acts = [
     },
     caption() {
       const p = prob(psiN);
-      const extra = selN >= 0 ? `supermode ${selN + 1}, <i>E</i> = ${fmt(eigN.values[selN], 3)}: the pattern does not change along the way, only its phase.` : `one guide excited: a mix of all ${N} supermodes, the light spreads ballistically (discrete diffraction).`;
+      const extra = selN >= 0 ? `supermode ${selN + 1}, <i>E</i> = ${fmt(eigN.values[selN], 3)}: a standing wave with ${N - selN - 1} sign changes; its pattern does not change along the way, only its phase.` : `one guide excited: a mix of all ${N} supermodes, the light spreads ballistically (discrete diffraction).`;
       return `<i>N</i> = ${N}, <i>J</i> = 1: ${N} supermodes, sorted ascending: <i>E</i><sub>n</sub> = −2<i>J</i> cos(<i>n</i>π/(<i>N</i>+1)) · ${extra}`;
     },
     render() {
@@ -200,10 +203,18 @@ const acts = [
       if (selN >= 0) { const ctx = eigPlot.ctx; ctx.strokeStyle = c.hpsi; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(eigPlot.x(selN + 1), eigPlot.y(eigN.values[selN]), 8, 0, 2 * Math.PI); ctx.stroke(); }
       eigPlot.end();
       // eigenstates as a colour plot (fig. 2)
-      vecPlot.begin({ xlim: [0.5, N + 0.5], ylim: [0.5, N + 0.5], xticks: xt, yticks: yt, xlabel: 'guide j', ylabel: 'supermode n', title: 'fig. 2: eigenstates ψₙ(j), blue < 0 < red' });
+      vecPlot.begin({ xlim: [0.5, N + 0.5], ylim: [0.5, N + 0.5], xticks: xt, yticks: yt, xlabel: '', ylabel: 'supermode n', title: 'fig. 2: eigenstates, one row per supermode: amplitude ψₙ(j) in each guide, red = +, blue = −' });
       vecPlot.heatmap(eigN.vectors, { cmap: 'div', x0: 0.5, y0: 0.5, tips: (i, j) => `n = ${i + 1}, j = ${j + 1}: ${fmt(eigN.vectors[i][j], 3)}` });
       if (selN >= 0) vecPlot.hline(selN + 1, { color: c.hpsi, width: 2 });
+      if (hoverN >= 0 && hoverN !== selN) vecPlot.hline(hoverN + 1, { color: c.fg, width: 1, dash: [4, 3] });
       vecPlot.end();
+      // the hovered or selected row of fig. 2 as signed bars
+      const rowN = hoverN >= 0 ? hoverN : selN;
+      const rv = rowN >= 0 ? eigN.vectors[rowN] : null, rm = rv ? Math.max(0.2, ...rv.map(Math.abs)) * 1.15 : 1;
+      rowPlot.begin({ xlim: [0.5, N + 0.5], ylim: [-rm, rm], xticks: xt, yticks: [-0.5, 0, 0.5].filter((v) => Math.abs(v) < rm), xlabel: 'guide j', ylabel: 'ψₙ(j)', title: rv ? `row ${rowN + 1} as bars: supermode ${rowN + 1} is a standing wave over the guides (${rowN === selN ? 'launched' : 'click the row to launch it'})` : 'move the mouse over fig. 2: each row is one supermode, a standing wave over the guides' });
+      rowPlot.hline(0, { color: c.line });
+      if (rv) { const ctx = rowPlot.ctx, bw = Math.max(2, (rowPlot.x(2) - rowPlot.x(1)) * 0.7); rv.forEach((x, j) => { ctx.fillStyle = x >= 0 ? c.pos : c.neg; const X = rowPlot.x(j + 1) - bw / 2, Y0 = rowPlot.y(0), Y1 = rowPlot.y(x); ctx.fillRect(X, Math.min(Y0, Y1), bw, Math.abs(Y1 - Y0)); }); }
+      rowPlot.end();
       // propagation map: intensity along z
       const nRows = Math.round(T_END / DT_ROW), tTicks = [0, 2, 4, 6, 8, 10].map((v) => v / DT_ROW);
       propPlot.begin({ xlim: [0.5, N + 0.5], ylim: [0, nRows], xticks: xt, yticks: tTicks, ytickFmt: (v) => String(Math.round(v * DT_ROW)), xlabel: 'guide j', ylabel: 'propagation t (= z)', title: 'intensity along the way' });
@@ -263,6 +274,7 @@ function showAct(i) {
 }
 eigPlot.onClick = (n) => { launchModeN(n); };
 vecPlot.onClick = (ij) => { launchModeN(ij[0]); };
+vecPlot.onHover = (ij) => { const n = ij ? ij[0] : -1; if (n !== hoverN) { hoverN = n; if (acts[act].id === 'task1') render(); } };
 acts.forEach((a, i) => $('acts').append(el('a', { href: '#' + a.id, text: a.tab, onclick: (e) => { e.preventDefault(); showAct(i); } })));
 window.addEventListener('keydown', (e) => {
   if (e.target.matches('input, textarea, select')) return;
@@ -270,7 +282,7 @@ window.addEventListener('keydown', (e) => {
   if (e.key === ' ' && acts[act].canPlay && !e.target.matches('button')) { e.preventDefault(); setPlaying(!playing); }
 });
 [contPanel, chainPanel, modesPanel].forEach((p) => { p.onRedraw = () => render(); });
-[trace, eigPlot, propPlot, vecPlot].forEach((p) => { p.onRedraw = () => render(); });
+[trace, eigPlot, propPlot, vecPlot, rowPlot].forEach((p) => { p.onRedraw = () => render(); });
 
 // theme
 const root = document.documentElement;
