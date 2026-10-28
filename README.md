@@ -33,6 +33,18 @@ the same picture with more guides.
    2J cos(nπ/(N+1)), the eigenstates as a colour plot, and the propagation map of one excited guide
    (discrete diffraction) or of one supermode (nothing moves). Click a dot or a row to launch that mode.
 
+**Exercise 2** (`app/exercise2.html`): the same instrument with 41 guides, four acts.
+
+1. **Stepping** — i dψ/dz = Hψ integrated step by step: Euler versus Runge–Kutta 4, with the norm and the
+   error against the exact solution plotted along z. Euler is unstable for every dz; RK4 is stable for
+   dz < 2√2/E<sub>max</sub> and its error shrinks like dz⁴.
+2. **Walk and k** — a wide beam with a phase step k per guide sits at one point of the band E(k) = 2J cos k
+   and moves with the slope dE/dk. The eigenvalues of the finite chain are the dots on that band.
+3. **Bloch oscillations** — a linear ramp εⱼ = F·j makes k drift, k(z) = k₀ − F z; the beam slides along the
+   band, turns around at the band edges, and oscillates with period 2π/F over 4J/F guides.
+4. **SSH chain (Task 2)** — alternating J₁, J₂: the gap 2|J₁ − J₂|, the dimer symmetry of the two bands, and
+   for 21 guides the E = 0 state on the odd guides at the end with the weak bond, decay length 1/|ln(J₁/J₂)|.
+
 **Geometry appendix** (`app/chapters.html`): four guided chapters on the 3D picture of a three-guide Hilbert
 space (guides become axes, the sphere of states, the Hamiltonian as a matrix, phase and the dark state).
 
@@ -60,8 +72,8 @@ demand from the Actions tab). Three one-time settings on github.com, all of whic
 3. **Settings → Environments → github-pages → Deployment branches:** allow the default branch (or choose
    "No restriction"), otherwise the job is rejected before it starts.
 
-The app is then at <https://alaaph.github.io/lecture_Quantum_Simulators/> and the geometry appendix at
-`/chapters.html`.
+The app is then at <https://alaaph.github.io/lecture_Quantum_Simulators/>, Exercise 2 at `/exercise2.html`, the
+geometry appendix at `/chapters.html`, and a QR code to project at `/share.html`.
 
 ### Publish with GitLab Pages (university GitLab)
 

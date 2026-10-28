@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quantum Simulators Exercise 2</title>
+<meta name="description" content="Exercise 2 of the Quantum Simulators course: time evolution step by step (Euler and Runge–Kutta), the quantum walk and the band E(k), Bloch oscillations, and the SSH chain of Task 2.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400;1,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app lect">
+  <header class="top">
+    <h1>Quantum Simulators · Exercise 2</h1>
+    <nav class="acts" id="acts" aria-label="Acts"></nav>
+    <span class="spacer"></span>
+    <a class="theme-btn" href="index.html" title="Exercise 1: Hilbert space and Task 1">exercise 1</a>
+    <button class="theme-btn" id="theme-btn" type="button" title="Switch between light and dark">Theme</button>
+  </header>
+  <main class="lect-main">
+    <div class="lect-head"><h2 id="heading"></h2><p id="lead"></p></div>
+    <div class="stage-grid" id="stage" data-act="step">
+      <div class="pane" id="pane-chain"><canvas></canvas></div>
+      <div class="pane" id="pane-prop"><canvas></canvas></div>
+      <div class="pane" id="pane-norm"><canvas></canvas></div>
+      <div class="pane" id="pane-band"><canvas></canvas></div>
+      <div class="pane" id="pane-eig"><canvas></canvas></div>
+      <div class="pane" id="pane-vec"><canvas></canvas></div>
+      <div class="pane" id="pane-state"><canvas></canvas></div>
+    </div>
+    <div class="caption" id="caption"></div>
+    <div class="controls-bar" id="controls"></div>
+  </main>
+</div>
+<script type="module" src="js/lecture2/main.js"></script>
+</body>
+</html>
