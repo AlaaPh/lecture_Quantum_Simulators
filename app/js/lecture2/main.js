@@ -27,7 +27,8 @@ let useRK4 = true, dz = 0.2, psiS0 = null, psiS = null, zS = 0, stepRows = [], n
 // acts 2–3: a beam on the chain, exact propagation
 let k0 = 1.0, width = 2, F = 0.3, eigB = eigU, psi0 = null, psi = null, rows = [];
 // act 4: the SSH chain
-let NS = 21, J1 = 2, J2 = 1, eigS = null, sel = -1, psiX0 = null, psiX = null;
+let NS = 21, J1 = 2, J2 = 1, eigS = null, sel = -1, psiX0 = null, psiX = null, sshRows = [];
+const D_SLOPE = 0.3;                                 // sketch: gap d(J) = d₂·(1 − 0.3·ln(J/J₂)), i.e. J ∝ e^(−d/d₀)
 
 const delta = (n, j) => real(Array.from({ length: n }, (_, i) => (i === j ? 1 : 0)));
 function beamState(k, w) {
@@ -39,6 +40,45 @@ function beamState(k, w) {
 const centre = (p) => p.reduce((s, x, j) => s + (j + 1) * x, 0) / (p.reduce((s, x) => s + x, 0) || 1);
 function eulerStep(H, p, h) { const hr = matvec(H, p.re), hi = matvec(H, p.im); return { re: p.re.map((x, i) => x + h * hi[i]), im: p.im.map((x, i) => x - h * hr[i]) }; }
 function setupSSH() { eigS = symEig(sshChain(NS, J1, J2, 0)); sel = -1; }
+const gapOf = (J) => 1 - D_SLOPE * Math.log(J / J2);
+function sshPositions() {                              // guide centres from the alternating gaps, normalized to [0, 1]
+  const p = [0]; for (let i = 0; i < NS - 1; i++) p.push(p[i] + gapOf(i % 2 === 0 ? J1 : J2));
+  const L = p[p.length - 1]; return p.map((x) => (x / L) * (1 - 1 / NS) + 0.5 / NS);
+}
+class SketchPanel extends Canvas2D {
+  // the chip seen from above: light enters at the top, the guides run downward (z), gaps alternate d₁, d₂
+  draw({ xpos, rows, zNow, j0, title }) {
+    const c = colors(), ctx = this.ctx, w = this.w, h = this.h, n = xpos.length;
+    this.clear();
+    const xs = xpos.map((u) => w * 0.07 + w * 0.86 * u), y0 = 46, y1 = h - 44, M = rows.length;
+    ctx.fillStyle = c['fg-2']; ctx.font = this.font(12); ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(title, 12, 6);
+    // facets
+    ctx.strokeStyle = c.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(w * 0.03, y0); ctx.lineTo(w * 0.97, y0); ctx.moveTo(w * 0.03, y1); ctx.lineTo(w * 0.97, y1); ctx.stroke();
+    ctx.fillStyle = c['fg-2']; ctx.font = this.font(11, 400, true); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText('z = 0', w * 0.03, y0 - 3);
+    ctx.textBaseline = 'top'; ctx.fillText(`z = ${fmt(T_END, 0)}`, w * 0.03, y1 + 3);
+    // cores
+    const cw = Math.max(2, Math.min(6, (w * 0.86) / n * 0.22));
+    ctx.fillStyle = c.axis; ctx.globalAlpha = 0.35; xs.forEach((x) => ctx.fillRect(x - cw / 2, y0, cw, y1 - y0)); ctx.globalAlpha = 1;
+    // light: intensity along z painted on the cores
+    if (M > 1) {
+      const dy = (y1 - y0) / (M - 1), pw = cw + 4;
+      for (let k = 0; k < M - 1; k++) { const row = rows[k]; for (let j = 0; j < n; j++) { const a = Math.min(1, row[j] / Math.max(1e-9, Math.max(...rows[0]))); if (a < 0.02) continue; ctx.globalAlpha = a; ctx.fillStyle = c.psi; ctx.fillRect(xs[j] - pw / 2, y0 + k * dy, pw, dy + 0.6); } }
+      ctx.globalAlpha = 1;
+    }
+    // where we are now
+    if (zNow !== null) { const y = y0 + (Math.min(zNow, T_END) / T_END) * (y1 - y0); ctx.strokeStyle = c.hpsi; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(w * 0.03, y); ctx.lineTo(w * 0.97, y); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = c.hpsi; ctx.font = this.font(11, 500, true); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText(`z = ${fmt(Math.min(zNow, T_END), 1)}`, w * 0.97, y - 2); }
+    // input
+    if (j0 >= 0) { arrow(ctx, xs[j0], y0 - 26, xs[j0], y0 - 4, c.hpsi, 2.5, 8); ctx.fillStyle = c.hpsi; ctx.font = this.font(11, 600); ctx.textAlign = j0 > n / 2 ? 'right' : 'left'; ctx.textBaseline = 'middle'; ctx.fillText(`light in, guide ${j0 + 1}`, xs[j0] + (j0 > n / 2 ? -8 : 8), y0 - 18); }
+    // guide numbers and the first two gaps, dimensioned
+    ctx.fillStyle = c['fg-2']; ctx.font = this.font(11, 500, true); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    const every = n <= 12 ? 1 : 5; xs.forEach((x, j) => { if ((j + 1) % every === 0 || j === 0 || j === n - 1) ctx.fillText(String(j + 1), x, y1 + 4); });
+    [[0, 'd₁', c.v1], [1, 'd₂', c.v3]].forEach(([i, name, col]) => {
+      if (i + 1 >= n) return; const x0 = xs[i] + cw / 2 + 1, x1 = xs[i + 1] - cw / 2 - 1, y = y1 + 24;
+      ctx.strokeStyle = col; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.moveTo(x0, y - 4); ctx.lineTo(x0, y + 4); ctx.moveTo(x1, y - 4); ctx.lineTo(x1, y + 4); ctx.stroke();
+      ctx.fillStyle = col; ctx.font = this.font(11, 600, true); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(name, (x0 + x1) / 2, y + 12);
+    });
+  }
+}
 
 // ---------- one amplitude: one Runge–Kutta step, piece by piece ----------
 const fPush = (p) => ({ re: E1 * p.im, im: -E1 * p.re });                          // the derivative f(ψ) = −iEψ
@@ -124,6 +164,7 @@ function rkText() {
 // ---------- panels ----------
 const chainPanel = new ChainPanel($('pane-chain').querySelector('canvas'));
 const dialPanel = new DialPanel($('pane-dial').querySelector('canvas'));
+const sketchPanel = new SketchPanel($('pane-sketch').querySelector('canvas'));
 const rkBox = $('pane-rk');
 const pad = { l: 46, r: 12, t: 26, b: 32 };
 const propPlot = new Plot($('pane-prop').querySelector('canvas'), { pad });
@@ -132,12 +173,12 @@ const bandPlot = new Plot($('pane-band').querySelector('canvas'), { pad });
 const eigPlot = new Plot($('pane-eig').querySelector('canvas'), { pad });
 const vecPlot = new Plot($('pane-vec').querySelector('canvas'), { pad });
 const statePlot = new Plot($('pane-state').querySelector('canvas'), { pad });
-const panes = { dial: $('pane-dial'), rk: $('pane-rk'), chain: $('pane-chain'), prop: $('pane-prop'), norm: $('pane-norm'), band: $('pane-band'), eig: $('pane-eig'), vec: $('pane-vec'), state: $('pane-state') };
+const panes = { dial: $('pane-dial'), rk: $('pane-rk'), chain: $('pane-chain'), prop: $('pane-prop'), norm: $('pane-norm'), band: $('pane-band'), eig: $('pane-eig'), vec: $('pane-vec'), state: $('pane-state'), sketch: $('pane-sketch') };
 
-function drawChain(p, { title, colorsAB = false } = {}) {
+function drawChain(p, { title, colorsAB = false, xpos = null, gapLabels = null } = {}) {
   const c = colors(), pr = prob(p), pMax = Math.max(...pr);
   const cols = Array.from({ length: p.re.length }, (_, i) => (colorsAB ? (i % 2 === 0 ? c.v1 : c.v3) : c.psi));
-  chainPanel.draw({ psi: p, siteColors: cols, J: Array.from({ length: p.re.length - 1 }, () => 1), eps: p.re.map(() => 0), showDials: false, pct: false, barRef: Math.max(pMax, 1e-9), title: `${title} (bars relative to the brightest guide, ${(100 * pMax).toFixed(0)}%)` });
+  chainPanel.draw({ psi: p, siteColors: cols, J: Array.from({ length: p.re.length - 1 }, () => 1), eps: p.re.map(() => 0), showDials: false, pct: false, barRef: Math.max(pMax, 1e-9), xpos, gapLabels, title: `${title} (bars relative to the brightest guide, ${(100 * pMax).toFixed(0)}%)` });
 }
 function drawProp(rowsIn, rowDz, { title = 'intensity along the way' } = {}) {
   const stride = Math.max(1, Math.ceil(rowsIn.length / 300)), rws = rowsIn.filter((_, i) => i % stride === 0), h = rowDz * stride;
@@ -303,9 +344,9 @@ const acts = [
     },
   },
   {
-    id: 'ssh', tab: '5 · SSH chain (Task 2)', heading: 'Task 2: alternating couplings, a gap, and the states in it: none, one or two',
-    lead: 'Make the couplings alternate: J₁ inside each pair of guides, J₂ between pairs. The band splits into two with a gap of width 2|J₁ − J₂|. Let the weak coupling go to zero: the chain falls apart into dimers at ±J_strong, and a guide left without a partner stays at E = 0, in the gap. With 21 guides exactly one guide is left over, at the end whose first coupling is the weak one: J₁ < J₂ leaves guide 1, J₁ > J₂ leaves guide 21, never both. Exactly, for any J₁ ≠ J₂: an E = 0 state needs (Hψ)ⱼ = 0 on every even guide, J₁ψ₁ + J₂ψ₃ = 0, J₁ψ₃ + J₂ψ₅ = 0, …, so ψ₂ₘ₊₁ = (−J₁/J₂)ᵐ ψ₁: one solution only, on the odd guides, growing toward the end with the weak coupling, decay length 1/|ln(J₁/J₂)| unit cells. With 20 guides and J₁ < J₂ both ends are left over: two states at ±δ, the symmetric and antisymmetric combinations of the two edge states, δ exponentially small in N. With 20 guides and J₁ > J₂ there is none.',
-    panes: ['eig', 'vec', 'state', 'chain'], canPlay: true,
+    id: 'ssh', tab: '5 · SSH chain (Task 2)', heading: 'Task 2: the SSH chain and its edge states',
+    lead: 'The couplings alternate: J₁ inside a pair of guides, J₂ between pairs. In the sample this is the distance between neighbouring guides, J ∝ e^(−d/d₀), so the gaps alternate too (sketch below). The spectrum splits into two bands with a gap of width 2|J₁ − J₂|. With 21 guides exactly one state lies in the gap, at the end whose first coupling is the weak one (J₁ < J₂: guide 1, J₁ > J₂: guide 21): Hψ = 0 on the even guides forces ψ₂ₘ₊₁ = (−J₁/J₂)ᵐ ψ₁, a single solution. With 20 guides there are two edge states for J₁ < J₂ and none for J₁ > J₂.',
+    panes: ['sketch', 'eig', 'vec', 'state', 'chain'], canPlay: true,
     enter(ctl) {
       NS = 21; J1 = 2; J2 = 1; setupSSH(); psiX0 = delta(NS, NS - 1); restartSSH();
       const sJ = slider({ id: 'J1', label: '<i>J</i>₁ (J₂ = 1)', min: 0.5, max: 2, step: 0.05, value: J1, onInput: (v) => { J1 = v; setupSSH(); restartSSH(); } });
@@ -317,7 +358,9 @@ const acts = [
     caption() { return sshFacts(); },
     render() {
       drawEigSSH();
-      drawChain(psiX, { title: `the ${NS} guides: intensity now (A guides green, B guides pink)`, colorsAB: true });
+      const xpos = sshPositions(), j0 = psiX0.re.findIndex((x) => Math.abs(x - 1) < 1e-9);
+      sketchPanel.draw({ xpos, rows: sshRows, zNow: z, j0, title: `the sample from above · ${j0 >= 0 ? `light enters guide ${j0 + 1}` : `supermode ${sel + 1} launched: nothing changes along z`} · gap d₁ ↔ J₁ = ${fmt(J1)}, gap d₂ ↔ J₂ = ${fmt(J2)} · J ∝ e^(−d/d₀): the smaller gap is the stronger coupling` });
+      drawChain(psiX, { title: `the ${NS} guides: intensity now (A guides green, B guides pink)`, colorsAB: true, xpos, gapLabels: ['d₁', 'd₂'] });
       if (this._sM) { this._sM.input.max = NS; if (sel >= 0) this._sM.set(sel + 1); else this._sM.set(Math.min(+this._sM.input.value, NS)); }
     },
   },
@@ -338,7 +381,7 @@ function stepOnce() {
 function rampChain() { eigB = symEig(tightBinding(Array.from({ length: N }, (_, j) => F * (j - J0)), Array.from({ length: N - 1 }, () => J))); }
 function restartBeam() { z = 0; psi = psi0; rows = [prob(psi)]; setPlaying(false); render(); }
 function sampleRows() { while (rows.length * DT_ROW <= z + 1e-9 && rows.length * DT_ROW <= T_END + 1e-9) rows.push(prob(evolveExact(eigB, psi0, rows.length * DT_ROW))); }
-function restartSSH() { z = 0; psiX = { re: psiX0.re.slice(), im: psiX0.im.slice() }; setPlaying(false); render(); }
+function restartSSH() { z = 0; psiX = { re: psiX0.re.slice(), im: psiX0.im.slice() }; sshRows = Array.from({ length: Math.round(T_END / DT_ROW) + 1 }, (_, i) => prob(evolveExact(eigS, psiX0, i * DT_ROW))); setPlaying(false); render(); }
 function selectSSH(n) { sel = n; psiX0 = real(eigS.vectors[n]); restartSSH(); }
 
 // ---------- shell ----------
@@ -383,7 +426,7 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight') showAct(act + 1); if (e.key === 'ArrowLeft') showAct(act - 1);
   if (e.key === ' ' && !e.target.matches('button')) { e.preventDefault(); setPlaying(!playing); }
 });
-chainPanel.onRedraw = () => render(); dialPanel.onRedraw = () => render();
+chainPanel.onRedraw = () => render(); dialPanel.onRedraw = () => render(); sketchPanel.onRedraw = () => render();
 [propPlot, normPlot, bandPlot, eigPlot, vecPlot, statePlot].forEach((p) => { p.onRedraw = () => render(); });
 
 // theme

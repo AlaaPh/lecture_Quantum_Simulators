@@ -187,7 +187,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
 .stage-grid[data-act="rk"] { grid-template-columns: minmax(0, 1.15fr) minmax(320px, 1fr); grid-template-areas: "dial rk"; }
 .stage-grid[data-act="step"] { grid-template-columns: minmax(0, 1.2fr) minmax(280px, 1fr); grid-template-rows: minmax(0, 0.8fr) minmax(0, 1.2fr); grid-template-areas: "chain chain" "prop norm"; }
 .stage-grid[data-act="walk"], .stage-grid[data-act="bloch"] { grid-template-columns: minmax(0, 1.3fr) minmax(280px, 1fr); grid-template-rows: minmax(0, 0.8fr) minmax(0, 1.2fr); grid-template-areas: "chain band" "prop band"; }
-.stage-grid[data-act="ssh"] { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "eig vec" "state chain"; }
+.stage-grid[data-act="ssh"] { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(170px, 0.9fr) minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "sketch sketch" "eig vec" "state chain"; }
+#pane-sketch { grid-area: sketch; }
 #pane-cont { grid-area: cont; } #pane-chain { grid-area: chain; } #pane-modes { grid-area: modes; } #pane-trace { grid-area: trace; } #pane-matrix { grid-area: matrix; } #pane-3d { grid-area: d3; }
 .pane { position: relative; min-height: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
 .pane canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
@@ -210,7 +211,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
   .stage-grid { height: auto; }
   .stage-grid[data-act], .stage-grid[data-act][data-inset] { grid-template-columns: minmax(0, 1fr); grid-template-areas: none; grid-template-rows: none; }
   .pane { min-height: 220px; }
-  #pane-cont, #pane-chain, #pane-modes, #pane-trace, #pane-matrix, #pane-eig, #pane-prop, #pane-vec, #pane-norm, #pane-band, #pane-state, #pane-far, #pane-dial, #pane-rk { grid-area: auto; }
+  #pane-cont, #pane-chain, #pane-modes, #pane-trace, #pane-matrix, #pane-eig, #pane-prop, #pane-vec, #pane-norm, #pane-band, #pane-state, #pane-far, #pane-dial, #pane-rk, #pane-sketch { grid-area: auto; }
   #pane-3d { grid-area: auto; height: 260px; }
   .stage-grid[data-act="ssh"] #pane-chain { order: 9; }
 }

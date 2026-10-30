@@ -48,7 +48,7 @@ the same picture with more guides.
    band E(k) = 2J cos k and moves with the group velocity dE/dk. The eigenvalues of the finite chain are the dots on that band.
 3. **Bloch oscillations** — a linear gradient εⱼ = F·j of the propagation constants makes k drift, k(z) = k₀ − F z; the beam moves along the
    band, turns around at the band edges, and oscillates with period 2π/F over 4J/F guides.
-4. **SSH chain (Task 2)** — alternating J₁, J₂: the gap 2|J₁ − J₂|, the dimer symmetry of the two bands, and
+4. **SSH chain (Task 2)** — alternating J₁, J₂, drawn as a chip seen from above with alternating gaps (J ∝ e^(−d/d₀)) and the light painted along z: the gap 2|J₁ − J₂|, the dimer symmetry of the two bands, and
    for 21 guides the E = 0 state on the odd guides at the end with the weak bond, decay length 1/|ln(J₁/J₂)|.
 
 **Geometry appendix** (`app/chapters.html`): four guided chapters on the 3D picture of a three-guide Hilbert
