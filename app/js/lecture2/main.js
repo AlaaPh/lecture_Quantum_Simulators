@@ -274,7 +274,7 @@ const acts = [
   },
   {
     id: 'bloch', tab: '4 · Bloch oscillations', heading: 'A gradient of the propagation constants: Bloch oscillations',
-    lead: 'Give the propagation constants a linear gradient across the array, εⱼ = F·j (in the experiment: a temperature gradient, guides of slowly varying width, or curved guides). This is the optical analogue of a constant force on an electron in a crystal. The wavenumber then changes as k(z) = k₀ − F z, so the beam moves along the band E(k). At a band extremum the group velocity is zero and the beam turns around. It never leaves: it oscillates with period 2π/F over 4J/F guides.',
+    lead: 'Give the propagation constants a linear gradient across the array, εⱼ = F·j. In experiments: a temperature gradient across a polymer array (Pertsch et al. 1999), guides whose effective index grows linearly (Morandotti et al. 1999), curved waveguides (Chiodo et al. 2006), or an intensity gradient of the writing light in a photorefractive lattice (Trompeter et al. 2006). A phase gradient imprinted on the input, e.g. with an SLM, only sets k₀, the starting point on the band. This εⱼ is the optical analogue of a constant force on an electron in a crystal. The wavenumber then changes as k(z) = k₀ − F z, so the beam moves along the band E(k). At a band extremum the group velocity is zero and the beam turns around. It never leaves: it oscillates with period 2π/F over 4J/F guides.',
     panes: ['chain', 'prop', 'band'], canPlay: true,
     enter(ctl) {
       F = 0.3; k0 = 0; width = 2; rampChain(); psi0 = beamState(k0, width); restartBeam();
