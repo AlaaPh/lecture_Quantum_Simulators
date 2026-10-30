@@ -192,7 +192,8 @@ function sshFacts() {
   else if (n % 2 === 1) {
     const [E, i] = inGap[0], v = eigS.vectors[i], left = v.slice(0, Math.floor(n / 2)).reduce((q, x) => q + x * x, 0) > 0.5;
     const xi = 1 / Math.abs(Math.log(J1 / J2));
-    s += `one state in the gap, E = ${fmt(E, 4)}, only on the odd guides, at the ${left ? 'left' : 'right'} end, decaying over ξ = 1/|ln(J₁/J₂)| = ${fmt(xi)} unit cells.`;
+    const g = left ? [1, 3, 5] : [n, n - 2, n - 4];
+    s += `one state in the gap, E = ${fmt(E, 4)}, on guides ${g.join(', ')}, … (the ${left ? 'left' : 'right'} end: its first coupling ${left ? 'J₁' : 'J₂'} is the weak one), decaying over ξ = 1/|ln(J₁/J₂)| = ${fmt(xi)} unit cells.`;
   } else s += `${inGap.length} states in the gap at E = ${inGap.map(([E]) => fmt(E, 4)).join(', ')}: the symmetric and antisymmetric combinations of an edge state at each end; their overlap through the chain splits them by 2δ, exponentially small in N.`;
   if (sel >= 0) {
     const v = eigS.vectors[sel]; let d = 0; for (let j = 0; j + 1 < n; j += 2) d += v[j] * v[j + 1];
@@ -298,7 +299,7 @@ const acts = [
   },
   {
     id: 'ssh', tab: '5 · SSH chain (Task 2)', heading: 'Task 2: alternating couplings, a gap, and the states in it: none, one or two',
-    lead: 'Make the couplings alternate: J₁ inside each pair of guides, J₂ between pairs. The band splits into two with a gap of width 2|J₁ − J₂|. With 21 guides exactly one state lies in the gap, at E = 0, with amplitude on the odd guides only, localized at the end that starts with the weak coupling; move J₁ across J₂ and it moves to the other end. With 20 guides and J₁ < J₂ both ends start with the weak coupling: two states lie in the gap at ±δ, the symmetric and antisymmetric combinations of an edge state at each end, with δ exponentially small in N. With 20 guides and J₁ > J₂ there is none.',
+    lead: 'Make the couplings alternate: J₁ inside each pair of guides, J₂ between pairs. The band splits into two with a gap of width 2|J₁ − J₂|. Let the weak coupling go to zero: the chain falls apart into dimers at ±J_strong, and a guide left without a partner stays at E = 0, in the gap. With 21 guides exactly one guide is left over, at the end whose first coupling is the weak one: J₁ < J₂ leaves guide 1, J₁ > J₂ leaves guide 21, never both. A small weak coupling spreads this state over the odd guides near that end, decay length 1/|ln(J₁/J₂)| unit cells. With 20 guides and J₁ < J₂ both ends are left over: two states at ±δ, the symmetric and antisymmetric combinations of the two edge states, δ exponentially small in N. With 20 guides and J₁ > J₂ there is none.',
     panes: ['eig', 'vec', 'state', 'chain'], canPlay: true,
     enter(ctl) {
       NS = 21; J1 = 2; J2 = 1; setupSSH(); psiX0 = delta(NS, NS - 1); restartSSH();
