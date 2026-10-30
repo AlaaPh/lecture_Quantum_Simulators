@@ -1,6 +1,6 @@
 // Exercise 2: time evolution step by step (Euler, Runge–Kutta), the quantum walk and the band E(k),
 // Bloch oscillations, and the SSH chain of Task 2. One instrument, four acts.
-import { ChainPanel } from '../lecture1/panels.js';
+import { ChainPanel, Canvas2D, arrow } from '../lecture1/panels.js';
 import { Plot, niceTicks } from '../plots.js';
 import { el, button, row, slider, toggle } from '../ui.js';
 import { colors, invalidateTheme } from '../theme.js';
@@ -19,7 +19,10 @@ const N = 41, J0 = (N - 1) / 2;                      // acts 1–3: 41 guides, t
 const HU = sshChain(N, J, J, 0), eigU = symEig(HU);  // the uniform chain
 const E_MAX = Math.max(...eigU.values.map(Math.abs)), DZ_RK4 = (2 * Math.SQRT2) / E_MAX;
 let act = 0, z = 0, playing = false;
-// act 1: stepping
+// act 1: one step on one hand, i dψ/dz = E ψ
+const E1 = 1;
+let rkOn = true, h1 = 1.0, trajE = [{ re: 1, im: 0 }], trajR = [{ re: 1, im: 0 }], stepsDone = 0, playClock = 0;
+// act 2: stepping the chain
 let useRK4 = true, dz = 0.2, psiS0 = null, psiS = null, zS = 0, stepRows = [], normHist = [];
 // acts 2–3: a beam on the chain, exact propagation
 let k0 = 1.0, width = 2, F = 0.3, eigB = eigU, psi0 = null, psi = null, rows = [];
@@ -37,8 +40,77 @@ const centre = (p) => p.reduce((s, x, j) => s + (j + 1) * x, 0) / (p.reduce((s, 
 function eulerStep(H, p, h) { const hr = matvec(H, p.re), hi = matvec(H, p.im); return { re: p.re.map((x, i) => x + h * hi[i]), im: p.im.map((x, i) => x - h * hr[i]) }; }
 function setupSSH() { eigS = symEig(sshChain(NS, J1, J2, 0)); sel = -1; }
 
+// ---------- one hand: Euler and RK4 made visible ----------
+const fPush = (p) => ({ re: E1 * p.im, im: -E1 * p.re });                          // f(ψ) = −iEψ
+const axpy = (p, k, a) => ({ re: p.re + a * k.re, im: p.im + a * k.im });
+function rk4Parts(p, h) {
+  const k1 = fPush(p), P2 = axpy(p, k1, h / 2), k2 = fPush(P2), P3 = axpy(p, k2, h / 2), k3 = fPush(P3), P4 = axpy(p, k3, h), k4 = fPush(P4);
+  const next = { re: p.re + (h / 6) * (k1.re + 2 * k2.re + 2 * k3.re + k4.re), im: p.im + (h / 6) * (k1.im + 2 * k2.im + 2 * k3.im + k4.im) };
+  return { k1, k2, k3, k4, P2, P3, P4, next, euler: axpy(p, k1, h) };
+}
+const rkFactor = (x) => ({ re: 1 - x * x / 2 + x ** 4 / 24, im: -x + x ** 3 / 6 });   // R(−ix) = 1 + h + h²/2 + h³/6 + h⁴/24
+const exactAt = (n) => ({ re: Math.cos(E1 * h1 * n), im: -Math.sin(E1 * h1 * n) });
+const cnum = (p) => `(${fmt(p.re, 3)}, ${fmt(p.im, 3)})`;
+class DialPanel extends Canvas2D {
+  draw({ psi, exact, parts, hist, histOther, method, h }) {
+    const c = colors(), ctx = this.ctx, w = this.w, h0 = this.h;
+    this.clear();
+    const cx = w * 0.5, cy = h0 * 0.52, R = Math.min(w, h0) * 0.33;
+    const X = (p) => cx + R * p.re, Y = (p) => cy - R * p.im;
+    ctx.fillStyle = c['fg-2']; ctx.font = this.font(12); ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText(`one hand, i dψ/dz = Eψ: the exact motion is the circle · dots: where ${method} lands step after step`, 12, 6);
+    // axes and the exact circle
+    ctx.strokeStyle = c.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(cx - R * 1.5, cy); ctx.lineTo(cx + R * 1.5, cy); ctx.moveTo(cx, cy - R * 1.5); ctx.lineTo(cx, cy + R * 1.5); ctx.stroke();
+    ctx.setLineDash([5, 4]); ctx.strokeStyle = c['fg-2']; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = c['fg-2']; ctx.font = this.font(11, 400, true); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('Re ψ', cx + R * 1.5 + 4, cy); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText('Im ψ', cx, cy - R * 1.5 - 4);
+    // the other method's trail, faint
+    const trail = (pts, color, alpha, r) => { ctx.save(); ctx.globalAlpha = alpha; ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 1.5; ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(X(p), Y(p)) : ctx.moveTo(X(p), Y(p)))); ctx.stroke(); pts.forEach((p) => { ctx.beginPath(); ctx.arc(X(p), Y(p), r, 0, 2 * Math.PI); ctx.fill(); }); ctx.restore(); };
+    trail(histOther.pts, histOther.color, 0.35, 2.5);
+    trail(hist.pts, hist.color, 0.9, 3);
+    // the exact position at the same z
+    ctx.strokeStyle = c.fg; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(X(exact), Y(exact), 6, 0, 2 * Math.PI); ctx.stroke();
+    ctx.fillStyle = c['fg-2']; ctx.font = this.font(11, 500); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('exact', X(exact) + 9, Y(exact));
+    // the current hand
+    ctx.strokeStyle = c.psi; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(X(psi), Y(psi)); ctx.stroke();
+    ctx.fillStyle = c.psi; ctx.beginPath(); ctx.arc(X(psi), Y(psi), 4, 0, 2 * Math.PI); ctx.fill();
+    // the construction of the next step
+    const kcol = [c.v1, c.v2, c.v3, c.hpsi];
+    const lab = (txt, p, color, dx = 6, dy = -6) => { ctx.fillStyle = color; ctx.font = this.font(12, 600); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(txt, X(p) + dx, Y(p) + dy); };
+    const dot = (p, color, r = 3.5) => { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(X(p), Y(p), r, 0, 2 * Math.PI); ctx.fill(); };
+    if (method === 'Euler') {
+      arrow(ctx, X(psi), Y(psi), X(parts.euler), Y(parts.euler), c.hpsi, 2.5, 8);
+      lab('dz · k₁', axpy(psi, parts.k1, h / 2), c.hpsi, 8, -4); dot(parts.euler, c.hpsi, 4.5); lab('lands here', parts.euler, c.hpsi, 8, 10);
+    } else {
+      const { k1, k2, k3, k4, P2, P3, P4, next } = parts;
+      // each push drawn as a full-step arrow (dz · k) from the point where it was asked
+      arrow(ctx, X(psi), Y(psi), X(axpy(psi, k1, h)), Y(axpy(psi, k1, h)), kcol[0], 2, 7); lab('k₁', axpy(psi, k1, h), kcol[0]);
+      dot(P2, kcol[0]); arrow(ctx, X(P2), Y(P2), X(axpy(P2, k2, h)), Y(axpy(P2, k2, h)), kcol[1], 2, 7); lab('k₂', axpy(P2, k2, h), kcol[1]);
+      dot(P3, kcol[1]); arrow(ctx, X(P3), Y(P3), X(axpy(P3, k3, h)), Y(axpy(P3, k3, h)), kcol[2], 2, 7); lab('k₃', axpy(P3, k3, h), kcol[2]);
+      dot(P4, kcol[2]); arrow(ctx, X(P4), Y(P4), X(axpy(P4, k4, h)), Y(axpy(P4, k4, h)), kcol[3], 2, 7); lab('k₄', axpy(P4, k4, h), kcol[3]);
+      arrow(ctx, X(psi), Y(psi), X(next), Y(next), c.psi, 3, 9); dot(next, c.psi, 4.5); lab('lands here: dz·(k₁+2k₂+2k₃+k₄)/6', next, c.psi, 8, 12);
+    }
+  }
+}
+function rkText() {
+  const psi = (rkOn ? trajR : trajE)[stepsDone], q = rk4Parts(psi, h1), ex = { re: psi.re * Math.cos(E1 * h1) + psi.im * Math.sin(E1 * h1), im: psi.im * Math.cos(E1 * h1) - psi.re * Math.sin(E1 * h1) };
+  const mag = (p) => Math.hypot(p.re, p.im);
+  const rows = [
+    `<div class="t">the next step from ψ = ${cnum(psi)}, with E = ${E1}, dz = ${fmt(h1)} · the push is f(ψ) = −iEψ (the hand turned by −90°)</div>`,
+    `<span class="k1">k₁ = f(ψ)            = ${cnum(q.k1)}</span>   push at the start`,
+    `<span class="k2">k₂ = f(ψ + ½dz·k₁)   = ${cnum(q.k2)}</span>   push halfway, where k₁ would take us`,
+    `<span class="k3">k₃ = f(ψ + ½dz·k₂)   = ${cnum(q.k3)}</span>   push halfway again, now using k₂`,
+    `<span class="k4">k₄ = f(ψ + dz·k₃)    = ${cnum(q.k4)}</span>   push at the end, using k₃`,
+    `<span class="st">RK4:   ψ + dz·(k₁ + 2k₂ + 2k₃ + k₄)/6 = ${cnum(q.next)}</span>   |ψ| = ${fmt(mag(q.next), 4)}`,
+    `Euler: ψ + dz·k₁                     = ${cnum(q.euler)}   |ψ| = ${fmt(mag(q.euler), 4)}`,
+    `exact: ψ·e^(−iE dz)                  = ${cnum(ex)}   |ψ| = 1`,
+  ];
+  return rows.join('<br>');
+}
+
 // ---------- panels ----------
 const chainPanel = new ChainPanel($('pane-chain').querySelector('canvas'));
+const dialPanel = new DialPanel($('pane-dial').querySelector('canvas'));
+const rkBox = $('pane-rk');
 const pad = { l: 46, r: 12, t: 26, b: 32 };
 const propPlot = new Plot($('pane-prop').querySelector('canvas'), { pad });
 const normPlot = new Plot($('pane-norm').querySelector('canvas'), { pad });
@@ -46,7 +118,7 @@ const bandPlot = new Plot($('pane-band').querySelector('canvas'), { pad });
 const eigPlot = new Plot($('pane-eig').querySelector('canvas'), { pad });
 const vecPlot = new Plot($('pane-vec').querySelector('canvas'), { pad });
 const statePlot = new Plot($('pane-state').querySelector('canvas'), { pad });
-const panes = { chain: $('pane-chain'), prop: $('pane-prop'), norm: $('pane-norm'), band: $('pane-band'), eig: $('pane-eig'), vec: $('pane-vec'), state: $('pane-state') };
+const panes = { dial: $('pane-dial'), rk: $('pane-rk'), chain: $('pane-chain'), prop: $('pane-prop'), norm: $('pane-norm'), band: $('pane-band'), eig: $('pane-eig'), vec: $('pane-vec'), state: $('pane-state') };
 
 function drawChain(p, { title, colorsAB = false } = {}) {
   const c = colors(), pr = prob(p), pMax = Math.max(...pr);
@@ -118,8 +190,36 @@ function sshFacts() {
 // ---------- acts ----------
 const acts = [
   {
-    id: 'step', tab: '1 · Stepping', heading: 'Time evolution step by step',
-    lead: 'Last week the computer propagated by diagonalizing. Now it walks: from z to z + dz using i dψ/dz = Hψ. Euler takes one push per step, ψ → ψ − i dz Hψ. Runge–Kutta 4 averages four pushes inside the step. The norm must stay 1; watch what each method does to it, and move dz.',
+    id: 'rk', tab: '1 · One step', heading: 'How a step is computed: Euler and Runge–Kutta on one hand',
+    lead: 'The simplest system: one guide with propagation constant E, i dψ/dz = Eψ. The exact motion of the hand is a circle. A numerical step must guess where the hand is after dz, knowing only the push f(ψ) = −iEψ at points it chooses to ask. Euler asks once, at the start, and walks along the tangent. Runge–Kutta 4 asks four times, at the start, twice halfway and at the end, and takes the average 1:2:2:1. Press "one step" and watch the four k arrows.',
+    panes: ['dial', 'rk', 'norm'], canPlay: true,
+    enter(ctl) {
+      resetRK();
+      ctl.append(group('step', [button('one step', () => { stepRK(1); render(); }), button('10 steps', () => { stepRK(10); render(); }), button('reset', () => { resetRK(); render(); })]),
+        slider({ id: 'h', label: 'step <i>E</i>·<i>dz</i>', min: 0.1, max: 3, step: 0.05, value: h1, onInput: (v) => { h1 = v; resetRK(); render(); } }).root,
+        toggle({ id: 'rkon', label: 'show the RK4 construction (off: Euler)', checked: rkOn, onChange: (v) => { rkOn = v; render(); } }).root);
+    },
+    caption() {
+      const x = E1 * h1, R = rkFactor(x), mR = Math.hypot(R.re, R.im), phR = wrapK(Math.atan2(R.im, R.re) + x);
+      const e = Math.sqrt(1 + x * x);
+      return `<i>E</i>·dz = ${fmt(x)} · Euler multiplies |ψ| by √(1 + (E dz)²) = ${fmt(e, 3)} every step and lands outside the circle · RK4 multiplies by ${fmt(mR, 4)} with a phase error of ${fmt(phR, 4)} rad per step${x > 2 * Math.SQRT2 ? ' · E dz > 2√2 = 2.83: now RK4 also runs away' : ' · RK4 stays stable up to E dz = 2√2 = 2.83'} · after ${stepsDone} steps: Euler |ψ| = ${fmt(Math.hypot(trajE[stepsDone].re, trajE[stepsDone].im), 3)}, RK4 |ψ| = ${fmt(Math.hypot(trajR[stepsDone].re, trajR[stepsDone].im), 4)}`;
+    },
+    render() {
+      const c = colors(), psi = (rkOn ? trajR : trajE)[stepsDone];
+      dialPanel.draw({ psi, exact: exactAt(stepsDone), parts: rk4Parts(psi, h1), method: rkOn ? 'RK4' : 'Euler', h: h1,
+        hist: { pts: rkOn ? trajR : trajE, color: rkOn ? c.psi : c.hpsi }, histOther: { pts: rkOn ? trajE : trajR, color: rkOn ? c.hpsi : c.psi } });
+      rkBox.innerHTML = rkText();
+      const ns = trajE.map((_, i) => i), top = Math.min(4, Math.max(1.3, ...trajE.map((p) => Math.hypot(p.re, p.im))) * 1.08);
+      normPlot.begin({ xlim: [0, Math.max(10, stepsDone)], ylim: [0, top], xlabel: 'step number', ylabel: '|ψ| after the step', title: '|ψ| step after step: Euler (orange), RK4 (blue), exact = 1' });
+      normPlot.hline(1, { color: c['fg-2'], dash: [4, 4] });
+      normPlot.line(ns, trajE.map((p) => Math.hypot(p.re, p.im)), { color: c.hpsi, width: 2 });
+      normPlot.line(ns, trajR.map((p) => Math.hypot(p.re, p.im)), { color: c.psi, width: 2 });
+      normPlot.end();
+    },
+  },
+  {
+    id: 'step', tab: '2 · Stepping the chain', heading: 'The same recipe on 41 hands at once',
+    lead: 'Now the push is Hψ: every hand is pushed by its neighbours, and one step of Euler or RK4 moves all 41 hands together with the same recipe as in act 1. Last week the computer propagated by diagonalizing; this is what the students code instead. The norm must stay 1; watch what each method does to it, and move dz.',
     panes: ['chain', 'prop', 'norm'], canPlay: true,
     enter(ctl) {
       psiS0 = delta(N, J0); restartStep();
@@ -147,7 +247,7 @@ const acts = [
     },
   },
   {
-    id: 'walk', tab: '2 · Walk and k', heading: 'A tilted beam walks: the wavenumber k',
+    id: 'walk', tab: '3 · Walk and k', heading: 'A tilted beam walks: the wavenumber k',
     lead: 'One guide excited contains every wavenumber and spreads. A wide beam with a phase step k from guide to guide is almost one supermode of the infinite chain: it sits at one point of the band E(k) = 2J cos k and moves with the slope there, dE/dk. The dots are the standing waves of the finite chain from last week, the same numbers.',
     panes: ['chain', 'prop', 'band'], canPlay: true,
     enter(ctl) {
@@ -168,7 +268,7 @@ const acts = [
     },
   },
   {
-    id: 'bloch', tab: '3 · Bloch oscillations', heading: 'A ramp makes k drift: Bloch oscillations',
+    id: 'bloch', tab: '4 · Bloch oscillations', heading: 'A ramp makes k drift: Bloch oscillations',
     lead: 'Add a linear ramp of propagation constants, εⱼ = F·j, the optical version of a constant force. The wavenumber drifts as k(z) = k₀ − F z, so the beam slides along the band. Where the band is flat it turns around. It never runs away: it oscillates with period 2π/F over 4J/F guides.',
     panes: ['chain', 'prop', 'band'], canPlay: true,
     enter(ctl) {
@@ -190,7 +290,7 @@ const acts = [
     },
   },
   {
-    id: 'ssh', tab: '4 · SSH chain (Task 2)', heading: 'Task 2: alternating couplings, a gap, and a state in it',
+    id: 'ssh', tab: '5 · SSH chain (Task 2)', heading: 'Task 2: alternating couplings, a gap, and a state in it',
     lead: 'Make the couplings alternate: J₁ inside each pair of guides, J₂ between pairs. The band splits into two with a gap of width 2|J₁ − J₂|. With 21 guides one state sits in the gap at E = 0, lives on the odd guides only, and clings to the end that starts with the weak bond. Move J₁ across J₂ and it jumps to the other end.',
     panes: ['eig', 'vec', 'state', 'chain'], canPlay: true,
     enter(ctl) {
@@ -211,6 +311,8 @@ const acts = [
 ];
 
 // ---------- act helpers ----------
+function resetRK() { trajE = [{ re: 1, im: 0 }]; trajR = [{ re: 1, im: 0 }]; stepsDone = 0; playClock = 0; setPlaying(false); }
+function stepRK(n) { for (let i = 0; i < n && stepsDone < 400; i++) { const pe = trajE[stepsDone], pr = trajR[stepsDone]; trajE.push(axpy(pe, fPush(pe), h1)); trajR.push(rk4Parts(pr, h1).next); stepsDone++; } }
 function restartStep() { psiS = { re: psiS0.re.slice(), im: psiS0.im.slice() }; zS = 0; z = 0; stepRows = [prob(psiS)]; normHist = [{ z: 0, n: 1, e: 0 }]; setPlaying(false); render(); }
 function stepOnce() {
   psiS = useRK4 ? rk4Step(HU, psiS, dz) : eulerStep(HU, psiS, dz); zS += dz;
@@ -231,12 +333,13 @@ let playBtn = null, timeEl = null, lastNow = 0;
 function setPlaying(v) { playing = v; if (playBtn) playBtn.textContent = playing ? 'Pause' : 'Play'; }
 function advance(dts) {
   const id = acts[act].id;
-  if (id === 'step') { z = Math.min(T_END, z + dts); let n = 0; while (zS + dz <= z + 1e-9 && n++ < 200) stepOnce(); if (z >= T_END) setPlaying(false); }
+  if (id === 'rk') { playClock += dts; if (playClock >= 0.7) { playClock = 0; stepRK(1); if (stepsDone >= 60) setPlaying(false); } }
+  else if (id === 'step') { z = Math.min(T_END, z + dts); let n = 0; while (zS + dz <= z + 1e-9 && n++ < 200) stepOnce(); if (z >= T_END) setPlaying(false); }
   else if (id === 'ssh') { z += dts; psiX = evolveExact(eigS, psiX0, z); }
   else { z += dts; if (z > T_END) { z = T_END; setPlaying(false); } psi = evolveExact(eigB, psi0, z); sampleRows(); }
 }
-function restartCurrent() { const id = acts[act].id; if (id === 'step') restartStep(); else if (id === 'ssh') restartSSH(); else restartBeam(); }
-function render() { const a = acts[act]; a.render(); captionEl.innerHTML = a.caption(); if (timeEl) timeEl.textContent = `z = ${fmt(acts[act].id === 'step' ? zS : z, 1)}`; }
+function restartCurrent() { const id = acts[act].id; if (id === 'rk') { resetRK(); render(); } else if (id === 'step') restartStep(); else if (id === 'ssh') restartSSH(); else restartBeam(); }
+function render() { const a = acts[act]; a.render(); captionEl.innerHTML = a.caption(); if (timeEl) timeEl.textContent = acts[act].id === 'rk' ? `${stepsDone} steps` : `z = ${fmt(acts[act].id === 'step' ? zS : z, 1)}`; }
 function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.05, (now - lastNow) / 1000); lastNow = now;
@@ -265,7 +368,7 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight') showAct(act + 1); if (e.key === 'ArrowLeft') showAct(act - 1);
   if (e.key === ' ' && !e.target.matches('button')) { e.preventDefault(); setPlaying(!playing); }
 });
-chainPanel.onRedraw = () => render();
+chainPanel.onRedraw = () => render(); dialPanel.onRedraw = () => render();
 [propPlot, normPlot, bandPlot, eigPlot, vecPlot, statePlot].forEach((p) => { p.onRedraw = () => render(); });
 
 // theme
@@ -279,7 +382,7 @@ $('theme-btn').addEventListener('click', () => {
 });
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (!root.dataset.theme) { invalidateTheme(); render(); } });
 
-const startId = (location.hash || '#step').slice(1);
+const startId = (location.hash || '#rk').slice(1);
 showAct(Math.max(0, acts.findIndex((a) => a.id === startId)));
 window.addEventListener('hashchange', () => { const i = acts.findIndex((a) => a.id === location.hash.slice(1)); if (i >= 0 && i !== act) showAct(i); });
 requestAnimationFrame((now) => { lastNow = now; requestAnimationFrame(frame); });

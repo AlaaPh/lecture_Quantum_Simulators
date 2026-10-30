@@ -42,11 +42,23 @@ const propPlot = new Plot($('pane-prop').querySelector('canvas'), { pad: { l: 46
 const vecPlot = new Plot($('pane-vec').querySelector('canvas.top'), { pad: { l: 46, r: 12, t: 26, b: 24 } });
 const rowPlot = new Plot($('pane-vec').querySelector('canvas.bottom'), { pad: { l: 46, r: 12, t: 24, b: 28 } });
 let hoverN = -1;
+const farPlot = new Plot($('pane-far').querySelector('canvas'), { pad: { l: 46, r: 12, t: 26, b: 32 } });
 const matBox = $('pane-matrix');
 const matTitle = el('div', { class: 'mat-title' }), mat = matrixView(3, 3, { label: '<i>H</i> =' }), matNote = el('div', { class: 'mat-note' });
 matBox.append(matTitle, mat.root, matNote);
 const siteColor = () => { const c = colors(); return [c.v1, c.v2, c.v3]; };
-const panes = { cont: $('pane-cont'), chain: $('pane-chain'), modes: $('pane-modes'), trace: $('pane-trace'), matrix: $('pane-matrix'), d3: $('pane-3d'), eig: $('pane-eig'), prop: $('pane-prop'), vec: $('pane-vec') };
+const panes = { cont: $('pane-cont'), chain: $('pane-chain'), modes: $('pane-modes'), trace: $('pane-trace'), matrix: $('pane-matrix'), d3: $('pane-3d'), eig: $('pane-eig'), prop: $('pane-prop'), vec: $('pane-vec'), far: $('pane-far') };
+const piTick = (v) => { const names = { '-1': '−π', '-0.5': '−π/2', '0': '0', '0.5': 'π/2', '1': 'π' }; return names[String(Math.round((v / Math.PI) * 2) / 2)] ?? v.toFixed(1); };
+// far field of the output: the array factor |Σ_j ψ_j e^{-iqj}|² times a gentle single-guide envelope; q = k₀ d sin θ
+function drawFar(p, { marks = [], title = 'far field of the output (after a lens): the phases become fringes' } = {}) {
+  const c = colors(), n = p.re.length, qs = Array.from({ length: 241 }, (_, i) => -Math.PI + (2 * Math.PI * i) / 240);
+  const I = qs.map((q) => { let re = 0, im = 0; for (let j = 0; j < n; j++) { const cs = Math.cos(q * j), sn = -Math.sin(q * j); re += p.re[j] * cs - p.im[j] * sn; im += p.re[j] * sn + p.im[j] * cs; } return (re * re + im * im) * Math.exp(-((q * 0.27) ** 2) / 2); });
+  const m = Math.max(1e-9, ...I), In = I.map((v) => v / m);
+  farPlot.begin({ xlim: [-Math.PI, Math.PI], ylim: [0, 1.08], xticks: [-Math.PI, -Math.PI / 2, 0, Math.PI / 2, Math.PI], xtickFmt: piTick, yticks: [0, 0.5, 1], xlabel: 'direction q = k₀ d sin θ (phase step per guide)', ylabel: 'relative intensity', title });
+  farPlot.band(qs, qs.map(() => 0), In, { color: c.psi, alpha: 0.22 }); farPlot.line(qs, In, { color: c.psi, width: 2 });
+  marks.forEach((q) => farPlot.vline(q, { color: c.hpsi, width: 1.5, dash: [4, 3] }));
+  farPlot.end();
+}
 
 // ---------- helpers ----------
 const driveParts = (i) => { // contributions to (H psi)_i, head to tail
@@ -92,8 +104,8 @@ const acts = [
   },
   {
     id: 'state', tab: '2 · State', heading: 'The state: an amplitude and a phase per guide',
-    lead: 'Forget the field. The state is the list (ψ₁, ψ₂, ψ₃): an amplitude (bar = intensity |ψᵢ|²) and a phase (the hand) per guide. The intensities add to 100%. Such a list is a vector, and the set of all of them is the Hilbert space of the three guides.',
-    panes: ['chain'], speed: 0, canPlay: false,
+    lead: 'Forget the field. The state is the list (ψ₁, ψ₂, ψ₃): an amplitude (bar = intensity |ψᵢ|²) and a phase (the hand) per guide. The intensities add to 100%. Such a list is a vector, and the set of all of them is the Hilbert space of the three guides. The phases are invisible in the guides but not after a lens: the far field on the right is their interference pattern. Turn the phase of guide 2 and watch the fringes move.',
+    panes: ['chain', 'far'], speed: 0, canPlay: false,
     enter(ctl) {
       psi0 = real([SQ, SQ, 0]); psi = psi0; t = 0;
       const presets = [['guide 1', [1, 0, 0]], ['guide 2', [0, 1, 0]], ['1 + 2', [SQ, SQ, 0]], ['1 − 3', [SQ, 0, -SQ]], ['1 + 2 + 3', [1, 1, 1].map((x) => x / Math.sqrt(3))]];
@@ -101,7 +113,7 @@ const acts = [
       ctl.append(group('prepare', presets.map(([l, v]) => button(l, () => { psi0 = real(v); psi = psi0; sPh.set(0); render(); }))), sPh.root);
     },
     caption() { const p = prob(psi); return `<i>ψ</i> = ${cvec(psi, siteColor())} → intensities ${p.map(pct).join(' / ')} (sum ${pct(p[0] + p[1] + p[2])})`; },
-    render() { chainPanel.draw({ psi, siteColors: siteColor(), J: [0, 0], eps: [0, 0, 0], showDials: true, pct: true, title: 'the state: bar = intensity, hand = phase' }); },
+    render() { chainPanel.draw({ psi, siteColors: siteColor(), J: [0, 0], eps: [0, 0, 0], showDials: true, pct: true, title: 'the state: bar = intensity, hand = phase' }); drawFar(psi); },
   },
   {
     id: 'rule', tab: '3 · Coupling', heading: 'The coupled-mode equations are a matrix',
@@ -128,8 +140,8 @@ const acts = [
   },
   {
     id: 'motion', tab: '4 · Supermodes', heading: 'Supermodes: the patterns that do not change',
-    lead: 'Three special patterns, the supermodes (eigenstates). For a supermode every push is at right angles to its hand, so only the phases advance, all at the same rate E, and the intensities never move. Any other input is a mix of supermodes with different rates, and the beat between them moves the light.',
-    panes: ['chain', 'modes', 'trace'], speed: 0.7, canPlay: true,
+    lead: 'Three special patterns, the supermodes (eigenstates). For a supermode every push is at right angles to its hand, so only the phases advance, all at the same rate E, and the intensities never move. Any other input is a mix of supermodes with different rates, and the beat between them moves the light. The far field shows the signs of a supermode: all in phase gives a bright centre, guides 1 and 3 in antiphase give a dark centre.',
+    panes: ['chain', 'modes', 'trace', 'far'], speed: 0.7, canPlay: true,
     enter(ctl) {
       store.eps = [0, 0, 0]; store.J = [1, 1]; refreshH(); psi0 = real([1, 0, 0]); drivesOn = true; restart();
       ctl.append(group('prepare', [button('guide 1', () => { psi0 = real([1, 0, 0]); restart(); }), button('supermode 1', () => { psi0 = real(eig.vectors[0]); restart(); }), button('supermode 2', () => { psi0 = real(eig.vectors[1]); restart(); }), button('supermode 3', () => { psi0 = real(eig.vectors[2]); restart(); }), button('supermode 1 + 3', () => { psi0 = real(normalize(eig.vectors[0].map((x, i) => x + eig.vectors[2][i]))); restart(); })]),
@@ -150,6 +162,7 @@ const acts = [
       const ts = hist.map((h) => h.t);
       [0, 1, 2].forEach((i) => trace.line(ts, hist.map((h) => h.p[i]), { color: cols[i], width: 2 }));
       trace.end();
+      drawFar(psi, { title: whichMode() >= 0 ? 'far field: for a supermode it never changes' : 'far field: it changes as the relative phases turn' });
     },
   },
   {
@@ -175,7 +188,7 @@ const acts = [
   {
     id: 'task1', tab: '6 · Task 1', heading: 'Task 1: twenty guides',
     lead: 'The same Hilbert space with twenty guides: twenty amplitudes, a 20 × 20 coupled-mode matrix with J = 1, twenty supermodes. The two figures of Task 1: the eigenvalues as dots and the eigenstates as a colour plot. Click a dot to launch that supermode, or excite one guide and watch discrete diffraction.',
-    panes: ['chain', 'eig', 'prop', 'vec'], speed: 1.0, canPlay: true,
+    panes: ['chain', 'eig', 'prop', 'vec', 'far'], speed: 1.0, canPlay: true,
     enter(ctl) {
       setupN(N);
       const sN = slider({ id: 'N', label: 'guides <i>N</i>', min: 3, max: 41, step: 1, value: N, format: (x) => x.toFixed(0), onInput: (v) => { setupN(v); } });
@@ -186,7 +199,7 @@ const acts = [
     },
     caption() {
       const p = prob(psiN);
-      const extra = selN >= 0 ? `supermode ${selN + 1}, <i>E</i> = ${fmt(eigN.values[selN], 3)}: a standing wave with ${N - selN - 1} sign changes; its pattern does not change along the way, only its phase.` : `one guide excited: a mix of all ${N} supermodes, the light spreads ballistically (discrete diffraction).`;
+      const extra = selN >= 0 ? `supermode ${selN + 1}, <i>E</i> = ${fmt(eigN.values[selN], 3)}: a standing wave with ${N - selN - 1} sign changes = two tilted waves, so the far field has two peaks at ±kₙ = ±${fmt(((N - selN) * Math.PI) / (N + 1))}; the pattern does not change along the way, only its phase.` : `one guide excited: a mix of all ${N} supermodes, the light spreads ballistically (discrete diffraction).`;
       return `<i>N</i> = ${N}, <i>J</i> = 1: ${N} supermodes, sorted ascending: <i>E</i><sub>n</sub> = −2<i>J</i> cos(<i>n</i>π/(<i>N</i>+1)) · ${extra}`;
     },
     render() {
@@ -203,7 +216,7 @@ const acts = [
       if (selN >= 0) { const ctx = eigPlot.ctx; ctx.strokeStyle = c.hpsi; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(eigPlot.x(selN + 1), eigPlot.y(eigN.values[selN]), 8, 0, 2 * Math.PI); ctx.stroke(); }
       eigPlot.end();
       // eigenstates as a colour plot (fig. 2)
-      vecPlot.begin({ xlim: [0.5, N + 0.5], ylim: [0.5, N + 0.5], xticks: xt, yticks: yt, xlabel: '', ylabel: 'supermode n', title: 'fig. 2: eigenstates, one row per supermode: amplitude ψₙ(j) in each guide, red = +, blue = −' });
+      vecPlot.begin({ xlim: [0.5, N + 0.5], ylim: [0.5, N + 0.5], xticks: xt, yticks: yt, xlabel: '', ylabel: 'supermode n', title: 'fig. 2: one row per supermode, red = +, blue = −' });
       vecPlot.heatmap(eigN.vectors, { cmap: 'div', x0: 0.5, y0: 0.5, tips: (i, j) => `n = ${i + 1}, j = ${j + 1}: ${fmt(eigN.vectors[i][j], 3)}` });
       if (selN >= 0) vecPlot.hline(selN + 1, { color: c.hpsi, width: 2 });
       if (hoverN >= 0 && hoverN !== selN) vecPlot.hline(hoverN + 1, { color: c.fg, width: 1, dash: [4, 3] });
@@ -211,7 +224,7 @@ const acts = [
       // the hovered or selected row of fig. 2 as signed bars
       const rowN = hoverN >= 0 ? hoverN : selN;
       const rv = rowN >= 0 ? eigN.vectors[rowN] : null, rm = rv ? Math.max(0.2, ...rv.map(Math.abs)) * 1.15 : 1;
-      rowPlot.begin({ xlim: [0.5, N + 0.5], ylim: [-rm, rm], xticks: xt, yticks: [-0.5, 0, 0.5].filter((v) => Math.abs(v) < rm), xlabel: 'guide j', ylabel: 'ψₙ(j)', title: rv ? `row ${rowN + 1} as bars: supermode ${rowN + 1} is a standing wave over the guides (${rowN === selN ? 'launched' : 'click the row to launch it'})` : 'move the mouse over fig. 2: each row is one supermode, a standing wave over the guides' });
+      rowPlot.begin({ xlim: [0.5, N + 0.5], ylim: [-rm, rm], xticks: xt, yticks: [-0.5, 0, 0.5].filter((v) => Math.abs(v) < rm), xlabel: 'guide j', ylabel: 'ψₙ(j)', title: rv ? `row ${rowN + 1} as bars: supermode ${rowN + 1}, a standing wave (${rowN === selN ? 'launched' : 'click to launch'})` : 'hover over fig. 2: each row is one supermode, a standing wave' });
       rowPlot.hline(0, { color: c.line });
       if (rv) { const ctx = rowPlot.ctx, bw = Math.max(2, (rowPlot.x(2) - rowPlot.x(1)) * 0.7); rv.forEach((x, j) => { ctx.fillStyle = x >= 0 ? c.pos : c.neg; const X = rowPlot.x(j + 1) - bw / 2, Y0 = rowPlot.y(0), Y1 = rowPlot.y(x); ctx.fillRect(X, Math.min(Y0, Y1), bw, Math.abs(Y1 - Y0)); }); }
       rowPlot.end();
@@ -220,6 +233,8 @@ const acts = [
       propPlot.begin({ xlim: [0.5, N + 0.5], ylim: [0, nRows], xticks: xt, yticks: tTicks, ytickFmt: (v) => String(Math.round(v * DT_ROW)), xlabel: 'guide j', ylabel: 'propagation t (= z)', title: 'intensity along the way' });
       if (propRows.length) { const late = propRows.slice(Math.min(propRows.length - 1, Math.round(0.5 / DT_ROW))); propPlot.heatmap(propRows, { cmap: 'seq', vmin: 0, vmax: Math.max(0.02, ...late.map((r) => Math.max(...r))), x0: 0.5, y0: 0 }); }
       propPlot.end();
+      const kSel = selN >= 0 ? ((N - selN) * Math.PI) / (N + 1) : null;
+      drawFar(psiN, { marks: kSel !== null ? [-kSel, kSel] : [], title: selN >= 0 ? 'far field: the sign pattern gives two peaks at ±kₙ' : 'far field of the output now' });
       if (this._sM) { this._sM.input.max = N; if (selN >= 0) this._sM.set(selN + 1); else this._sM.set(Math.min(+this._sM.input.value, N)); }
     },
   },
@@ -282,7 +297,7 @@ window.addEventListener('keydown', (e) => {
   if (e.key === ' ' && acts[act].canPlay && !e.target.matches('button')) { e.preventDefault(); setPlaying(!playing); }
 });
 [contPanel, chainPanel, modesPanel].forEach((p) => { p.onRedraw = () => render(); });
-[trace, eigPlot, propPlot, vecPlot, rowPlot].forEach((p) => { p.onRedraw = () => render(); });
+[trace, eigPlot, propPlot, vecPlot, rowPlot, farPlot].forEach((p) => { p.onRedraw = () => render(); });
 
 // theme
 const root = document.documentElement;
