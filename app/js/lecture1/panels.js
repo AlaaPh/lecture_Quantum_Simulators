@@ -79,7 +79,7 @@ export class ChainPanel extends Canvas2D {
     const c = colors(), ctx = this.ctx, w = this.w, h = this.h, n = s.psi.re.length;
     this.clear();
     const r = Math.max(5, Math.min(h * 0.19, w / (n * 3.2)));
-    const xs = Array.from({ length: n }, (_, k) => w * ((k + 0.5) / n) * 0.86 + w * 0.07);
+    const xs = (s.xpos || Array.from({ length: n }, (_, k) => (k + 0.5) / n)).map((u) => w * 0.07 + w * 0.86 * u);
     const every = n <= 12 ? 1 : n <= 30 ? 5 : 10;
     const yS = h * 0.64, barMax = h * 0.3, barTop = yS - r - 10;
     const p = s.psi.re.map((a, i) => a * a + s.psi.im[i] ** 2);
@@ -104,6 +104,13 @@ export class ChainPanel extends Canvas2D {
       ctx.font = this.font(12, 500, true); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillStyle = c.hpsi;
       ctx.fillText(`ε${i + 1} = ${fmt(e)}`, xs[i], yS + r + (s.pct ? 26 : 10));
     }
+    // gap dimension lines with labels (the physical distance between neighbouring guides)
+    if (s.gapLabels) s.gapLabels.forEach((txt, i) => {
+      if (!txt || i >= n - 1) return;
+      const y = yS + r + 14, x0 = xs[i] + r, x1 = xs[i + 1] - r;
+      ctx.strokeStyle = c['fg-2']; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.moveTo(x0, y - 4); ctx.lineTo(x0, y + 4); ctx.moveTo(x1, y - 4); ctx.lineTo(x1, y + 4); ctx.stroke();
+      ctx.fillStyle = c['fg-2']; ctx.font = this.font(11, 500, true); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(txt, (x0 + x1) / 2, y + 5);
+    });
     // bars (population) above the sites
     for (let i = 0; i < n; i++) {
       const bw = Math.max(8, r * 0.7), hgt = (p[i] / (s.barRef || 1)) * barMax;
