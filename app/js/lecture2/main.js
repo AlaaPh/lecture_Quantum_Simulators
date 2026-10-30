@@ -191,7 +191,7 @@ function sshFacts() {
     const [E, i] = inGap[0], v = eigS.vectors[i], left = v.slice(0, Math.floor(n / 2)).reduce((q, x) => q + x * x, 0) > 0.5;
     const xi = 1 / Math.abs(Math.log(J1 / J2));
     s += `one state in the gap, E = ${fmt(E, 4)}, only on the odd guides, at the ${left ? 'left' : 'right'} end, decaying over ξ = 1/|ln(J₁/J₂)| = ${fmt(xi)} unit cells.`;
-  } else s += `${inGap.length} states in the gap at E = ${inGap.map(([E]) => fmt(E, 4)).join(', ')}: one edge state at each end, overlapping weakly, so not exactly at 0.`;
+  } else s += `${inGap.length} states in the gap at E = ${inGap.map(([E]) => fmt(E, 4)).join(', ')}: the symmetric and antisymmetric combinations of an edge state at each end; their overlap through the chain splits them by 2δ, exponentially small in N.`;
   if (sel >= 0) {
     const v = eigS.vectors[sel]; let d = 0; for (let j = 0; j + 1 < n; j += 2) d += v[j] * v[j + 1];
     const E = eigS.values[sel];
@@ -295,8 +295,8 @@ const acts = [
     },
   },
   {
-    id: 'ssh', tab: '5 · SSH chain (Task 2)', heading: 'Task 2: alternating couplings, a gap, and a state in it',
-    lead: 'Make the couplings alternate: J₁ inside each pair of guides, J₂ between pairs. The band splits into two with a gap of width 2|J₁ − J₂|. With 21 guides one state lies in the gap at E = 0, has amplitude on the odd guides only, and is localized at the end that starts with the weak coupling. Move J₁ across J₂ and it moves to the other end.',
+    id: 'ssh', tab: '5 · SSH chain (Task 2)', heading: 'Task 2: alternating couplings, a gap, and the states in it: none, one or two',
+    lead: 'Make the couplings alternate: J₁ inside each pair of guides, J₂ between pairs. The band splits into two with a gap of width 2|J₁ − J₂|. With 21 guides exactly one state lies in the gap, at E = 0, with amplitude on the odd guides only, localized at the end that starts with the weak coupling; move J₁ across J₂ and it moves to the other end. With 20 guides and J₁ < J₂ both ends start with the weak coupling: two states lie in the gap at ±δ, the symmetric and antisymmetric combinations of an edge state at each end, with δ exponentially small in N. With 20 guides and J₁ > J₂ there is none.',
     panes: ['eig', 'vec', 'state', 'chain'], canPlay: true,
     enter(ctl) {
       NS = 21; J1 = 2; J2 = 1; setupSSH(); psiX0 = delta(NS, NS - 1); restartSSH();
