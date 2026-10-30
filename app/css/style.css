@@ -178,8 +178,13 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
 .pane-text { padding: 10px 14px; overflow: auto; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.7; color: var(--fg); }
 .pane-text .t { color: var(--fg-2); font-family: var(--font-ui); font-size: 12px; margin-bottom: 4px; }
 .pane-text .k1 { color: var(--v1); } .pane-text .k2 { color: var(--v2); } .pane-text .k3 { color: var(--v3); } .pane-text .k4 { color: var(--hpsi); } .pane-text .st { color: var(--psi); font-weight: 500; }
+.pane-text .rk-step { display: block; margin: 5px 0; padding: 4px 10px; border-left: 3px solid currentColor; border-radius: 4px; opacity: 0.55; }
+.pane-text .rk-step.now { opacity: 1; background: var(--surface-2); }
+.pane-text .rk-step code { display: block; font-family: var(--font-mono); white-space: pre-wrap; }
+.pane-text .rk-step .note { display: block; font-family: var(--font-ui); font-size: 12px; color: var(--fg-2); }
+.pane-text .why { margin-top: 10px; font-size: 13px; color: var(--fg); line-height: 1.5; }
 /* Exercise 2 */
-.stage-grid[data-act="rk"] { grid-template-columns: minmax(0, 1.1fr) minmax(300px, 1fr); grid-template-rows: minmax(0, 1.15fr) minmax(0, 0.85fr); grid-template-areas: "dial rk" "dial norm"; }
+.stage-grid[data-act="rk"] { grid-template-columns: minmax(0, 1.15fr) minmax(320px, 1fr); grid-template-areas: "dial rk"; }
 .stage-grid[data-act="step"] { grid-template-columns: minmax(0, 1.2fr) minmax(280px, 1fr); grid-template-rows: minmax(0, 0.8fr) minmax(0, 1.2fr); grid-template-areas: "chain chain" "prop norm"; }
 .stage-grid[data-act="walk"], .stage-grid[data-act="bloch"] { grid-template-columns: minmax(0, 1.3fr) minmax(280px, 1fr); grid-template-rows: minmax(0, 0.8fr) minmax(0, 1.2fr); grid-template-areas: "chain band" "prop band"; }
 .stage-grid[data-act="ssh"] { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "eig vec" "state chain"; }

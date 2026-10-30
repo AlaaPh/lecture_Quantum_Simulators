@@ -38,8 +38,9 @@ the same picture with more guides.
 
 **Exercise 2** (`app/exercise2.html`): the same instrument with 41 guides, five acts.
 
-0. **One step** — Euler and Runge–Kutta 4 on a single hand, i dψ/dz = Eψ: the four pushes k₁…k₄ drawn
-   where they are asked, the 1:2:2:1 average, the landing point against the exact circle, and |ψ| step after step.
+0. **One step** — one Runge–Kutta 4 step on a single hand, i dψ/dz = Eψ, built piece by piece: the slope k₁ at
+   the start, the trial points P₂, P₃, P₄ and the slopes k₂, k₃, k₄ asked there, the 1:2:2:1 average and the landing
+   point against the exact circle. Every quantity is drawn and printed with its numbers; Euler (k₁ only) on request.
 1. **Stepping** — i dψ/dz = Hψ integrated step by step: Euler versus Runge–Kutta 4, with the norm and the
    error against the exact solution plotted along z. Euler is unstable for every dz; RK4 is stable for
    dz < 2√2/E<sub>max</sub> and its error shrinks like dz⁴.
