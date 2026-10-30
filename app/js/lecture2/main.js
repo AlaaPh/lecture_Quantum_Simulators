@@ -164,9 +164,11 @@ function drawBand(kMark, { note = '' } = {}) {
 function drawEigSSH() {
   const c = colors(), n = eigS.values.length, ns = eigS.values.map((_, i) => i + 1), gap = Math.abs(J1 - J2);
   const xt = intTicks(n, Math.floor(eigPlot.w / 70));
-  eigPlot.begin({ xlim: [0.5, n + 0.5], ylim: [-3.3, 3.3], xticks: xt, xlabel: 'supermode index n', ylabel: 'Eₙ', title: `fig. 1: eigenvalues, N = ${n}, J₁ = ${fmt(J1)}, J₂ = ${fmt(J2)}` });
+  const inGap = gap > 1e-9 ? ns.filter((v) => Math.abs(eigS.values[v - 1]) < gap - 1e-6) : [];
+  eigPlot.begin({ xlim: [0.5, n + 0.5], ylim: [-3.3, 3.3], xticks: xt, xlabel: 'supermode index n', ylabel: 'Eₙ', title: `fig. 1: eigenvalues, N = ${n}, J₁ = ${fmt(J1)}, J₂ = ${fmt(J2)}${gap > 1e-9 ? ` · ${inGap.length} state${inGap.length === 1 ? '' : 's'} in the gap` : ''}` });
   if (gap > 1e-9) { eigPlot.hspan(-gap, gap, { color: c.hpsi, alpha: 0.12 }); eigPlot.text(1, gap, `gap ±|J₁ − J₂| = ±${fmt(gap)}`, { color: c.hpsi, dy: -10, font: '11px sans-serif' }); }
   eigPlot.dots(ns, eigS.values, { color: c.psi, r: 3.5, data: ns.map((v) => v - 1), tips: ns.map((v, i) => `n = ${v}: E = ${fmt(eigS.values[i], 4)}`) });
+  if (inGap.length) { eigPlot.dots(inGap, inGap.map((v) => eigS.values[v - 1]), { color: c.hpsi, r: 4.5 }); eigPlot.text(inGap[inGap.length - 1], eigS.values[inGap[0] - 1], `edge state${inGap.length > 1 ? 's' : ''}: n = ${inGap.join(', ')}`, { color: c.hpsi, dx: 12, dy: 4, align: 'left', font: '11px sans-serif' }); }
   if (sel >= 0) { const ctx = eigPlot.ctx; ctx.strokeStyle = c.hpsi; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(eigPlot.x(sel + 1), eigPlot.y(eigS.values[sel]), 8, 0, 2 * Math.PI); ctx.stroke(); }
   eigPlot.end();
   const yt = intTicks(n, Math.floor(vecPlot.h / 40));
