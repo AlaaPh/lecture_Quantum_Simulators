@@ -97,14 +97,14 @@ const acts = [
     render() {
       const cols = siteColor(), o = cont.overlaps();
       contPanel.draw(cont, { siteColors: cols, captured: o.captured, labels: ['guide 1', 'guide 2', 'guide 3'], title: 'the field ψ(x) at this z: |ψ|² filled, Re ψ thin; grey = refractive-index profile n(x)' });
-      chainPanel.draw({ psi: { re: o.c.map((z) => z.re), im: o.c.map((z) => z.im) }, siteColors: cols, labels: ['guide 1', 'guide 2', 'guide 3'], J: [cont.H3[0][1], cont.H3[1][2]], eps: [0, 0, 0], showDials: true, pct: true, title: 'the same field as three numbers: intensity (bar) and phase (hand)' });
+      chainPanel.draw({ psi: { re: o.c.map((z) => z.re), im: o.c.map((z) => z.im) }, siteColors: cols, labels: ['guide 1', 'guide 2', 'guide 3'], J: [cont.H3[0][1], cont.H3[1][2]], eps: [0, 0, 0], showDials: true, pct: true, title: 'the same field as three complex amplitudes: intensity (bar) and phase (phasor)' });
       matTitle.innerHTML = 'the coupled-mode matrix, computed from n(x)'; mat.set(cont.H3);
       matNote.innerHTML = `coupling J = ${fmt(cont.H3[0][1])} (evanescent overlap) · on-site ε = ${fmt(cont.H3[0][0])}, ${fmt(cont.H3[1][1])} (propagation constants)<br>direct 1↔3 coupling ${fmt(cont.H3[0][2])}: far apart, negligible<br>the sign of J is a convention: the sessions write +J`;
     },
   },
   {
     id: 'state', tab: '2 · State', heading: 'The state: an amplitude and a phase per guide',
-    lead: 'Forget the field. The state is the list (ψ₁, ψ₂, ψ₃): an amplitude (bar = intensity |ψᵢ|²) and a phase (the hand) per guide. The intensities add to 100%. Such a list is a vector, and the set of all of them is the Hilbert space of the three guides. The phases are invisible in the guides but not after a lens: the far field on the right is their interference pattern. Turn the phase of guide 2 and watch the fringes move.',
+    lead: 'Forget the field. The state is the list (ψ₁, ψ₂, ψ₃): one complex amplitude ψᵢ per guide, the bar is the intensity |ψᵢ|² and the phasor shows the phase arg ψᵢ. The intensities add to 100%. Such a list is a vector, and the set of all of them is the Hilbert space of the three guides. The phases are invisible in the guides but not after a lens: the far field on the right is their interference pattern. Turn the phase of guide 2 and watch the fringes move.',
     panes: ['chain', 'far'], speed: 0, canPlay: false,
     enter(ctl) {
       psi0 = real([SQ, SQ, 0]); psi = psi0; t = 0;
@@ -113,18 +113,18 @@ const acts = [
       ctl.append(group('prepare', presets.map(([l, v]) => button(l, () => { psi0 = real(v); psi = psi0; sPh.set(0); render(); }))), sPh.root);
     },
     caption() { const p = prob(psi); return `<i>ψ</i> = ${cvec(psi, siteColor())} → intensities ${p.map(pct).join(' / ')} (sum ${pct(p[0] + p[1] + p[2])})`; },
-    render() { chainPanel.draw({ psi, siteColors: siteColor(), J: [0, 0], eps: [0, 0, 0], showDials: true, pct: true, title: 'the state: bar = intensity, hand = phase' }); drawFar(psi); },
+    render() { chainPanel.draw({ psi, siteColors: siteColor(), J: [0, 0], eps: [0, 0, 0], showDials: true, pct: true, title: 'the state: bar = intensity |ψᵢ|², phasor = phase' }); drawFar(psi); },
   },
   {
     id: 'rule', tab: '3 · Coupling', heading: 'The coupled-mode equations are a matrix',
-    lead: 'i dψ/dt = Hψ. Guide i pushes its neighbours with the coupling J and advances its own phase with ε (its propagation constant). Nine numbers in a table. Press play: this is the directional coupler.',
+    lead: 'i dψ/dt = Hψ. Guide i is coupled to its neighbours with the coupling constant J, and its own phase advances at the rate ε (its propagation constant). Nine numbers in a table. Press play: this is the directional coupler.',
     panes: ['chain', 'matrix'], speed: 0.7, canPlay: true,
     enter(ctl) {
       store.eps = [0, 0, 0]; store.J = [1, 1]; refreshH(); psi0 = real([0, 1, 0]); psi = psi0; t = 0; drivesOn = false;
       const sJ = slider({ id: 'J', label: 'coupling <i>J</i>', min: -2, max: 2, step: 0.05, value: 1, onInput: (v) => { store.J = [v, v]; refreshH(); restart(); } });
       const sE = slider({ id: 'eps2', label: 'detuning <i>ε</i><sub>2</sub>', min: -3, max: 3, step: 0.1, value: 0, onInput: (v) => { store.eps[1] = v; refreshH(); restart(); } });
       ctl.append(group('light into', [button('guide 2', () => { psi0 = real([0, 1, 0]); restart(); }), button('guide 1', () => { psi0 = real([1, 0, 0]); restart(); })]), sJ.root, sE.root,
-        toggle({ id: 'drive', label: 'show how the rule drives the phase of guide 2', checked: false, onChange: (v) => { drivesOn = v; render(); } }).root);
+        toggle({ id: 'drive', label: 'show the three terms of dψ₂/dt on the phasor of guide 2', checked: false, onChange: (v) => { drivesOn = v; render(); } }).root);
     },
     caption() {
       const J = store.J[0], e2 = store.eps[1];
@@ -134,28 +134,28 @@ const acts = [
     },
     render() {
       chainPanel.draw({ psi, siteColors: siteColor(), J: store.J, eps: store.eps, showHops: true, showEps: true, showDials: true, pct: true, drive: drivesOn ? (i) => (i === 1 ? driveParts(1) : []) : null, driveScale: driveScale(), title: 'the rule in action' });
-      matTitle.innerHTML = 'the rule as a table: row i = what drives guide i'; mat.set(H);
+      matTitle.innerHTML = 'H as a table: row i gives i dψᵢ/dt'; mat.set(H);
       matNote.innerHTML = `i d<i>ψ</i><sub>2</sub>/dt = ε<sub>2</sub>ψ<sub>2</sub> + Jψ<sub>1</sub> + Jψ<sub>3</sub>`;
     },
   },
   {
     id: 'motion', tab: '4 · Supermodes', heading: 'Supermodes: the patterns that do not change',
-    lead: 'Three special patterns, the supermodes (eigenstates). For a supermode every push is at right angles to its hand, so only the phases advance, all at the same rate E, and the intensities never move. Any other input is a mix of supermodes with different rates, and the beat between them moves the light. The far field shows the signs of a supermode: all in phase gives a bright centre, guides 1 and 3 in antiphase give a dark centre.',
+    lead: 'Three special patterns, the supermodes (eigenstates). For a supermode dψᵢ/dt = −iEψᵢ on every guide: the rate of change is perpendicular to the phasor, so only the phases advance, all at the same rate E, and the intensities never move. Any other input is a superposition of supermodes with different rates, and the beat between them moves the light. The far field shows the signs of a supermode: all in phase gives a bright centre, guides 1 and 3 in antiphase give a dark centre.',
     panes: ['chain', 'modes', 'trace', 'far'], speed: 0.7, canPlay: true,
     enter(ctl) {
       store.eps = [0, 0, 0]; store.J = [1, 1]; refreshH(); psi0 = real([1, 0, 0]); drivesOn = true; restart();
       ctl.append(group('prepare', [button('guide 1', () => { psi0 = real([1, 0, 0]); restart(); }), button('supermode 1', () => { psi0 = real(eig.vectors[0]); restart(); }), button('supermode 2', () => { psi0 = real(eig.vectors[1]); restart(); }), button('supermode 3', () => { psi0 = real(eig.vectors[2]); restart(); }), button('supermode 1 + 3', () => { psi0 = real(normalize(eig.vectors[0].map((x, i) => x + eig.vectors[2][i]))); restart(); })]),
-        toggle({ id: 'drives', label: 'show the pushes on every phase', checked: true, onChange: (v) => { drivesOn = v; render(); } }).root);
+        toggle({ id: 'drives', label: 'show dψᵢ/dt on every phasor', checked: true, onChange: (v) => { drivesOn = v; render(); } }).root);
     },
     caption() {
       const m = whichMode();
-      if (m >= 0) return `supermode ${m + 1}, <i>E</i> = ${fmt(eig.values[m])}: every push (orange) is at right angles to its hand, so the hands only turn, together, at rate <i>E</i>. The intensities never change${Math.abs(eig.values[m]) < 1e-6 ? ': with E = 0 even the hands stand still' : ''}.`;
+      if (m >= 0) return `supermode ${m + 1}, <i>E</i> = ${fmt(eig.values[m])}: dψᵢ/dt (orange) is perpendicular to every phasor, so the phasors only rotate, all at the rate <i>E</i>. The intensities never change${Math.abs(eig.values[m]) < 1e-6 ? ': with E = 0 the phasors do not rotate at all' : ''}.`;
       const cs = components(eig, psi0).map((z) => z.re ** 2 + z.im ** 2);
-      return `a mix of supermodes (${cs.map(pct).join(' / ')}): their phases advance at different rates, the pushes have parts along the hands, the intensities move.`;
+      return `a superposition of supermodes (${cs.map(pct).join(' / ')}): their phases advance at different rates, dψᵢ/dt has a component along the phasor, the intensities change.`;
     },
     render() {
       const cols = siteColor();
-      chainPanel.draw({ psi, siteColors: cols, J: store.J, eps: store.eps, showDials: true, pct: true, drive: drivesOn ? driveParts : null, driveScale: driveScale(), title: 'the state and the pushes on its phases' });
+      chainPanel.draw({ psi, siteColors: cols, J: store.J, eps: store.eps, showDials: true, pct: true, drive: drivesOn ? driveParts : null, driveScale: driveScale(), title: 'the state and dψᵢ/dt on each phasor' });
       modesPanel.draw({ eig, comps: components(eig, psi), siteColors: cols, highlight: whichMode(), title: 'the three supermodes (eigenstates)' });
       const T = 12, t0 = Math.max(0, t - T);
       trace.begin({ xlim: [t0, t0 + T], ylim: [0, 1.02], xlabel: 'propagation t (= z)', ylabel: 'intensity' });

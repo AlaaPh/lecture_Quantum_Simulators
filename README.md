@@ -23,9 +23,9 @@ the same picture with more guides.
    role of time). High index contrast: the field is three amplitudes with three phases, and the 3 × 3
    coupled-mode matrix is *computed* from n(x) (Wannier projection). Low contrast: the light spills out.
 2. **State** — the list (ψ₁, ψ₂, ψ₃): an intensity and a phase per guide; intensities add to 100%.
-3. **Coupling** — i dψ/dt = Hψ as a table: J pushes the neighbours, ε sets a phase rate. Play: the
-   directional coupler. The pushes on the phase of guide 2 are drawn head to tail.
-4. **Supermodes** — the three eigenstates. For a supermode every push is at right angles to its hand: the
+3. **Coupling** — i dψ/dt = Hψ as a table: J couples the neighbours, ε sets the phase rate. Play: the
+   directional coupler. The three terms of dψ₂/dt are drawn head to tail on the phasor of guide 2.
+4. **Supermodes** — the three eigenstates. For a supermode dψᵢ/dt = −iEψᵢ is perpendicular to every phasor: the
    phases advance at one rate E, the intensities never move. Anything else is a mix and moves.
 5. **Hilbert space** — the same state in guide coordinates and in supermode coordinates; optional 3D arrow
    with the guide axes and the supermode axes.
@@ -38,15 +38,15 @@ the same picture with more guides.
 
 **Exercise 2** (`app/exercise2.html`): the same instrument with 41 guides, five acts.
 
-0. **One step** — one Runge–Kutta 4 step on a single hand, i dψ/dz = Eψ, built piece by piece: the slope k₁ at
-   the start, the trial points P₂, P₃, P₄ and the slopes k₂, k₃, k₄ asked there, the 1:2:2:1 average and the landing
+0. **One step** — one Runge–Kutta 4 step on a single amplitude, i dψ/dz = Eψ, built piece by piece: the derivative k₁ at
+   the start, the trial points P₂, P₃, P₄ and the derivatives k₂, k₃, k₄ asked there, the 1:2:2:1 average and the landing
    point against the exact circle. Every quantity is drawn and printed with its numbers; Euler (k₁ only) on request.
 1. **Stepping** — i dψ/dz = Hψ integrated step by step: Euler versus Runge–Kutta 4, with the norm and the
    error against the exact solution plotted along z. Euler is unstable for every dz; RK4 is stable for
    dz < 2√2/E<sub>max</sub> and its error shrinks like dz⁴.
-2. **Walk and k** — a wide beam with a phase step k per guide sits at one point of the band E(k) = 2J cos k
-   and moves with the slope dE/dk. The eigenvalues of the finite chain are the dots on that band.
-3. **Bloch oscillations** — a linear ramp εⱼ = F·j makes k drift, k(z) = k₀ − F z; the beam slides along the
+2. **Beam and k** — a wide beam with a phase difference k between neighbouring guides sits at one point of the
+   band E(k) = 2J cos k and moves with the group velocity dE/dk. The eigenvalues of the finite chain are the dots on that band.
+3. **Bloch oscillations** — a linear gradient εⱼ = F·j of the propagation constants makes k drift, k(z) = k₀ − F z; the beam moves along the
    band, turns around at the band edges, and oscillates with period 2π/F over 4J/F guides.
 4. **SSH chain (Task 2)** — alternating J₁, J₂: the gap 2|J₁ − J₂|, the dimer symmetry of the two bands, and
    for 21 guides the E = 0 state on the odd guides at the end with the weak bond, decay length 1/|ln(J₁/J₂)|.
