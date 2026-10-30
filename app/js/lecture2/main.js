@@ -19,7 +19,7 @@ const N = 41, J0 = (N - 1) / 2;                      // acts 1–3: 41 guides, t
 const HU = sshChain(N, J, J, 0), eigU = symEig(HU);  // the uniform chain
 const E_MAX = Math.max(...eigU.values.map(Math.abs)), DZ_RK4 = (2 * Math.SQRT2) / E_MAX;
 let act = 0, z = 0, playing = false;
-// act 1: one step on one hand, i dψ/dz = E ψ
+// act 1: one step on one amplitude, i dψ/dz = E ψ
 const E1 = 1;
 let h1 = 1.0, psiR = { re: 1, im: 0 }, trailR = [], stage = 0, showEuler = false, stepsDone = 0, playClock = 0;
 // act 2: stepping the chain
@@ -40,8 +40,8 @@ const centre = (p) => p.reduce((s, x, j) => s + (j + 1) * x, 0) / (p.reduce((s, 
 function eulerStep(H, p, h) { const hr = matvec(H, p.re), hi = matvec(H, p.im); return { re: p.re.map((x, i) => x + h * hi[i]), im: p.im.map((x, i) => x - h * hr[i]) }; }
 function setupSSH() { eigS = symEig(sshChain(NS, J1, J2, 0)); sel = -1; }
 
-// ---------- one hand: one Runge–Kutta step, piece by piece ----------
-const fPush = (p) => ({ re: E1 * p.im, im: -E1 * p.re });                          // the slope f(ψ) = −iEψ
+// ---------- one amplitude: one Runge–Kutta step, piece by piece ----------
+const fPush = (p) => ({ re: E1 * p.im, im: -E1 * p.re });                          // the derivative f(ψ) = −iEψ
 const axpy = (p, k, a) => ({ re: p.re + a * k.re, im: p.im + a * k.im });
 const exactStep = (p, h) => ({ re: p.re * Math.cos(E1 * h) + p.im * Math.sin(E1 * h), im: p.im * Math.cos(E1 * h) - p.re * Math.sin(E1 * h) });  // ψ·e^(−iE dz)
 function rk4Parts(p, h) {
@@ -54,12 +54,12 @@ const cnum = (p) => `(${fmt(p.re, 3)}, ${fmt(p.im, 3)})`;
 const mag = (p) => Math.hypot(p.re, p.im);
 const SUB = ['₁', '₂', '₃', '₄'];
 const STAGES = [
-  'ψ is one complex number, drawn as a hand. The equation i dψ/dz = Eψ gives its slope at any point: f(ψ) = −iEψ, the hand turned by −90° and stretched by E. A step must guess where the hand is after dz, knowing only slopes.',
-  'k₁ is the slope at the start. Following it for the whole step gives the arrow dz·k₁. That is Euler’s guess. It is a tangent, so it leaves the circle.',
-  'Go half a step along k₁ to the trial point P₂ and ask the slope there: k₂. A slope from the middle of the step is a better guess than the one from the start.',
-  'Back to ψ. Go half a step along k₂ to P₃ and ask the slope there: k₃. This corrects the midpoint once more.',
-  'Go a full step along k₃ to P₄, the guess for the end point, and ask the slope there: k₄.',
-  'Average the four slopes with weights 1, 2, 2, 1 (Simpson’s rule: each end once, the middle four times) and take one step along this mean slope. The error of the step is of order dz⁵.',
+  'ψ is the complex amplitude in the guide, drawn as a phasor in the complex plane. The equation i dψ/dz = Eψ gives its derivative at any point: f(ψ) = −iEψ, the phasor rotated by −90° and scaled by E. A step must estimate ψ after dz from such derivatives alone.',
+  'k₁ = f(ψ) is the derivative at the start. Following it for the whole step gives the arrow dz·k₁: Euler’s estimate. The derivative is tangent to the circle, so a straight step leaves the circle.',
+  'Go half a step along k₁ to the trial point P₂ and evaluate the derivative there: k₂. A derivative taken in the middle of the step is a better estimate than the one at the start.',
+  'Back at ψ, go half a step along k₂ to P₃ and evaluate the derivative there: k₃. This corrects the midpoint estimate once more.',
+  'Go a full step along k₃ to P₄, the estimate of the end point, and evaluate the derivative there: k₄.',
+  'Average the four derivatives with weights 1, 2, 2, 1 (Simpson’s rule: each end once, the middle four times) and take one step along this mean derivative. The error of the step is of order dz⁵.',
 ];
 class DialPanel extends Canvas2D {
   draw({ psi, h, parts, stage, trail, showEuler }) {
@@ -71,7 +71,7 @@ class DialPanel extends Canvas2D {
     const cx = w * 0.5, cy = h0 * 0.53, R = Math.min(w * 0.5, h0 * 0.46) / ext;
     const X = (p) => cx + R * p.re, Y = (p) => cy - R * p.im;
     ctx.fillStyle = c['fg-2']; ctx.font = this.font(12); ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-    ctx.fillText('one guide, i dψ/dz = Eψ · the exact motion is the dashed circle', 12, 6);
+    ctx.fillText('one guide, i dψ/dz = Eψ · exact: ψ(z) = ψ(0)·e^(−iEz), the dashed circle', 12, 6);
     ctx.strokeStyle = c.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(12, cy); ctx.lineTo(w - 12, cy); ctx.moveTo(cx, 26); ctx.lineTo(cx, h0 - 8); ctx.stroke();
     ctx.setLineDash([5, 4]); ctx.strokeStyle = c['fg-2']; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle = c['fg-2']; ctx.font = this.font(11, 400, true); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText('Re ψ', w - 14, cy - 4); ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('Im ψ', cx + 6, 26);
@@ -80,10 +80,10 @@ class DialPanel extends Canvas2D {
     const dashed = (a, b, color) => { ctx.save(); ctx.setLineDash([3, 4]); ctx.strokeStyle = color; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(X(a), Y(a)); ctx.lineTo(X(b), Y(b)); ctx.stroke(); ctx.restore(); };
     // where earlier steps landed
     ctx.save(); ctx.globalAlpha = 0.45; trail.forEach((p) => dot(p, c.psi, 2.5)); ctx.restore();
-    // the hand
+    // the phasor ψ
     ctx.strokeStyle = c.psi; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(X(psi), Y(psi)); ctx.stroke(); dot(psi, c.psi, 4.5);
     lab('ψ', psi, c.psi, -8, -6);
-    // the four slopes: each drawn as the full-step arrow dz·k from the point where it was asked
+    // the four derivatives: each drawn as the full-step arrow dz·k from the point where it was asked
     const kcol = [c.v1, c.v2, c.v3, c.hpsi];
     for (let i = 0; i < 4 && stage >= i + 1; i++) {
       ctx.save(); ctx.globalAlpha = stage === i + 1 ? 1 : 0.3;
@@ -102,10 +102,10 @@ class DialPanel extends Canvas2D {
 function rkText() {
   const q = rk4Parts(psiR, h1);
   const block = (i, cls, lines, note) => `<div class="rk-step ${cls}${stage === i ? ' now' : ''}">${lines.map((l) => `<code>${l}</code>`).join('')}<span class="note">${note}</span></div>`;
-  const out = [`<div class="t">E = ${E1} · dz = ${fmt(h1)} · slope rule f(ψ) = −iEψ</div>`, block(0, 'st', [`ψ = ${cnum(psiR)}`], 'start of the step')];
+  const out = [`<div class="t">E = ${E1} · dz = ${fmt(h1)} · dψ/dz = f(ψ) = −iEψ</div>`, block(0, 'st', [`ψ = ${cnum(psiR)}`], 'start of the step')];
   const from = [psiR, q.P2, q.P3, q.P4], ks = [q.k1, q.k2, q.k3, q.k4];
   const how = ['', 'P₂ = ψ + ½dz·k₁', 'P₃ = ψ + ½dz·k₂', 'P₄ = ψ + dz·k₃'];
-  const notes = ['slope at the start', 'slope at the midpoint, reached with k₁', 'slope at the midpoint, reached with k₂', 'slope at the end, reached with k₃'];
+  const notes = ['derivative at the start', 'derivative at the midpoint, reached with k₁', 'derivative at the midpoint, reached with k₂', 'derivative at the end, reached with k₃'];
   for (let i = 0; i < 4 && stage >= i + 1; i++) {
     const lines = i ? [`${how[i]} = ${cnum(from[i])}`] : [];
     lines.push(`k${SUB[i]} = f(${i ? 'P' + SUB[i] : 'ψ'}) = ${cnum(ks[i])}`);
@@ -149,7 +149,7 @@ function drawProp(rowsIn, rowDz, { title = 'intensity along the way' } = {}) {
 }
 function drawBand(kMark, { note = '' } = {}) {
   const c = colors();
-  bandPlot.begin({ xlim: [-Math.PI, Math.PI], ylim: [-2.5, 2.5], xticks: [-Math.PI, -Math.PI / 2, 0, Math.PI / 2, Math.PI], xtickFmt: piTick, xlabel: 'wavenumber k (phase step from guide to guide)', ylabel: 'E(k)', title: 'the band E(k) = 2J cos k, dots: the 41 supermodes of last week' });
+  bandPlot.begin({ xlim: [-Math.PI, Math.PI], ylim: [-2.5, 2.5], xticks: [-Math.PI, -Math.PI / 2, 0, Math.PI / 2, Math.PI], xtickFmt: piTick, xlabel: 'wavenumber k (phase step from guide to guide)', ylabel: 'E(k)', title: 'the band E(k) = 2J cos k, dots: the 41 eigenvalues of the finite chain (Exercise 1)' });
   const ks = linspace(-Math.PI, Math.PI, 241);
   bandPlot.line(ks, ks.map((k) => 2 * J * Math.cos(k)), { color: c.fg, width: 1.5 });
   const kn = eigU.values.map((_, i) => ((N - i) * Math.PI) / (N + 1)); // ascending E_i sits at k = (N - i) π/(N+1)
@@ -157,7 +157,7 @@ function drawBand(kMark, { note = '' } = {}) {
   const E = 2 * J * Math.cos(kMark), v = -2 * J * Math.sin(kMark), dk = 0.7;
   bandPlot.line([kMark - dk, kMark + dk], [E - v * dk, E + v * dk], { color: c.hpsi, width: 2 });
   bandPlot.dots([kMark], [E], { color: c.hpsi, r: 6 });
-  bandPlot.text(kMark, E, `slope dE/dk = ${fmt(v)} = speed`, { color: c.hpsi, dx: kMark > 0.8 ? -12 : 12, dy: -16, align: kMark > 0.8 ? 'right' : 'left' });
+  bandPlot.text(kMark, E, `dE/dk = ${fmt(v)} = group velocity`, { color: c.hpsi, dx: kMark > 0.8 ? -12 : 12, dy: -16, align: kMark > 0.8 ? 'right' : 'left' });
   if (note) bandPlot.text(0, -2.3, note, { color: c['fg-2'], align: 'center' });
   bandPlot.end();
 }
@@ -183,7 +183,7 @@ function drawEigSSH() {
 }
 function sshFacts() {
   const n = eigS.values.length, gap = Math.abs(J1 - J2);
-  if (gap < 1e-9) return 'J₁ = J₂: no gap, this is the uniform chain of last week.';
+  if (gap < 1e-9) return 'J₁ = J₂: no gap, this is the uniform chain of Exercise 1.';
   const inGap = eigS.values.map((E, i) => [E, i]).filter(([E]) => Math.abs(E) < gap - 1e-6);
   let s = `gap of width 2|J₁ − J₂| = ${fmt(2 * gap)} · `;
   if (!inGap.length) s += `no state in the gap: the chain ends on strong bonds (J₁ > J₂), trivial ends.`;
@@ -204,14 +204,14 @@ function sshFacts() {
 // ---------- acts ----------
 const acts = [
   {
-    id: 'rk', tab: '1 · One step', heading: 'How one step is computed: the four slopes of Runge–Kutta',
-    lead: 'One guide with propagation constant E: i dψ/dz = Eψ, so the slope of ψ is f(ψ) = −iEψ. The exact solution runs around a circle. A numerical step has to guess where ψ is after dz, knowing only slopes. Euler uses one slope, at the start. Runge–Kutta 4 asks for the slope four times, k₁ to k₄, and averages them. Press "next" to build one step piece by piece.',
+    id: 'rk', tab: '1 · One step', heading: 'How one step is computed: the four evaluations k₁…k₄ of Runge–Kutta',
+    lead: 'One guide with propagation constant E: i dψ/dz = Eψ, so dψ/dz = f(ψ) = −iEψ. The exact solution ψ(0)·e^(−iEz) runs around a circle in the complex plane. A numerical step has to estimate ψ after dz, knowing only the derivative f at points of its choice. Euler evaluates f once, at the start. Runge–Kutta 4 evaluates f four times, k₁ to k₄, and averages them. Press "next" to build one step piece by piece.',
     panes: ['dial', 'rk'], canPlay: true,
     enter(ctl) {
       resetRK();
       ctl.append(group('build the step', [button('next', () => { nextStage(); render(); }), button('whole step', () => { wholeStep(); render(); }), button('reset', () => { resetRK(); render(); })]),
         slider({ id: 'h', label: 'step <i>E</i>·<i>dz</i>', min: 0.1, max: 3, step: 0.05, value: h1, onInput: (v) => { h1 = v; resetRK(); render(); } }).root,
-        toggle({ id: 'euler', label: 'also show where Euler lands (one slope only)', checked: showEuler, onChange: (v) => { showEuler = v; render(); } }).root);
+        toggle({ id: 'euler', label: 'also show where Euler lands (k₁ only)', checked: showEuler, onChange: (v) => { showEuler = v; render(); } }).root);
     },
     caption() {
       const x = E1 * h1, mR = mag(rkFactor(x));
@@ -223,8 +223,8 @@ const acts = [
     },
   },
   {
-    id: 'step', tab: '2 · Stepping the chain', heading: 'The same recipe on 41 hands at once',
-    lead: 'Now the push is Hψ: every hand is pushed by its neighbours, and one step of Euler or RK4 moves all 41 hands together with the same recipe as in act 1. Last week the computer propagated by diagonalizing; this is what the students code instead. The norm must stay 1; watch what each method does to it, and move dz.',
+    id: 'step', tab: '2 · Stepping the chain', heading: 'The same recipe on 41 amplitudes at once',
+    lead: 'Now the derivative is f(ψ) = −iHψ: each amplitude changes through the coupling to its neighbours, and one step of Euler or RK4 advances all 41 amplitudes together with the recipe of act 1. In Exercise 1 the propagation was computed by diagonalizing H; here it is integrated step by step, as in the coding task. The norm must stay 1: watch what each method does to it, and change dz.',
     panes: ['chain', 'prop', 'norm'], canPlay: true,
     enter(ctl) {
       psiS0 = delta(N, J0); restartStep();
@@ -252,19 +252,19 @@ const acts = [
     },
   },
   {
-    id: 'walk', tab: '3 · Walk and k', heading: 'A tilted beam walks: the wavenumber k',
-    lead: 'One guide excited contains every wavenumber and spreads. A wide beam with a phase step k from guide to guide is almost one supermode of the infinite chain: it sits at one point of the band E(k) = 2J cos k and moves with the slope there, dE/dk. The dots are the standing waves of the finite chain from last week, the same numbers.',
+    id: 'walk', tab: '3 · Beam and k', heading: 'A tilted beam moves sideways: the transverse wavenumber k',
+    lead: 'One excited guide contains every wavenumber and spreads (discrete diffraction). A wide beam with a phase difference k between neighbouring guides is close to one Bloch mode of the infinite chain: it sits at one point of the band E(k) = 2J cos k and its centre moves with the group velocity dE/dk. The dots are the eigenvalues of the finite chain from Exercise 1, the same numbers.',
     panes: ['chain', 'prop', 'band'], canPlay: true,
     enter(ctl) {
       eigB = eigU; k0 = 1.0; width = 2; psi0 = beamState(k0, width); restartBeam();
-      const sK = slider({ id: 'k', label: 'tilt <i>k</i>', min: -Math.PI, max: Math.PI, step: 0.05, value: k0, onInput: (v) => { k0 = v; psi0 = beamState(k0, width); restartBeam(); } });
+      const sK = slider({ id: 'k', label: 'wavenumber <i>k</i>', min: -Math.PI, max: Math.PI, step: 0.05, value: k0, onInput: (v) => { k0 = v; psi0 = beamState(k0, width); restartBeam(); } });
       const sW = slider({ id: 'width', label: 'beam width', min: 0, max: 4, step: 0.1, value: width, format: (x) => x.toFixed(1) + ' guides', onInput: (v) => { width = v; psi0 = beamState(k0, width); restartBeam(); } });
       ctl.append(sK.root, sW.root, group('beam', [button('wide beam', () => { width = 2; sW.set(2); psi0 = beamState(k0, width); restartBeam(); }), button('one guide', () => { width = 0; sW.set(0); psi0 = beamState(k0, width); restartBeam(); })]));
     },
     caption() {
-      if (width < 0.05) return 'one guide: every k at once, the slopes point both ways, the light spreads (discrete diffraction).';
+      if (width < 0.05) return 'one excited guide: all k at once, group velocities of both signs, the light spreads (discrete diffraction).';
       const v = -2 * J * Math.sin(k0), moved = centre(prob(psi)) - centre(prob(psi0));
-      return `k = ${fmt(k0)}: the beam sits at E = ${fmt(2 * J * Math.cos(k0))} on the band, slope dE/dk = −2J sin k = ${fmt(v)} · the beam centre moved ${fmt(moved, 1)} guides in z = ${fmt(z, 1)}${z > 0.5 ? `, speed ${fmt(moved / z)}` : ''}${Math.abs(v) < 0.2 ? ' · near a band edge the slope is zero: the beam stands still and only spreads' : ''}`;
+      return `k = ${fmt(k0)}: the beam sits at E = ${fmt(2 * J * Math.cos(k0))} on the band, group velocity dE/dk = −2J sin k = ${fmt(v)} · the beam centre moved ${fmt(moved, 1)} guides in z = ${fmt(z, 1)}${z > 0.5 ? `, measured velocity ${fmt(moved / z)}` : ''}${Math.abs(v) < 0.2 ? ' · at a band extremum the group velocity is zero: the beam does not move, it only spreads' : ''}`;
     },
     render() {
       drawChain(psi, { title: `the ${N} guides, k = ${fmt(k0)}, width ${width.toFixed(1)}` });
@@ -273,30 +273,30 @@ const acts = [
     },
   },
   {
-    id: 'bloch', tab: '4 · Bloch oscillations', heading: 'A ramp makes k drift: Bloch oscillations',
-    lead: 'Add a linear ramp of propagation constants, εⱼ = F·j, the optical version of a constant force. The wavenumber drifts as k(z) = k₀ − F z, so the beam slides along the band. Where the band is flat it turns around. It never runs away: it oscillates with period 2π/F over 4J/F guides.',
+    id: 'bloch', tab: '4 · Bloch oscillations', heading: 'A gradient of the propagation constants: Bloch oscillations',
+    lead: 'Give the propagation constants a linear gradient across the array, εⱼ = F·j (in the experiment: a temperature gradient, guides of slowly varying width, or curved guides). This is the optical analogue of a constant force on an electron in a crystal. The wavenumber then changes as k(z) = k₀ − F z, so the beam moves along the band E(k). At a band extremum the group velocity is zero and the beam turns around. It never leaves: it oscillates with period 2π/F over 4J/F guides.',
     panes: ['chain', 'prop', 'band'], canPlay: true,
     enter(ctl) {
       F = 0.3; k0 = 0; width = 2; rampChain(); psi0 = beamState(k0, width); restartBeam();
-      const sF = slider({ id: 'F', label: 'ramp <i>F</i>', min: 0, max: 1, step: 0.02, value: F, onInput: (v) => { F = v; rampChain(); restartBeam(); } });
+      const sF = slider({ id: 'F', label: 'gradient <i>F</i>', min: 0, max: 1, step: 0.02, value: F, onInput: (v) => { F = v; rampChain(); restartBeam(); } });
       const sW = slider({ id: 'width', label: 'beam width', min: 0, max: 4, step: 0.1, value: width, format: (x) => x.toFixed(1) + ' guides', onInput: (v) => { width = v; psi0 = beamState(k0, width); restartBeam(); } });
       ctl.append(sF.root, sW.root, group('beam', [button('wide beam', () => { width = 2; sW.set(2); psi0 = beamState(k0, width); restartBeam(); }), button('one guide', () => { width = 0; sW.set(0); psi0 = beamState(k0, width); restartBeam(); })]));
     },
     caption() {
-      if (F < 1e-9) return 'F = 0: no ramp, k stays where it is, the beam just walks or spreads as in act 2.';
+      if (F < 1e-9) return 'F = 0: no gradient, k is constant, the beam moves or spreads as in act 3.';
       const kz = wrapK(k0 - F * z);
-      const base = `F = ${fmt(F)}: k(z) = −F z = ${fmt(kz)} now, slope ${fmt(-2 * J * Math.sin(kz))} · period 2π/F = ${fmt(2 * Math.PI / F, 1)}`;
-      return width < 0.05 ? `${base} · one guide: the light breathes out to ±2J/F = ±${fmt(2 * J / F, 1)} guides and comes back.` : `${base} · the beam swings over 4J/F = ${fmt(4 * J / F, 1)} guides and comes back to where it started.`;
+      const base = `F = ${fmt(F)}: k(z) = −F z = ${fmt(kz)} now, group velocity ${fmt(-2 * J * Math.sin(kz))} · period 2π/F = ${fmt(2 * Math.PI / F, 1)}`;
+      return width < 0.05 ? `${base} · one excited guide: the light spreads out to ±2J/F = ±${fmt(2 * J / F, 1)} guides and refocuses into the start guide.` : `${base} · the beam oscillates over 4J/F = ${fmt(4 * J / F, 1)} guides and returns to its starting position.`;
     },
     render() {
-      drawChain(psi, { title: `the ${N} guides with the ramp F = ${fmt(F)}` });
+      drawChain(psi, { title: `the ${N} guides, εⱼ = F·(j − ${J0 + 1}), F = ${fmt(F)}` });
       drawProp(rows, DT_ROW);
-      drawBand(wrapK(k0 - F * z), { note: F > 1e-9 ? 'the marker slides along the band at rate F; its slope is the speed' : '' });
+      drawBand(wrapK(k0 - F * z), { note: F > 1e-9 ? 'the marker moves along the band, dk/dz = −F; dE/dk there is the group velocity' : '' });
     },
   },
   {
     id: 'ssh', tab: '5 · SSH chain (Task 2)', heading: 'Task 2: alternating couplings, a gap, and a state in it',
-    lead: 'Make the couplings alternate: J₁ inside each pair of guides, J₂ between pairs. The band splits into two with a gap of width 2|J₁ − J₂|. With 21 guides one state sits in the gap at E = 0, lives on the odd guides only, and clings to the end that starts with the weak bond. Move J₁ across J₂ and it jumps to the other end.',
+    lead: 'Make the couplings alternate: J₁ inside each pair of guides, J₂ between pairs. The band splits into two with a gap of width 2|J₁ − J₂|. With 21 guides one state lies in the gap at E = 0, has amplitude on the odd guides only, and is localized at the end that starts with the weak coupling. Move J₁ across J₂ and it moves to the other end.',
     panes: ['eig', 'vec', 'state', 'chain'], canPlay: true,
     enter(ctl) {
       NS = 21; J1 = 2; J2 = 1; setupSSH(); psiX0 = delta(NS, NS - 1); restartSSH();

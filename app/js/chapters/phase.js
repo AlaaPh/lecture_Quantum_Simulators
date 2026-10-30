@@ -1,4 +1,4 @@
-// Chapter 4: the phase of an amplitude, shown as a clock on each site. Ends with the dark middle waveguide.
+// Chapter 4: the phase of an amplitude, shown as a phasor on each site. Ends with the dark middle waveguide.
 import { button, row, slider } from '../ui.js';
 import { colors } from '../theme.js';
 import { symEig, evolveExact, prob, fmt } from '../linalg.js';
@@ -19,7 +19,7 @@ export function cstr(re, im) {
 }
 
 export default {
-  id: 'phase', title: 'Phase: a clock on every site', nav: 'Phase',
+  id: 'phase', title: 'Phase: a phasor on every site', nav: 'Phase',
   mount({ view, tweens, store, panel, stage, onThemeChange }) {
     const c = colors();
     const siteColor = [c.v1, c.v2, c.v3];
@@ -79,11 +79,11 @@ export default {
     const restart = () => { t = 0; psi = stateFor(4); render(); };
 
     const steps = [
-      { title: 'A complex amplitude is a clock', text: 'Each amplitude ψᵢ = |ψᵢ| e^{iφᵢ} has a length and an angle. The dial on each site shows both. Turn the global phase: all clocks turn together and nothing measurable changes.',
-        caption: () => `global phase <i>α</i> = ${alpha}°: all three hands turn by the same angle; the percentages stay ${prob(psi).map(pct).join(' / ')}. Real amplitudes are the special case of hands pointing right (0°) or left (180°).`,
+      { title: 'A complex amplitude is a phasor', text: 'Each amplitude ψᵢ = |ψᵢ| e^{iφᵢ} has a length and an angle. The phasor on each site shows both. Turn the global phase: all phasors turn together and nothing measurable changes.',
+        caption: () => `global phase <i>α</i> = ${alpha}°: all three phasors turn by the same angle; the percentages stay ${prob(psi).map(pct).join(' / ')}. Real amplitudes are the special case of phasors pointing right (0°) or left (180°).`,
         enter(ctl) { focus = -1; playing = false; plotBox.hidden = true; psi = stateFor(0);
           ctl.append(slider({ id: 'alpha', label: '<i>α</i> (global)', min: 0, max: 360, step: 1, value: alpha, format: (x) => x.toFixed(0) + '°', onInput: (x) => { alpha = x; psi = stateFor(0); render(); } }).root); } },
-      { title: 'Measuring a site throws the angle away', text: 'The probability of site 2 is the squared length of its hand, nothing else: p₂ = (Re ψ₂)² + (Im ψ₂)². Turn the phase of site 2: the hand rotates, the percentages do not move.',
+      { title: 'Measuring a site throws the angle away', text: 'The probability of site 2 is the squared length of its phasor, nothing else: p₂ = (Re ψ₂)² + (Im ψ₂)². Turn the phase of site 2: the phasor rotates, the percentages do not move.',
         caption: () => `<i>φ</i><sub>2</sub> = ${phi2}°: <i>p</i><sub>2</sub> = ${sq(psi.re[1])} + ${sq(psi.im[1])} = ${pct(prob(psi)[1])}. In the 3D view the two dashed shadows on axis 2 are Re <i>ψ</i><sub>2</sub> and Im <i>ψ</i><sub>2</sub>.`,
         enter(ctl) { focus = 1; playing = false; plotBox.hidden = true; psi = stateFor(1);
           ctl.append(slider({ id: 'phi2', label: '<i>φ</i><sub>2</sub> (site 2)', min: 0, max: 360, step: 1, value: phi2, format: (x) => x.toFixed(0) + '°', onInput: (x) => { phi2 = x; psi = stateFor(1); render(); } }).root); } },
@@ -92,7 +92,7 @@ export default {
         enter(ctl) { focus = 1; playing = false; plotBox.hidden = true; psi = stateFor(2);
           const s = slider({ id: 'phi2', label: '<i>φ</i><sub>2</sub> (site 2)', min: 0, max: 360, step: 1, value: phi2, format: (x) => x.toFixed(0) + '°', onInput: (x) => { phi2 = x; psi = stateFor(2); render(); } });
           ctl.append(s.root, row([button('0°', () => s.set(0, true)), button('90°', () => s.set(90, true)), button('180°', () => s.set(180, true))])); } },
-      { title: 'Two guides feed the middle one: the hops add with their phases', text: 'Light in guides 1 and 3, nothing in guide 2. What flows into guide 2 is the sum of the two hops, J ψ₁ + J ψ₃. The dial of site 2 shows the two hands added head to tail.',
+      { title: 'Two guides feed the middle one: the hops add with their phases', text: 'Light in guides 1 and 3, nothing in guide 2. What flows into guide 2 is the sum of the two hops, J ψ₁ + J ψ₃. The phasor of site 2 shows the two phasors added head to tail.',
         caption: () => { const h = hopsIn(), m2 = h.re ** 2 + h.im ** 2; return `<i>φ</i> = ${phi}°: the two hops into site 2 ${Math.abs(((phi % 360) + 360) % 360 - 180) < 1 ? 'cancel exactly: nothing can ever enter the middle guide' : `add to <span style="color:${c.hpsi}">${cstr(h.re, h.im)}</span>, strength |·|² = ${fmt(m2)} (max 2.00 at 0°)`}.`; },
         enter(ctl) { focus = -1; playing = false; plotBox.hidden = true; psi = stateFor(3);
           const s = slider({ id: 'phi', label: '<i>φ</i> (site 3 vs 1)', min: 0, max: 360, step: 1, value: phi, format: (x) => x.toFixed(0) + '°', onInput: (x) => { phi = x; psi = stateFor(3); render(); } });
