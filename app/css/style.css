@@ -167,15 +167,19 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
 .lect-head p { margin: 0; color: var(--fg-2); font-size: 14px; max-width: 70ch; }
 .stage-grid { display: grid; gap: 10px; min-height: 0; }
 .stage-grid[data-act="guides"] { grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr); grid-template-rows: minmax(0, 1.25fr) minmax(0, 1fr); grid-template-areas: "cont cont" "chain matrix"; }
-.stage-grid[data-act="state"] { grid-template-columns: 1fr; grid-template-areas: "chain"; }
+.stage-grid[data-act="state"] { grid-template-columns: minmax(0, 1.2fr) minmax(280px, 1fr); grid-template-areas: "chain far"; }
 .stage-grid[data-act="rule"] { grid-template-columns: minmax(0, 2.2fr) minmax(220px, 1fr); grid-template-areas: "chain matrix"; }
-.stage-grid[data-act="motion"] { grid-template-columns: minmax(0, 1.4fr) minmax(260px, 1fr); grid-template-rows: minmax(0, 1.35fr) minmax(0, 0.65fr); grid-template-areas: "chain modes" "trace trace"; }
+.stage-grid[data-act="motion"] { grid-template-columns: minmax(0, 1.4fr) minmax(260px, 1fr); grid-template-rows: minmax(0, 1.25fr) minmax(0, 0.75fr); grid-template-areas: "chain modes" "trace far"; }
 .stage-grid[data-act="hilbert"] { grid-template-columns: minmax(0, 1fr) minmax(260px, 1fr); grid-template-areas: "chain modes"; }
 .stage-grid[data-act="hilbert"][data-inset="1"] { grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "chain modes" "chain d3"; }
-.stage-grid[data-act="task1"] { grid-template-columns: minmax(0, 1.2fr) minmax(280px, 1fr); grid-template-rows: minmax(0, 0.9fr) minmax(0, 1.1fr); grid-template-areas: "chain eig" "prop vec"; }
+.stage-grid[data-act="task1"] { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(220px, 0.8fr); grid-template-rows: minmax(0, 0.85fr) minmax(0, 1.15fr); grid-template-areas: "chain chain eig" "prop vec far"; }
 #pane-eig { grid-area: eig; } #pane-prop { grid-area: prop; } #pane-vec { grid-area: vec; }
-#pane-norm { grid-area: norm; } #pane-band { grid-area: band; } #pane-state { grid-area: state; }
+#pane-norm { grid-area: norm; } #pane-band { grid-area: band; } #pane-state { grid-area: state; } #pane-far { grid-area: far; } #pane-dial { grid-area: dial; } #pane-rk { grid-area: rk; }
+.pane-text { padding: 10px 14px; overflow: auto; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.7; color: var(--fg); }
+.pane-text .t { color: var(--fg-2); font-family: var(--font-ui); font-size: 12px; margin-bottom: 4px; }
+.pane-text .k1 { color: var(--v1); } .pane-text .k2 { color: var(--v2); } .pane-text .k3 { color: var(--v3); } .pane-text .k4 { color: var(--hpsi); } .pane-text .st { color: var(--psi); font-weight: 500; }
 /* Exercise 2 */
+.stage-grid[data-act="rk"] { grid-template-columns: minmax(0, 1.1fr) minmax(300px, 1fr); grid-template-rows: minmax(0, 1.15fr) minmax(0, 0.85fr); grid-template-areas: "dial rk" "dial norm"; }
 .stage-grid[data-act="step"] { grid-template-columns: minmax(0, 1.2fr) minmax(280px, 1fr); grid-template-rows: minmax(0, 0.8fr) minmax(0, 1.2fr); grid-template-areas: "chain chain" "prop norm"; }
 .stage-grid[data-act="walk"], .stage-grid[data-act="bloch"] { grid-template-columns: minmax(0, 1.3fr) minmax(280px, 1fr); grid-template-rows: minmax(0, 0.8fr) minmax(0, 1.2fr); grid-template-areas: "chain band" "prop band"; }
 .stage-grid[data-act="ssh"] { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "eig vec" "state chain"; }
@@ -201,7 +205,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
   .stage-grid { height: auto; }
   .stage-grid[data-act], .stage-grid[data-act][data-inset] { grid-template-columns: minmax(0, 1fr); grid-template-areas: none; grid-template-rows: none; }
   .pane { min-height: 220px; }
-  #pane-cont, #pane-chain, #pane-modes, #pane-trace, #pane-matrix, #pane-eig, #pane-prop, #pane-vec, #pane-norm, #pane-band, #pane-state { grid-area: auto; }
+  #pane-cont, #pane-chain, #pane-modes, #pane-trace, #pane-matrix, #pane-eig, #pane-prop, #pane-vec, #pane-norm, #pane-band, #pane-state, #pane-far, #pane-dial, #pane-rk { grid-area: auto; }
   #pane-3d { grid-area: auto; height: 260px; }
   .stage-grid[data-act="ssh"] #pane-chain { order: 9; }
 }

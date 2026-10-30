@@ -29,12 +29,17 @@ the same picture with more guides.
    phases advance at one rate E, the intensities never move. Anything else is a mix and moves.
 5. **Hilbert space** — the same state in guide coordinates and in supermode coordinates; optional 3D arrow
    with the guide axes and the supermode axes.
+
+   Acts 2, 4 and 6 also show the far field of the output (the array factor after a lens), where the relative
+   phases and the signs of a supermode become fringes: in phase = bright centre, antiphase = dark centre.
 6. **Task 1** — the chain of N guides (default 20, J = 1): the eigenvalues as dots with the closed form
    2J cos(nπ/(N+1)), the eigenstates as a colour plot, and the propagation map of one excited guide
    (discrete diffraction) or of one supermode (nothing moves). Click a dot or a row to launch that mode.
 
-**Exercise 2** (`app/exercise2.html`): the same instrument with 41 guides, four acts.
+**Exercise 2** (`app/exercise2.html`): the same instrument with 41 guides, five acts.
 
+0. **One step** — Euler and Runge–Kutta 4 on a single hand, i dψ/dz = Eψ: the four pushes k₁…k₄ drawn
+   where they are asked, the 1:2:2:1 average, the landing point against the exact circle, and |ψ| step after step.
 1. **Stepping** — i dψ/dz = Hψ integrated step by step: Euler versus Runge–Kutta 4, with the norm and the
    error against the exact solution plotted along z. Euler is unstable for every dz; RK4 is stable for
    dz < 2√2/E<sub>max</sub> and its error shrinks like dz⁴.
