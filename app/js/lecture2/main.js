@@ -21,7 +21,7 @@ const E_MAX = Math.max(...eigU.values.map(Math.abs)), DZ_RK4 = (2 * Math.SQRT2) 
 let act = 0, z = 0, playing = false;
 // act 1: one step on one hand, i dψ/dz = E ψ
 const E1 = 1;
-let rkOn = true, h1 = 1.0, trajE = [{ re: 1, im: 0 }], trajR = [{ re: 1, im: 0 }], stepsDone = 0, playClock = 0;
+let h1 = 1.0, psiR = { re: 1, im: 0 }, trailR = [], stage = 0, showEuler = false, stepsDone = 0, playClock = 0;
 // act 2: stepping the chain
 let useRK4 = true, dz = 0.2, psiS0 = null, psiS = null, zS = 0, stepRows = [], normHist = [];
 // acts 2–3: a beam on the chain, exact propagation
@@ -40,71 +40,85 @@ const centre = (p) => p.reduce((s, x, j) => s + (j + 1) * x, 0) / (p.reduce((s, 
 function eulerStep(H, p, h) { const hr = matvec(H, p.re), hi = matvec(H, p.im); return { re: p.re.map((x, i) => x + h * hi[i]), im: p.im.map((x, i) => x - h * hr[i]) }; }
 function setupSSH() { eigS = symEig(sshChain(NS, J1, J2, 0)); sel = -1; }
 
-// ---------- one hand: Euler and RK4 made visible ----------
-const fPush = (p) => ({ re: E1 * p.im, im: -E1 * p.re });                          // f(ψ) = −iEψ
+// ---------- one hand: one Runge–Kutta step, piece by piece ----------
+const fPush = (p) => ({ re: E1 * p.im, im: -E1 * p.re });                          // the slope f(ψ) = −iEψ
 const axpy = (p, k, a) => ({ re: p.re + a * k.re, im: p.im + a * k.im });
+const exactStep = (p, h) => ({ re: p.re * Math.cos(E1 * h) + p.im * Math.sin(E1 * h), im: p.im * Math.cos(E1 * h) - p.re * Math.sin(E1 * h) });  // ψ·e^(−iE dz)
 function rk4Parts(p, h) {
   const k1 = fPush(p), P2 = axpy(p, k1, h / 2), k2 = fPush(P2), P3 = axpy(p, k2, h / 2), k3 = fPush(P3), P4 = axpy(p, k3, h), k4 = fPush(P4);
-  const next = { re: p.re + (h / 6) * (k1.re + 2 * k2.re + 2 * k3.re + k4.re), im: p.im + (h / 6) * (k1.im + 2 * k2.im + 2 * k3.im + k4.im) };
-  return { k1, k2, k3, k4, P2, P3, P4, next, euler: axpy(p, k1, h) };
+  const kbar = { re: (k1.re + 2 * k2.re + 2 * k3.re + k4.re) / 6, im: (k1.im + 2 * k2.im + 2 * k3.im + k4.im) / 6 };
+  return { k1, k2, k3, k4, P2, P3, P4, kbar, next: axpy(p, kbar, h), euler: axpy(p, k1, h), exact: exactStep(p, h) };
 }
-const rkFactor = (x) => ({ re: 1 - x * x / 2 + x ** 4 / 24, im: -x + x ** 3 / 6 });   // R(−ix) = 1 + h + h²/2 + h³/6 + h⁴/24
-const exactAt = (n) => ({ re: Math.cos(E1 * h1 * n), im: -Math.sin(E1 * h1 * n) });
+const rkFactor = (x) => ({ re: 1 - x * x / 2 + x ** 4 / 24, im: -x + x ** 3 / 6 });   // RK4 applied to e^(−ix): 1 + (−ix) + (−ix)²/2 + (−ix)³/6 + (−ix)⁴/24
 const cnum = (p) => `(${fmt(p.re, 3)}, ${fmt(p.im, 3)})`;
+const mag = (p) => Math.hypot(p.re, p.im);
+const SUB = ['₁', '₂', '₃', '₄'];
+const STAGES = [
+  'ψ is one complex number, drawn as a hand. The equation i dψ/dz = Eψ gives its slope at any point: f(ψ) = −iEψ, the hand turned by −90° and stretched by E. A step must guess where the hand is after dz, knowing only slopes.',
+  'k₁ is the slope at the start. Following it for the whole step gives the arrow dz·k₁. That is Euler’s guess. It is a tangent, so it leaves the circle.',
+  'Go half a step along k₁ to the trial point P₂ and ask the slope there: k₂. A slope from the middle of the step is a better guess than the one from the start.',
+  'Back to ψ. Go half a step along k₂ to P₃ and ask the slope there: k₃. This corrects the midpoint once more.',
+  'Go a full step along k₃ to P₄, the guess for the end point, and ask the slope there: k₄.',
+  'Average the four slopes with weights 1, 2, 2, 1 (Simpson’s rule: each end once, the middle four times) and take one step along this mean slope. The error of the step is of order dz⁵.',
+];
 class DialPanel extends Canvas2D {
-  draw({ psi, exact, parts, hist, histOther, method, h }) {
+  draw({ psi, h, parts, stage, trail, showEuler }) {
     const c = colors(), ctx = this.ctx, w = this.w, h0 = this.h;
     this.clear();
-    const cx = w * 0.5, cy = h0 * 0.52, R = Math.min(w, h0) * 0.33;
+    const { k1, k2, k3, k4, P2, P3, P4, next, exact, euler } = parts;
+    const from = [psi, P2, P3, P4], ks = [k1, k2, k3, k4], tips = from.map((p, i) => axpy(p, ks[i], h));
+    const ext = 1.12 * Math.max(1.3, ...[psi, ...tips, next].map((p) => Math.max(Math.abs(p.re), Math.abs(p.im))));
+    const cx = w * 0.5, cy = h0 * 0.53, R = Math.min(w * 0.5, h0 * 0.46) / ext;
     const X = (p) => cx + R * p.re, Y = (p) => cy - R * p.im;
     ctx.fillStyle = c['fg-2']; ctx.font = this.font(12); ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-    ctx.fillText(`one hand, i dψ/dz = Eψ: the exact motion is the circle · dots: where ${method} lands step after step`, 12, 6);
-    // axes and the exact circle
-    ctx.strokeStyle = c.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(cx - R * 1.5, cy); ctx.lineTo(cx + R * 1.5, cy); ctx.moveTo(cx, cy - R * 1.5); ctx.lineTo(cx, cy + R * 1.5); ctx.stroke();
+    ctx.fillText('one guide, i dψ/dz = Eψ · the exact motion is the dashed circle', 12, 6);
+    ctx.strokeStyle = c.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(12, cy); ctx.lineTo(w - 12, cy); ctx.moveTo(cx, 26); ctx.lineTo(cx, h0 - 8); ctx.stroke();
     ctx.setLineDash([5, 4]); ctx.strokeStyle = c['fg-2']; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = c['fg-2']; ctx.font = this.font(11, 400, true); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('Re ψ', cx + R * 1.5 + 4, cy); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText('Im ψ', cx, cy - R * 1.5 - 4);
-    // the other method's trail, faint
-    const trail = (pts, color, alpha, r) => { ctx.save(); ctx.globalAlpha = alpha; ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 1.5; ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(X(p), Y(p)) : ctx.moveTo(X(p), Y(p)))); ctx.stroke(); pts.forEach((p) => { ctx.beginPath(); ctx.arc(X(p), Y(p), r, 0, 2 * Math.PI); ctx.fill(); }); ctx.restore(); };
-    trail(histOther.pts, histOther.color, 0.35, 2.5);
-    trail(hist.pts, hist.color, 0.9, 3);
-    // the exact position at the same z
-    ctx.strokeStyle = c.fg; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(X(exact), Y(exact), 6, 0, 2 * Math.PI); ctx.stroke();
-    ctx.fillStyle = c['fg-2']; ctx.font = this.font(11, 500); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('exact', X(exact) + 9, Y(exact));
-    // the current hand
-    ctx.strokeStyle = c.psi; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(X(psi), Y(psi)); ctx.stroke();
-    ctx.fillStyle = c.psi; ctx.beginPath(); ctx.arc(X(psi), Y(psi), 4, 0, 2 * Math.PI); ctx.fill();
-    // the construction of the next step
+    ctx.fillStyle = c['fg-2']; ctx.font = this.font(11, 400, true); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText('Re ψ', w - 14, cy - 4); ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('Im ψ', cx + 6, 26);
+    const dot = (p, color, r = 4) => { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(X(p), Y(p), r, 0, 2 * Math.PI); ctx.fill(); };
+    const lab = (txt, p, color, dx = 7, dy = -5, size = 12) => { ctx.fillStyle = color; ctx.font = this.font(size, 600); ctx.textAlign = dx < 0 ? 'right' : 'left'; ctx.textBaseline = dy > 0 ? 'top' : 'bottom'; ctx.fillText(txt, X(p) + dx, Y(p) + dy); };
+    const dashed = (a, b, color) => { ctx.save(); ctx.setLineDash([3, 4]); ctx.strokeStyle = color; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(X(a), Y(a)); ctx.lineTo(X(b), Y(b)); ctx.stroke(); ctx.restore(); };
+    // where earlier steps landed
+    ctx.save(); ctx.globalAlpha = 0.45; trail.forEach((p) => dot(p, c.psi, 2.5)); ctx.restore();
+    // the hand
+    ctx.strokeStyle = c.psi; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(X(psi), Y(psi)); ctx.stroke(); dot(psi, c.psi, 4.5);
+    lab('ψ', psi, c.psi, -8, -6);
+    // the four slopes: each drawn as the full-step arrow dz·k from the point where it was asked
     const kcol = [c.v1, c.v2, c.v3, c.hpsi];
-    const lab = (txt, p, color, dx = 6, dy = -6) => { ctx.fillStyle = color; ctx.font = this.font(12, 600); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(txt, X(p) + dx, Y(p) + dy); };
-    const dot = (p, color, r = 3.5) => { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(X(p), Y(p), r, 0, 2 * Math.PI); ctx.fill(); };
-    if (method === 'Euler') {
-      arrow(ctx, X(psi), Y(psi), X(parts.euler), Y(parts.euler), c.hpsi, 2.5, 8);
-      lab('dz · k₁', axpy(psi, parts.k1, h / 2), c.hpsi, 8, -4); dot(parts.euler, c.hpsi, 4.5); lab('lands here', parts.euler, c.hpsi, 8, 10);
-    } else {
-      const { k1, k2, k3, k4, P2, P3, P4, next } = parts;
-      // each push drawn as a full-step arrow (dz · k) from the point where it was asked
-      arrow(ctx, X(psi), Y(psi), X(axpy(psi, k1, h)), Y(axpy(psi, k1, h)), kcol[0], 2, 7); lab('k₁', axpy(psi, k1, h), kcol[0]);
-      dot(P2, kcol[0]); arrow(ctx, X(P2), Y(P2), X(axpy(P2, k2, h)), Y(axpy(P2, k2, h)), kcol[1], 2, 7); lab('k₂', axpy(P2, k2, h), kcol[1]);
-      dot(P3, kcol[1]); arrow(ctx, X(P3), Y(P3), X(axpy(P3, k3, h)), Y(axpy(P3, k3, h)), kcol[2], 2, 7); lab('k₃', axpy(P3, k3, h), kcol[2]);
-      dot(P4, kcol[2]); arrow(ctx, X(P4), Y(P4), X(axpy(P4, k4, h)), Y(axpy(P4, k4, h)), kcol[3], 2, 7); lab('k₄', axpy(P4, k4, h), kcol[3]);
-      arrow(ctx, X(psi), Y(psi), X(next), Y(next), c.psi, 3, 9); dot(next, c.psi, 4.5); lab('lands here: dz·(k₁+2k₂+2k₃+k₄)/6', next, c.psi, 8, 12);
+    for (let i = 0; i < 4 && stage >= i + 1; i++) {
+      ctx.save(); ctx.globalAlpha = stage === i + 1 ? 1 : 0.3;
+      if (i >= 2) dashed(psi, from[i], kcol[i - 1]);
+      if (i >= 1) { dot(from[i], kcol[i - 1], 4); lab('P' + SUB[i], from[i], kcol[i - 1], -7, 8, 11); }
+      arrow(ctx, X(from[i]), Y(from[i]), X(tips[i]), Y(tips[i]), kcol[i], 2.2, 8); lab('dz·k' + SUB[i], tips[i], kcol[i]);
+      ctx.restore();
+    }
+    if (stage >= 5) {
+      arrow(ctx, X(psi), Y(psi), X(next), Y(next), c.psi, 3.2, 10); dot(next, c.psi, 5); lab('ψ_new', next, c.psi, 9, 10);
+      ctx.strokeStyle = c.fg; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(X(exact), Y(exact), 7.5, 0, 2 * Math.PI); ctx.stroke(); lab('exact', exact, c.fg, 11, -9, 11);
+      if (showEuler) { dot(euler, c.v1, 5); lab('Euler', euler, c.v1, 9, 10); }
     }
   }
 }
 function rkText() {
-  const psi = (rkOn ? trajR : trajE)[stepsDone], q = rk4Parts(psi, h1), ex = { re: psi.re * Math.cos(E1 * h1) + psi.im * Math.sin(E1 * h1), im: psi.im * Math.cos(E1 * h1) - psi.re * Math.sin(E1 * h1) };
-  const mag = (p) => Math.hypot(p.re, p.im);
-  const rows = [
-    `<div class="t">the next step from ψ = ${cnum(psi)}, with E = ${E1}, dz = ${fmt(h1)} · the push is f(ψ) = −iEψ (the hand turned by −90°)</div>`,
-    `<span class="k1">k₁ = f(ψ)            = ${cnum(q.k1)}</span>   push at the start`,
-    `<span class="k2">k₂ = f(ψ + ½dz·k₁)   = ${cnum(q.k2)}</span>   push halfway, where k₁ would take us`,
-    `<span class="k3">k₃ = f(ψ + ½dz·k₂)   = ${cnum(q.k3)}</span>   push halfway again, now using k₂`,
-    `<span class="k4">k₄ = f(ψ + dz·k₃)    = ${cnum(q.k4)}</span>   push at the end, using k₃`,
-    `<span class="st">RK4:   ψ + dz·(k₁ + 2k₂ + 2k₃ + k₄)/6 = ${cnum(q.next)}</span>   |ψ| = ${fmt(mag(q.next), 4)}`,
-    `Euler: ψ + dz·k₁                     = ${cnum(q.euler)}   |ψ| = ${fmt(mag(q.euler), 4)}`,
-    `exact: ψ·e^(−iE dz)                  = ${cnum(ex)}   |ψ| = 1`,
-  ];
-  return rows.join('<br>');
+  const q = rk4Parts(psiR, h1);
+  const block = (i, cls, lines, note) => `<div class="rk-step ${cls}${stage === i ? ' now' : ''}">${lines.map((l) => `<code>${l}</code>`).join('')}<span class="note">${note}</span></div>`;
+  const out = [`<div class="t">E = ${E1} · dz = ${fmt(h1)} · slope rule f(ψ) = −iEψ</div>`, block(0, 'st', [`ψ = ${cnum(psiR)}`], 'start of the step')];
+  const from = [psiR, q.P2, q.P3, q.P4], ks = [q.k1, q.k2, q.k3, q.k4];
+  const how = ['', 'P₂ = ψ + ½dz·k₁', 'P₃ = ψ + ½dz·k₂', 'P₄ = ψ + dz·k₃'];
+  const notes = ['slope at the start', 'slope at the midpoint, reached with k₁', 'slope at the midpoint, reached with k₂', 'slope at the end, reached with k₃'];
+  for (let i = 0; i < 4 && stage >= i + 1; i++) {
+    const lines = i ? [`${how[i]} = ${cnum(from[i])}`] : [];
+    lines.push(`k${SUB[i]} = f(${i ? 'P' + SUB[i] : 'ψ'}) = ${cnum(ks[i])}`);
+    out.push(block(i + 1, 'k' + (i + 1), lines, notes[i]));
+  }
+  if (stage >= 5) {
+    const err = (p) => fmt(mag({ re: p.re - q.exact.re, im: p.im - q.exact.im }), 4);
+    const lines = [`k̄ = (k₁ + 2k₂ + 2k₃ + k₄)/6 = ${cnum(q.kbar)}`, `ψ_new = ψ + dz·k̄ = ${cnum(q.next)}`, `exact = ψ·e^(−iE·dz) = ${cnum(q.exact)}`];
+    if (showEuler) lines.push(`Euler = ψ + dz·k₁ = ${cnum(q.euler)}`);
+    out.push(block(5, 'st', lines, `error of this step: RK4 ${err(q.next)}${showEuler ? `, Euler ${err(q.euler)}` : ''}`));
+  }
+  out.push(`<div class="t why">${STAGES[stage]}</div>`);
+  return out.join('');
 }
 
 // ---------- panels ----------
@@ -190,31 +204,22 @@ function sshFacts() {
 // ---------- acts ----------
 const acts = [
   {
-    id: 'rk', tab: '1 · One step', heading: 'How a step is computed: Euler and Runge–Kutta on one hand',
-    lead: 'The simplest system: one guide with propagation constant E, i dψ/dz = Eψ. The exact motion of the hand is a circle. A numerical step must guess where the hand is after dz, knowing only the push f(ψ) = −iEψ at points it chooses to ask. Euler asks once, at the start, and walks along the tangent. Runge–Kutta 4 asks four times, at the start, twice halfway and at the end, and takes the average 1:2:2:1. Press "one step" and watch the four k arrows.',
-    panes: ['dial', 'rk', 'norm'], canPlay: true,
+    id: 'rk', tab: '1 · One step', heading: 'How one step is computed: the four slopes of Runge–Kutta',
+    lead: 'One guide with propagation constant E: i dψ/dz = Eψ, so the slope of ψ is f(ψ) = −iEψ. The exact solution runs around a circle. A numerical step has to guess where ψ is after dz, knowing only slopes. Euler uses one slope, at the start. Runge–Kutta 4 asks for the slope four times, k₁ to k₄, and averages them. Press "next" to build one step piece by piece.',
+    panes: ['dial', 'rk'], canPlay: true,
     enter(ctl) {
       resetRK();
-      ctl.append(group('step', [button('one step', () => { stepRK(1); render(); }), button('10 steps', () => { stepRK(10); render(); }), button('reset', () => { resetRK(); render(); })]),
+      ctl.append(group('build the step', [button('next', () => { nextStage(); render(); }), button('whole step', () => { wholeStep(); render(); }), button('reset', () => { resetRK(); render(); })]),
         slider({ id: 'h', label: 'step <i>E</i>·<i>dz</i>', min: 0.1, max: 3, step: 0.05, value: h1, onInput: (v) => { h1 = v; resetRK(); render(); } }).root,
-        toggle({ id: 'rkon', label: 'show the RK4 construction (off: Euler)', checked: rkOn, onChange: (v) => { rkOn = v; render(); } }).root);
+        toggle({ id: 'euler', label: 'also show where Euler lands (one slope only)', checked: showEuler, onChange: (v) => { showEuler = v; render(); } }).root);
     },
     caption() {
-      const x = E1 * h1, R = rkFactor(x), mR = Math.hypot(R.re, R.im), phR = wrapK(Math.atan2(R.im, R.re) + x);
-      const e = Math.sqrt(1 + x * x);
-      return `<i>E</i>·dz = ${fmt(x)} · Euler multiplies |ψ| by √(1 + (E dz)²) = ${fmt(e, 3)} every step and lands outside the circle · RK4 multiplies by ${fmt(mR, 4)} with a phase error of ${fmt(phR, 4)} rad per step${x > 2 * Math.SQRT2 ? ' · E dz > 2√2 = 2.83: now RK4 also runs away' : ' · RK4 stays stable up to E dz = 2√2 = 2.83'} · after ${stepsDone} steps: Euler |ψ| = ${fmt(Math.hypot(trajE[stepsDone].re, trajE[stepsDone].im), 3)}, RK4 |ψ| = ${fmt(Math.hypot(trajR[stepsDone].re, trajR[stepsDone].im), 4)}`;
+      const x = E1 * h1, mR = mag(rkFactor(x));
+      return `<i>E</i>·dz = ${fmt(x)} · each step multiplies |ψ| by ${fmt(mR, 4)} (RK4) or ${fmt(Math.sqrt(1 + x * x), 3)} (Euler, = √(1 + (E dz)²)); exact: 1 · RK4 is stable up to E·dz = 2√2 = 2.83${x > 2 * Math.SQRT2 ? ', exceeded: it runs away now' : ''} · ${stepsDone} steps done, |ψ| = ${fmt(mag(psiR), 4)}`;
     },
     render() {
-      const c = colors(), psi = (rkOn ? trajR : trajE)[stepsDone];
-      dialPanel.draw({ psi, exact: exactAt(stepsDone), parts: rk4Parts(psi, h1), method: rkOn ? 'RK4' : 'Euler', h: h1,
-        hist: { pts: rkOn ? trajR : trajE, color: rkOn ? c.psi : c.hpsi }, histOther: { pts: rkOn ? trajE : trajR, color: rkOn ? c.hpsi : c.psi } });
+      dialPanel.draw({ psi: psiR, h: h1, parts: rk4Parts(psiR, h1), stage, trail: trailR, showEuler });
       rkBox.innerHTML = rkText();
-      const ns = trajE.map((_, i) => i), top = Math.min(4, Math.max(1.3, ...trajE.map((p) => Math.hypot(p.re, p.im))) * 1.08);
-      normPlot.begin({ xlim: [0, Math.max(10, stepsDone)], ylim: [0, top], xlabel: 'step number', ylabel: '|ψ| after the step', title: '|ψ| step after step: Euler (orange), RK4 (blue), exact = 1' });
-      normPlot.hline(1, { color: c['fg-2'], dash: [4, 4] });
-      normPlot.line(ns, trajE.map((p) => Math.hypot(p.re, p.im)), { color: c.hpsi, width: 2 });
-      normPlot.line(ns, trajR.map((p) => Math.hypot(p.re, p.im)), { color: c.psi, width: 2 });
-      normPlot.end();
     },
   },
   {
@@ -311,8 +316,10 @@ const acts = [
 ];
 
 // ---------- act helpers ----------
-function resetRK() { trajE = [{ re: 1, im: 0 }]; trajR = [{ re: 1, im: 0 }]; stepsDone = 0; playClock = 0; setPlaying(false); }
-function stepRK(n) { for (let i = 0; i < n && stepsDone < 400; i++) { const pe = trajE[stepsDone], pr = trajR[stepsDone]; trajE.push(axpy(pe, fPush(pe), h1)); trajR.push(rk4Parts(pr, h1).next); stepsDone++; } }
+function resetRK() { psiR = { re: 1, im: 0 }; trailR = []; stage = 0; stepsDone = 0; playClock = 0; setPlaying(false); }
+function commitRK() { if (stepsDone >= 400) return; trailR.push(psiR); psiR = rk4Parts(psiR, h1).next; stepsDone++; stage = 0; }
+function nextStage() { if (stage < 5) stage++; else commitRK(); }
+function wholeStep() { if (stage < 5) stage = 5; else { commitRK(); stage = 5; } }
 function restartStep() { psiS = { re: psiS0.re.slice(), im: psiS0.im.slice() }; zS = 0; z = 0; stepRows = [prob(psiS)]; normHist = [{ z: 0, n: 1, e: 0 }]; setPlaying(false); render(); }
 function stepOnce() {
   psiS = useRK4 ? rk4Step(HU, psiS, dz) : eulerStep(HU, psiS, dz); zS += dz;
@@ -333,7 +340,7 @@ let playBtn = null, timeEl = null, lastNow = 0;
 function setPlaying(v) { playing = v; if (playBtn) playBtn.textContent = playing ? 'Pause' : 'Play'; }
 function advance(dts) {
   const id = acts[act].id;
-  if (id === 'rk') { playClock += dts; if (playClock >= 0.7) { playClock = 0; stepRK(1); if (stepsDone >= 60) setPlaying(false); } }
+  if (id === 'rk') { playClock += dts; if (playClock >= 1.1) { playClock = 0; nextStage(); if (stepsDone >= 12 && stage === 0) setPlaying(false); } }
   else if (id === 'step') { z = Math.min(T_END, z + dts); let n = 0; while (zS + dz <= z + 1e-9 && n++ < 200) stepOnce(); if (z >= T_END) setPlaying(false); }
   else if (id === 'ssh') { z += dts; psiX = evolveExact(eigS, psiX0, z); }
   else { z += dts; if (z > T_END) { z = T_END; setPlaying(false); } psi = evolveExact(eigB, psi0, z); sampleRows(); }
