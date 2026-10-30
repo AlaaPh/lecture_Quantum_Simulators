@@ -195,6 +195,11 @@ function sshFacts() {
     const g = left ? [1, 3, 5] : [n, n - 2, n - 4];
     s += `one state in the gap, E = ${fmt(E, 4)}: number ${i + 1} in the sorted list (${i} eigenvalues below, ${n - i - 1} above), row ${i + 1} of fig. 2 · it sits on guides ${g.join(', ')}, … (the ${left ? 'left' : 'right'} end: its first coupling ${left ? 'J₁' : 'J₂'} is the weak one), decaying over ξ = 1/|ln(J₁/J₂)| = ${fmt(xi)} unit cells.`;
   } else s += `${inGap.length} states in the gap at E = ${inGap.map(([E]) => fmt(E, 4)).join(', ')}: the symmetric and antisymmetric combinations of an edge state at each end; their overlap through the chain splits them by 2δ, exponentially small in N.`;
+  const j0 = psiX0 ? psiX0.re.findIndex((x) => Math.abs(x - 1) < 1e-9) : -1;
+  if (j0 >= 0 && inGap.length) {
+    const ov = inGap.reduce((q, [, i]) => q + eigS.vectors[i][j0] ** 2, 0);
+    s += ` Light launched into guide ${j0 + 1}: ${Math.round(ov * 100)}% of it is in the gap state${inGap.length > 1 ? 's' : ''}${ov > 0.005 ? ' and stays at this end, the rest spreads through the bands.' : `, so all of it spreads through the bands${j0 === 0 || j0 === n - 1 ? ': this end has no edge state' : ''}.`}`;
+  }
   if (sel >= 0) {
     const v = eigS.vectors[sel]; let d = 0; for (let j = 0; j + 1 < n; j += 2) d += v[j] * v[j + 1];
     const E = eigS.values[sel];
