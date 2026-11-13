@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quantum Simulators Exercise 3</title>
+<meta name="description" content="Exercise 3 of the Quantum Simulators course: the SSH chain in k-space, the complex number h(k), the Zak phase solved analytically and numerically, and the on-site potential of Task 3.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400;1,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app lect">
+  <header class="top">
+    <h1>Quantum Simulators · Exercise 3</h1>
+    <nav class="acts" id="acts" aria-label="Acts"></nav>
+    <span class="spacer"></span>
+    <a class="theme-btn" href="index.html" title="Exercise 1: Hilbert space and the uniform chain">exercise 1</a>
+    <a class="theme-btn" href="exercise2.html" title="Exercise 2: Runge–Kutta, the beam and k, Bloch oscillations, the SSH chain">exercise 2</a>
+    <button class="theme-btn" id="theme-btn" type="button" title="Switch between light and dark">Theme</button>
+  </header>
+  <main class="lect-main">
+    <div class="lect-head"><h2 id="heading"></h2><p id="lead"></p></div>
+    <div class="stage-grid" id="stage" data-act="kspace">
+      <div class="pane" id="pane-cell"><canvas></canvas></div>
+      <div class="pane pane-text" id="pane-eqs"></div>
+      <div class="pane" id="pane-band"><canvas></canvas></div>
+      <div class="pane" id="pane-plane"><canvas></canvas></div>
+      <div class="pane" id="pane-phi"><canvas></canvas></div>
+      <div class="pane pane-text" id="pane-steps"></div>
+      <div class="pane" id="pane-berry"><canvas></canvas></div>
+      <div class="pane" id="pane-ov"><canvas></canvas></div>
+      <div class="pane pane-text" id="pane-num"></div>
+      <div class="pane" id="pane-eig"><canvas></canvas></div>
+      <div class="pane" id="pane-state"><canvas></canvas></div>
+      <div class="pane" id="pane-zakd"><canvas></canvas></div>
+    </div>
+    <div class="caption" id="caption"></div>
+    <div class="controls-bar" id="controls"></div>
+  </main>
+</div>
+<script type="module" src="js/lecture3/main.js"></script>
+</body>
+</html>

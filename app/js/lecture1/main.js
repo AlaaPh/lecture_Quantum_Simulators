@@ -1,4 +1,4 @@
-// Exercise 1: Hilbert space and Task 1. One instrument (three waveguides, then twenty), six acts.
+// Exercise 1: Hilbert space and task 0 of the sheet. One instrument (three waveguides, then twenty), six acts.
 import { Continuum } from './continuum.js';
 import { ContinuumPanel, ChainPanel, ModesPanel } from './panels.js';
 import { Plot, niceTicks } from '../plots.js';
@@ -28,7 +28,7 @@ const refreshH = () => { H = tightBinding(store.eps, store.J); eig = symEig(H); 
 const cont = new Continuum({ V0: 12 });
 let act = 0, t = 0, playing = false, psi0 = real([1, 0, 0]), psi = real([1, 0, 0]), hist = [];
 let drivesOn = false, inset = null, insetOn = false, beam = 0;
-// Task 1: the N-guide chain
+// Task 0: the N-guide chain
 const eigUp = (e) => ({ values: e.values, vectors: e.vectors.map((v) => (v[0] < 0 ? v.map((x) => -x) : v)) }); // display sign: guide 1 positive, the textbook sin(njπ/(N+1))
 let N = 20, eigN = eigUp(symEig(sshChain(N, 1, 1, 0))), psi0N = null, psiN = null, selN = -1, propRows = [];
 
@@ -186,8 +186,8 @@ const acts = [
     },
   },
   {
-    id: 'task1', tab: '6 · Task 1', heading: 'Task 1: twenty guides',
-    lead: 'The same Hilbert space with twenty guides: twenty amplitudes, a 20 × 20 coupled-mode matrix with J = 1, twenty supermodes. The two figures of Task 1: the eigenvalues as dots and the eigenstates as a colour plot. Click a dot to launch that supermode, or excite one guide and watch discrete diffraction.',
+    id: 'task1', tab: '6 · Task 0', heading: 'Task 0: twenty guides',
+    lead: 'The same Hilbert space with twenty guides: twenty amplitudes, a 20 × 20 coupled-mode matrix with J = 1, twenty supermodes. The two figures of task 0: the eigenvalues as dots and the eigenstates as a colour plot. Click a dot to launch that supermode, or excite one guide and watch discrete diffraction.',
     panes: ['chain', 'eig', 'prop', 'vec', 'far'], speed: 1.0, canPlay: true,
     enter(ctl) {
       setupN(N);

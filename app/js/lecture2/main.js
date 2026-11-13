@@ -1,5 +1,5 @@
 // Exercise 2: time evolution step by step (Euler, Runge–Kutta), the quantum walk and the band E(k),
-// Bloch oscillations, and the SSH chain of Task 2. One instrument, four acts.
+// Bloch oscillations, and the SSH chain of tasks 1 and 2. One instrument, five acts.
 import { ChainPanel, Canvas2D, arrow } from '../lecture1/panels.js';
 import { Plot, niceTicks } from '../plots.js';
 import { el, button, row, slider, toggle } from '../ui.js';
@@ -344,7 +344,7 @@ const acts = [
     },
   },
   {
-    id: 'ssh', tab: '5 · SSH chain (Task 2)', heading: 'Task 2: the SSH chain and its edge states',
+    id: 'ssh', tab: '5 · SSH chain (Tasks 1–2)', heading: 'Tasks 1 and 2: the SSH chain and its edge states',
     lead: 'The couplings alternate: J₁ inside a pair of guides, J₂ between pairs. In the sample this is the distance between neighbouring guides, J ∝ e^(−d/d₀), so the gaps alternate too (sketch below). The spectrum splits into two bands with a gap of width 2|J₁ − J₂|. With 21 guides exactly one state lies in the gap, at the end whose first coupling is the weak one (J₁ < J₂: guide 1, J₁ > J₂: guide 21): Hψ = 0 on the even guides forces ψ₂ₘ₊₁ = (−J₁/J₂)ᵐ ψ₁, a single solution. With 20 guides there are two edge states for J₁ < J₂ and none for J₁ > J₂.',
     panes: ['sketch', 'eig', 'vec', 'state', 'chain'], canPlay: true,
     enter(ctl) {

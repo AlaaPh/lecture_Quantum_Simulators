@@ -138,7 +138,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
 .mat-cell.hi { background: color-mix(in srgb, var(--hpsi) 22%, transparent); }
 .mat-br { width: 6px; align-self: stretch; border: 1.5px solid var(--fg-2); border-right: 0; border-radius: 3px 0 0 3px; }
 .mat-br-r { border: 1.5px solid var(--fg-2); border-left: 0; border-radius: 0 3px 3px 0; }
-.theme-btn { background: transparent; border: 1px solid var(--line); border-radius: var(--radius); padding: 4px 9px; cursor: pointer; font-size: 13px; color: var(--fg-2); }
+.theme-btn { background: transparent; border: 1px solid var(--line); border-radius: var(--radius); padding: 4px 9px; cursor: pointer; font-size: 13px; color: var(--fg-2); white-space: nowrap; }
 .theme-btn:hover { color: var(--fg); }
 
 @media (max-width: 980px) {
@@ -180,6 +180,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
 .pane-text .k1 { color: var(--v1); } .pane-text .k2 { color: var(--v2); } .pane-text .k3 { color: var(--v3); } .pane-text .k4 { color: var(--hpsi); } .pane-text .st { color: var(--psi); font-weight: 500; }
 .pane-text .rk-step { display: block; margin: 5px 0; padding: 4px 10px; border-left: 3px solid currentColor; border-radius: 4px; opacity: 0.55; }
 .pane-text .rk-step.now { opacity: 1; background: var(--surface-2); }
+.pane-text .rk-step.done { opacity: 0.85; }
 .pane-text .rk-step code { display: block; font-family: var(--font-mono); white-space: pre-wrap; }
 .pane-text .rk-step .note { display: block; font-family: var(--font-ui); font-size: 12px; color: var(--fg-2); }
 .pane-text .why { margin-top: 10px; font-size: 13px; color: var(--fg); line-height: 1.5; }
@@ -189,6 +190,14 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
 .stage-grid[data-act="walk"], .stage-grid[data-act="bloch"] { grid-template-columns: minmax(0, 1.3fr) minmax(280px, 1fr); grid-template-rows: minmax(0, 0.8fr) minmax(0, 1.2fr); grid-template-areas: "chain band" "prop band"; }
 .stage-grid[data-act="ssh"] { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(170px, 0.9fr) minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "sketch sketch" "eig vec" "state chain"; }
 #pane-sketch { grid-area: sketch; }
+/* Exercise 3 */
+.stage-grid[data-act="kspace"] { grid-template-columns: minmax(0, 1.15fr) minmax(300px, 1fr); grid-template-rows: minmax(170px, 0.5fr) minmax(0, 1.5fr); grid-template-areas: "cell band" "eqs band"; }
+.stage-grid[data-act="circle"] { grid-template-columns: minmax(0, 1.2fr) minmax(300px, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "plane band" "plane phi"; }
+.stage-grid[data-act="zak"] { grid-template-columns: minmax(0, 1fr) minmax(340px, 1.05fr); grid-template-rows: minmax(0, 1.15fr) minmax(0, 0.85fr); grid-template-areas: "plane steps" "berry steps"; }
+.stage-grid[data-act="numeric"] { grid-template-columns: minmax(0, 1fr) minmax(340px, 1.05fr); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "plane num" "ov num"; }
+.stage-grid[data-act="task3"] { grid-template-columns: minmax(0, 1.2fr) minmax(280px, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "eig zakd" "state zakd"; }
+#pane-cell { grid-area: cell; } #pane-eqs { grid-area: eqs; } #pane-plane { grid-area: plane; } #pane-phi { grid-area: phi; } #pane-steps { grid-area: steps; }
+#pane-berry { grid-area: berry; } #pane-ov { grid-area: ov; } #pane-num { grid-area: num; } #pane-zakd { grid-area: zakd; }
 #pane-cont { grid-area: cont; } #pane-chain { grid-area: chain; } #pane-modes { grid-area: modes; } #pane-trace { grid-area: trace; } #pane-matrix { grid-area: matrix; } #pane-3d { grid-area: d3; }
 .pane { position: relative; min-height: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
 .pane canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
@@ -211,7 +220,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
   .stage-grid { height: auto; }
   .stage-grid[data-act], .stage-grid[data-act][data-inset] { grid-template-columns: minmax(0, 1fr); grid-template-areas: none; grid-template-rows: none; }
   .pane { min-height: 220px; }
-  #pane-cont, #pane-chain, #pane-modes, #pane-trace, #pane-matrix, #pane-eig, #pane-prop, #pane-vec, #pane-norm, #pane-band, #pane-state, #pane-far, #pane-dial, #pane-rk, #pane-sketch { grid-area: auto; }
+  #pane-cont, #pane-chain, #pane-modes, #pane-trace, #pane-matrix, #pane-eig, #pane-prop, #pane-vec, #pane-norm, #pane-band, #pane-state, #pane-far, #pane-dial, #pane-rk, #pane-sketch, #pane-cell, #pane-eqs, #pane-plane, #pane-phi, #pane-steps, #pane-berry, #pane-ov, #pane-num, #pane-zakd { grid-area: auto; }
   #pane-3d { grid-area: auto; height: 260px; }
   .stage-grid[data-act="ssh"] #pane-chain { order: 9; }
 }

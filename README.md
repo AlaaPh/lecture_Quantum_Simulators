@@ -8,7 +8,7 @@ intuition behind them.
 
 | Path | What it is |
 |---|---|
-| `source/` | Source documents. `Coding_sessions_v1_annotated.pdf` is the task sheet with the reviewer's notes. |
+| `source/` | Source documents. `Coding_sessions_v1_annotated.pdf` is the task sheet with the reviewer's notes, `LectureNotes.md` the conventions of lectures VL1–VL8 that the exercises follow. |
 | `app/` | **Quantum Simulators Lab**, a static web app (no build step). Open `app/index.html` through any static server. |
 | `tools/` | Helper scripts (`make_artifact.py` builds the preview version of the app). |
 
@@ -32,7 +32,7 @@ the same picture with more guides.
 
    Acts 2, 4 and 6 also show the far field of the output (the array factor after a lens), where the relative
    phases and the signs of a supermode become fringes: in phase = bright centre, antiphase = dark centre.
-6. **Task 1** — the chain of N guides (default 20, J = 1): the eigenvalues as dots with the closed form
+6. **Task 0** — the chain of N guides (default 20, J = 1): the eigenvalues as dots with the closed form
    2J cos(nπ/(N+1)), the eigenstates as a colour plot, and the propagation map of one excited guide
    (discrete diffraction) or of one supermode (nothing moves). Click a dot or a row to launch that mode.
 
@@ -48,8 +48,21 @@ the same picture with more guides.
    band E(k) = 2J cos k and moves with the group velocity dE/dk. The eigenvalues of the finite chain are the dots on that band.
 3. **Bloch oscillations** — a linear gradient εⱼ = F·j of the propagation constants makes k drift, k(z) = k₀ − F z; the beam moves along the
    band, turns around at the band edges, and oscillates with period 2π/F over 4J/F guides.
-4. **SSH chain (Task 2)** — alternating J₁, J₂, drawn as a chip seen from above with alternating gaps (J ∝ e^(−d/d₀)) and the light painted along z: the gap 2|J₁ − J₂|, the dimer symmetry of the two bands, and
+4. **SSH chain (tasks 1 and 2)** — alternating J₁, J₂, drawn as a chip seen from above with alternating gaps (J ∝ e^(−d/d₀)) and the light painted along z: the gap 2|J₁ − J₂|, the dimer symmetry of the two bands, and
    for 21 guides the E = 0 state on the odd guides at the end with the weak bond, decay length 1/|ln(J₁/J₂)|.
+
+**Exercise 3** (`app/exercise3.html`): the SSH chain in k-space and its Zak phase, five acts.
+
+0. **k-space (task 8a)** — unit cell, Bloch state, the two equations of one cell, H(k) = [[0, h*], [h, 0]] with
+   h(k) = J₁ + J₂e^{ik}; bands ±|h(k)| next to the levels of the 20-guide chain.
+1. **h(k)** — the circle with centre J₁ and radius J₂ in the complex plane; |h| is the band, φ = arg h the phase
+   between guide A and guide B; winding number 0 or 1.
+2. **Zak phase by hand** — u±(k) = (±e^{−iφ}, 1)/√2, A(k) = ½ dφ/dk, γ = ½[φ(2π) − φ(0)] = π·ν, built line by
+   line; the area under A(k) grows to π or returns to 0.
+3. **Zak phase numerically (task 8b)** — γ = −arg ∏⟨uₛ|uₛ₊₁⟩ on M points, unchanged by random phases of the
+   eigenvectors; too few points give the wrong answer.
+4. **Task 3** — on-site potential +Δ on A, −Δ on B: the edge state of 21 guides moves to exactly +Δ with unchanged
+   shape, 20 guides give ±Δ at the two ends, and the Zak phase is no longer quantized.
 
 **Geometry appendix** (`app/chapters.html`): four guided chapters on the 3D picture of a three-guide Hilbert
 space (guides become axes, the sphere of states, the Hamiltonian as a matrix, phase and the dark state).
@@ -78,7 +91,7 @@ demand from the Actions tab). Three one-time settings on github.com, all of whic
 3. **Settings → Environments → github-pages → Deployment branches:** allow the default branch (or choose
    "No restriction"), otherwise the job is rejected before it starts.
 
-The app is then at <https://alaaph.github.io/lecture_Quantum_Simulators/>, Exercise 2 at `/exercise2.html`, the
+The app is then at <https://alaaph.github.io/lecture_Quantum_Simulators/>, Exercise 2 at `/exercise2.html`, Exercise 3 at `/exercise3.html`, the
 geometry appendix at `/chapters.html`, and a QR code to project at `/share.html`.
 
 ### Publish with GitLab Pages (university GitLab)
