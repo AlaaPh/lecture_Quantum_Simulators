@@ -1,4 +1,4 @@
-// Small real linear-algebra toolkit for the lab.
+// Small linear-algebra toolkit for the lab: real symmetric matrices, and complex Hermitian ones for the builder.
 // Conventions (same as the coding sessions): hbar = 1, i dpsi/dt = H psi,
 // hopping H[n][n+1] = +J, site 1 is an A site, J1 sits inside the unit cell.
 
@@ -142,6 +142,67 @@ export function rk4Step(H, psi, dt) {
   const re = psi.re.map((v, i) => v + (dt / 6) * (k1.re[i] + 2 * k2.re[i] + 2 * k3.re[i] + k4.re[i]));
   const im = psi.im.map((v, i) => v + (dt / 6) * (k1.im[i] + 2 * k2.im[i] + 2 * k3.im[i] + k4.im[i]));
   return { re, im };
+}
+
+// ----- complex Hermitian matrices, H = re + i·im as two arrays of rows -----
+// Eigen-decomposition by cyclic Jacobi: each rotation first turns the phase of H[p][q] to zero, then is the real one.
+// Returns { values: [E_1 <= E_2 <= ...], vectors: [{ re, im }, ...] } with unit eigenvectors. A real H gives real vectors.
+// The free phase of each eigenvector is fixed like the sign in symEig: its overlap with a fixed reference is positive.
+export function hermEig(reIn, imIn) {
+  const n = reIn.length;
+  const ar = reIn.map((r) => Float64Array.from(r)), ai = imIn.map((r) => Float64Array.from(r));
+  const vr = Array.from({ length: n }, (_, i) => { const r = new Float64Array(n); r[i] = 1; return r; }), vi = Array.from({ length: n }, () => new Float64Array(n));
+  let tot = 0;
+  for (let p = 0; p < n; p++) for (let q = 0; q < n; q++) tot += ar[p][q] * ar[p][q] + ai[p][q] * ai[p][q];
+  for (let sweep = 0; sweep < 100; sweep++) {
+    let off = 0;
+    for (let p = 0; p < n; p++) for (let q = p + 1; q < n; q++) off += ar[p][q] * ar[p][q] + ai[p][q] * ai[p][q];
+    if (off <= 1e-26 * tot || off < 1e-300) break;
+    for (let p = 0; p < n - 1; p++) {
+      for (let q = p + 1; q < n; q++) {
+        const xr = ar[p][q], xi = ai[p][q], mag = Math.hypot(xr, xi);
+        if (mag < 1e-300) continue;
+        const er = xr / mag, ei = xi / mag;                 // e^{iφ}, the phase of H[p][q]
+        const theta = (ar[q][q] - ar[p][p]) / (2 * mag);
+        const t = (theta >= 0 ? 1 : -1) / (Math.abs(theta) + Math.sqrt(theta * theta + 1));
+        const c = 1 / Math.sqrt(t * t + 1), s = t * c;
+        for (let k = 0; k < n; k++) {                       // columns: p' = c·p − s·e^{−iφ}·q, q' = s·p + c·e^{−iφ}·q
+          const pr = ar[k][p], pi = ai[k][p], qr = ar[k][q], qi = ai[k][q];
+          const wr = er * qr + ei * qi, wi = er * qi - ei * qr;
+          ar[k][p] = c * pr - s * wr; ai[k][p] = c * pi - s * wi;
+          ar[k][q] = s * pr + c * wr; ai[k][q] = s * pi + c * wi;
+        }
+        for (let k = 0; k < n; k++) {                       // rows: p' = c·p − s·e^{+iφ}·q, q' = s·p + c·e^{+iφ}·q
+          const pr = ar[p][k], pi = ai[p][k], qr = ar[q][k], qi = ai[q][k];
+          const wr = er * qr - ei * qi, wi = er * qi + ei * qr;
+          ar[p][k] = c * pr - s * wr; ai[p][k] = c * pi - s * wi;
+          ar[q][k] = s * pr + c * wr; ai[q][k] = s * pi + c * wi;
+        }
+        for (let k = 0; k < n; k++) {                       // eigenvectors: the same column step
+          const pr = vr[k][p], pi = vi[k][p], qr = vr[k][q], qi = vi[k][q];
+          const wr = er * qr + ei * qi, wi = er * qi - ei * qr;
+          vr[k][p] = c * pr - s * wr; vi[k][p] = c * pi - s * wi;
+          vr[k][q] = s * pr + c * wr; vi[k][q] = s * pi + c * wi;
+        }
+      }
+    }
+  }
+  const order = Array.from({ length: n }, (_, i) => i).sort((i, j) => ar[i][i] - ar[j][j]);
+  return { values: order.map((i) => ar[i][i]), vectors: order.map((i) => fixPhase(vr.map((row) => row[i]), vi.map((row) => row[i]))) };
+}
+function fixPhase(re, im) {
+  const n = re.length;
+  let nn = 0, sr = 0, si = 0;
+  for (let i = 0; i < n; i++) { nn += re[i] * re[i] + im[i] * im[i]; const w = Math.cos(0.37 * i + 0.11); sr += re[i] * w; si += im[i] * w; }
+  nn = Math.sqrt(nn) || 1;
+  let m = Math.hypot(sr, si);
+  if (m < 1e-9 * nn) {
+    let imax = 0;
+    for (let i = 1; i < n; i++) if (re[i] * re[i] + im[i] * im[i] > re[imax] * re[imax] + im[imax] * im[imax]) imax = i;
+    sr = re[imax]; si = im[imax]; m = Math.hypot(sr, si) || 1;
+  }
+  const cr = sr / (m * nn), ci = -si / (m * nn);              // multiply by conj(s)/|s| and normalize
+  return { re: re.map((x, i) => x * cr - im[i] * ci), im: re.map((x, i) => x * ci + im[i] * cr) };
 }
 
 // Spherical coordinates on the unit sphere: theta is the polar angle from e3 (the vertical axis), phi the azimuth from e1.

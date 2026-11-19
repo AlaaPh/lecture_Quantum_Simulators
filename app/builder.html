@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quantum Simulators Hamiltonian builder</title>
+<meta name="description" content="Build a tight-binding Hamiltonian by plugging couplings into the matrix or onto the chain, for one unit cell or for a single entry, in real space and in k-space, and read eigenvalues, eigenvectors, bands, winding number and Zak phase at once.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400;1,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app lect builder">
+  <header class="top">
+    <h1>Quantum Simulators · Hamiltonian builder</h1>
+    <nav class="acts" id="acts" aria-label="Views"></nav>
+    <span class="spacer"></span>
+    <a class="theme-btn" href="index.html" title="Exercise 1: Hilbert space and the uniform chain">exercise 1</a>
+    <a class="theme-btn" href="exercise2.html" title="Exercise 2: Runge–Kutta, the beam and k, Bloch oscillations, the SSH chain">exercise 2</a>
+    <a class="theme-btn" href="exercise3.html" title="Exercise 3: k-space, the Zak phase, the on-site potential">exercise 3</a>
+    <button class="theme-btn" id="theme-btn" type="button" title="Switch between light and dark">Theme</button>
+  </header>
+  <main class="lect-main">
+    <div class="lect-head"><h2 id="heading"></h2><p id="lead"></p></div>
+    <div class="stage-grid" id="stage" data-act="matrix">
+      <div class="pane pal" id="pane-pal"></div>
+      <div class="pane" id="pane-mat"><canvas></canvas></div>
+      <div class="pane pane-text hk" id="pane-hk"></div>
+      <div class="pane" id="pane-chain"><canvas></canvas></div>
+      <div class="pane" id="pane-eig"><canvas></canvas></div>
+      <div class="pane" id="pane-vec"><canvas></canvas></div>
+      <div class="pane" id="pane-band"><canvas></canvas></div>
+      <div class="pane" id="pane-plane"><canvas></canvas></div>
+    </div>
+    <div class="caption" id="caption"></div>
+    <div class="controls-bar" id="controls"></div>
+  </main>
+</div>
+<dialog class="code-dialog" id="code-dialog" aria-labelledby="code-title">
+  <div class="code-head"><strong id="code-title">The same matrix in Python (numpy)</strong><span class="spacer"></span><button class="btn" id="code-copy" type="button">Copy</button><button class="btn" id="code-close" type="button">Close</button></div>
+  <pre id="code-text" tabindex="0"></pre>
+</dialog>
+<script type="module" src="js/builder/main.js"></script>
+</body>
+</html>

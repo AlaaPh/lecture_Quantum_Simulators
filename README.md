@@ -64,6 +64,25 @@ the same picture with more guides.
 4. **Task 3** — on-site potential +Δ on A, −Δ on B: the edge state of 21 guides moves to exactly +Δ with unchanged
    shape, 20 guides give ±Δ at the two ends, and the Zak phase is no longer quantized.
 
+**Hamiltonian builder** (`app/builder.html`): a free instrument instead of a guided exercise. A tight-binding
+Hamiltonian is built by plugging couplings into a matrix, and its spectrum is shown at once.
+
+- **Palette.** Four couplings J₁ … J₄ and two on-site energies ε₁, ε₂, each with its colour and a slider. A coupling
+  can be complex, J = |J|·e^(iφ); the mirror entry then holds the complex conjugate.
+- **Real space.** A click on entry (row i, column j) of the N × N matrix plugs the selected coupling in, a second
+  click takes it out. In the mode "every unit cell" one click sets that bond along the whole chain, so only the
+  first unit cell has to be filled in. In the mode "this entry only" it changes one entry and its mirror image: a
+  defect. Two clicks on sites of the chain picture do the same. Shown at once: the eigenvalues against the bands of
+  the infinite chain (states outside the bands in orange), the eigenvectors as a colour plot (column n is state n,
+  as `numpy.linalg.eigh` returns them), and one eigenstate as bars above the chain.
+- **k-space.** The same rules as the Bloch matrix H(k), one row and one column per site of the unit cell and one term
+  per bond; an entry is filled by a click with a chosen factor e^(iks). Bands with the levels of the finite chain,
+  the curve h(k) (or det h(k)) in the complex plane with its winding number when the model has chiral symmetry, and
+  the Zak phase of every band.
+- One to four sites per unit cell, 2 to 60 sites, open ends or a ring, eight starting points (uniform chain, SSH,
+  SSH with a third-neighbour coupling and winding number 2, zigzag chain, Rice–Mele, trimer, Creutz ladder with
+  complex couplings, SSH with a long-long defect), undo, and the matrix as a short numpy script.
+
 **Geometry appendix** (`app/chapters.html`): four guided chapters on the 3D picture of a three-guide Hilbert
 space (guides become axes, the sphere of states, the Hamiltonian as a matrix, phase and the dark state).
 
@@ -92,7 +111,7 @@ demand from the Actions tab). Three one-time settings on github.com, all of whic
    "No restriction"), otherwise the job is rejected before it starts.
 
 The app is then at <https://alaaph.github.io/lecture_Quantum_Simulators/>, Exercise 2 at `/exercise2.html`, Exercise 3 at `/exercise3.html`, the
-geometry appendix at `/chapters.html`, and a QR code to project at `/share.html`.
+Hamiltonian builder at `/builder.html`, the geometry appendix at `/chapters.html`, and a QR code to project at `/share.html`.
 
 ### Publish with GitLab Pages (university GitLab)
 
@@ -116,8 +135,10 @@ green but nothing is served; the GitHub address above is the fallback.
 
 ### Verify the numerics
 
-`app/js/linalg.js` carries the eigensolver (cyclic Jacobi), the SSH chain builder and the integrators;
-`app/js/lecture1/continuum.js` the grid Schrödinger (paraxial Helmholtz) solver and the Wannier projection.
+`app/js/linalg.js` carries the eigensolvers (cyclic Jacobi, real symmetric and complex Hermitian), the SSH chain
+builder and the integrators; `app/js/lecture1/continuum.js` the grid Schrödinger (paraxial Helmholtz) solver and the
+Wannier projection; `app/js/builder/model.js` the model of the Hamiltonian builder (unit-cell rules, H(k), bands, Zak
+phase, winding number), which has no browser code in it and runs in Node.
 Quick checks from the repository root:
 
 ```bash
@@ -125,5 +146,10 @@ cd app/js && node --input-type=module -e "
 import { symEig, sshChain } from './linalg.js';
 console.log(symEig(sshChain(20, 1, 2)).values.filter(E => Math.abs(E) < 0.5)); // edge states ≈ ±1.5e-3
 console.log(symEig(sshChain(21, 1, 2)).values.map(Math.abs).sort((a, b) => a - b)[0]); // exact zero mode
+"
+node --input-type=module -e "
+import { preset, solve } from './builder/model.js';
+const s = solve(preset('ssh3'));                      // SSH with a third-neighbour coupling
+console.log(s.chiral.nu, s.inGap.filter(Boolean).length);      // winding number 2, four edge states
 "
 ```
