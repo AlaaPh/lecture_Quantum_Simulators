@@ -2,7 +2,8 @@
 // Reference values come from model.js (steps()), computed when the page loads. No result is typed here.
 import { el } from '../ui.js';
 import { steps, cx, hOf, bandStates, loopOverlaps, inGapStates, pumpParams, notEnclosingParams, HAND, SHEET } from './model.js';
-import { field, choice, fieldNode, choiceNode, stepBlock, para, rowOf, keyCell, gate, dynamic, doneNote, isOk, allOk, chosen, get, TEXT } from './fields.js';
+import { CELLS } from './pump.js';
+import { field, choice, fieldNode, choiceNode, stepBlock, para, rowOf, keyCell, gate, dynamic, doneNote, isOk, chosen, get, TEXT } from './fields.js';
 
 const S = steps();
 const SUB = ['₀', '₁', '₂', '₃', '₄', '₅', '₆', '₇', '₈', '₉'];
@@ -21,16 +22,17 @@ const plain = (x) => String(+x.toFixed(6)).replace('-', '−');            // 2,
 const inPi = (x) => (Math.abs(x) < 1e-9 ? '0' : Math.abs(x - 1) < 1e-9 ? 'π' : Math.abs(x + 1) < 1e-9 ? '−π' : `${plain(x)}π`);
 const howOften = (n) => (n === 0 ? 'not at all' : n === 1 ? 'once' : `${n} times`);
 // A cycle in words, read from the function that the model uses: J₁ = a + b·cos, J₂ = c − d·cos, Δ = e·sin.
-function cycleText(paramsOf, arg = '') {
+function cycleParts(paramsOf, arg = '') {
   const p0 = paramsOf(0), pq = paramsOf(0.25), term = (amp, f) => `${Math.abs(amp - 1) < 1e-9 ? '' : plain(amp) + '·'}${f}${arg}`;
-  return `J₁ = ${plain(pq.J1)} + ${term(p0.J1 - pq.J1, 'cos')}, J₂ = ${plain(pq.J2)} − ${term(pq.J2 - p0.J2, 'cos')}, Δ = ${term(pq.D, 'sin')}`;
+  return [`J₁ = ${plain(pq.J1)} + ${term(p0.J1 - pq.J1, 'cos')}`, `J₂ = ${plain(pq.J2)} − ${term(pq.J2 - p0.J2, 'cos')}`, `Δ = ${term(pq.D, 'sin')}`];
 }
+const cycleText = (paramsOf, arg = '') => cycleParts(paramsOf, arg).join(', ');
+const math = (parts) => parts.map((t) => `<span class="m">${t}</span>`).join(', ');     // each formula may not break, the list may
 const handAt = (s) => pumpParams(s, HAND.dJ, HAND.D0);
-const HAND_TEXT = cycleText(handAt), SHEET_TEXT = cycleText((s) => pumpParams(s, SHEET.dJ, SHEET.D0)), ASIDE_TEXT = cycleText(notEnclosingParams);
+const SHEET_TEXT = cycleText((s) => pumpParams(s, SHEET.dJ, SHEET.D0)), ASIDE_TEXT = cycleText(notEnclosingParams);
 // the parameters of the hand cycle at one time, in words
 const atTime = (s) => { const p = handAt(s); return `J₁ = ${plain(p.J1)}, J₂ = ${plain(p.J2)}, Δ = ${plain(p.D)}`; };
-const degOf = (s) => plain(360 * s);
-const cycleAtDeg = (s) => `J₁ = 1 + ${HAND.dJ === 1 ? '' : plain(HAND.dJ) + '·'}cos ${degOf(s)}°,  J₂ = 1 − ${HAND.dJ === 1 ? '' : plain(HAND.dJ) + '·'}cos ${degOf(s)}°,  Δ = ${plain(HAND.D0)}·sin ${degOf(s)}°`;
+const cycleAtDeg = (s) => cycleText(handAt, ` ${plain(360 * s)}°`);     // the same with the angle 2πt/T in degrees
 const u = (s) => `u${SUB[s]}`;
 const code = (lines) => lines.map((l) => `<code>${l}</code>`).join('');
 const neg = (z) => ({ re: -z.re, im: -z.im });
@@ -178,7 +180,7 @@ function conventions(open) {
     'Position of the light: <span class="m">X = Σ<sub>m</sub> m·(I<sub>A,m</sub> + I<sub>B,m</sub>)</span>. I<sub>A,m</sub> is the light |ψ|² on guide A of cell m. The cells are counted from the cell where the light starts, so X(0) = 0.',
     'Typing: decimal point or comma, a fraction such as −1/4, a multiple of π such as pi/2. By hand two decimals are enough, from your code type four. A field is checked when you press Enter or leave it. An empty field is not a wrong try.',
   ];
-  const d = el('details', { class: 'wb-conv' }, [el('summary', { text: 'Conventions and how to type' }), el('ul', {}, items.map((html) => el('li', { html })))]);
+  const d = el('details', { class: 'wb-conv' }, [el('summary', { text: 'Conventions and how to type (open this before you start)' }), el('ul', {}, items.map((html) => el('li', { html })))]);
   d.open = open;
   return d;
 }
@@ -201,7 +203,7 @@ function buildHand() {
   const a1 = stepBlock({
     tag: 'A1', title: 'h(k), its angle, the eigenvalue and the eigenvector at four k',
     children: [
-      para(`J₁ = ${set1.J1}, J₂ = ${set1.J2}, Δ = 0. Fill in one row per k: <span class="m">h(k) = J₁ + J₂·e<sup>ik</sup></span> as a complex number, its angle φ, the eigenvalue of the lower band <span class="m">E = −|h|</span>, and the A component of its eigenvector, <span class="m">u<sub>A</sub> = −e<sup>−iφ</sup>/√2</span>. In every row <span class="m">u<sub>B</sub> = 1/√2 = ${num(set1.uB)}</span>. The first row is worked.`),
+      para(`J₁ = ${set1.J1}, J₂ = ${set1.J2}, Δ = 0. Fill in one row per k: <span class="m">h(k) = J₁ + J₂·e<sup>ik</sup></span> as a complex number, its angle φ, the eigenvalue <span class="m">E = −|h|</span> and the A component of the eigenvector, <span class="m">u<sub>A</sub> = −e<sup>−iφ</sup>/√2</span>. H(k) has the two eigenvalues +|h| and −|h|: E = −|h| is the lower band. In every row <span class="m">u<sub>B</sub> = 1/√2 = ${num(set1.uB)}</span>. The first row is worked.`),
       worked, ...rows,
       para('Check each row on paper: multiply H(k) with u and compare with E·u.'),
       rowOf([fieldNode('A1-wind', { label: 'How often does h(k) go around the origin when k goes from 0 to 2π?', unitText: 'times' })]),
@@ -220,7 +222,7 @@ function buildHand() {
     tag: 'A2', title: 'The four overlaps around the loop',
     children: [
       para('The overlap of two eigenvectors is <span class="m">⟨u|v⟩ = u<sub>A</sub>*·v<sub>A</sub> + u<sub>B</sub>*·v<sub>B</sub></span>: one complex number. The star is the complex conjugate: every i of the left vector becomes −i. Go around the closed loop u₁ → u₂ → u₃ → u₄ → u₁. The last overlap closes the loop.'),
-      para(`The first one, written out: <span class="m">${ov('u₁', 'u₂')} = u<sub>1,A</sub>*·u<sub>2,A</sub> + u<sub>1,B</sub>*·u<sub>2,B</sub> = (${num(set1.uA[0].re)})*·u<sub>2,A</sub> + ${num(set1.uB)}·${num(set1.uB)}</span>, with your u<sub>A</sub> of the row k₂.`),
+      para(`The first one, written out: <span class="m">${ov('u₁', 'u₂')} = u<sub>1,A</sub>*·u<sub>2,A</sub> + u<sub>1,B</sub>*·u<sub>2,B</sub></span> <span class="m">= (${num(set1.uA[0].re)})*·u<sub>2,A</sub> + ${num(set1.uB)}·${num(set1.uB)}</span>, with your u<sub>A</sub> of the row k₂.`),
       para('For each overlap write its value, its length <span class="m">√(Re² + Im²)</span> and its angle. The angle is −arg: minus the angle of the complex number.'),
       ...[1, 2, 3, 4].map((s) => rowOf([keyCell(ov(u(s), u(s % 4 + 1)) + (s === 4 ? '<small>closes the loop</small>' : '')),
         fieldNode(`A2-ov${s}`, { label: '=' }), fieldNode(`A2-len${s}`, { label: 'length' }), fieldNode(`A2-ang${s}`, { label: '−arg =', unitText: '°' })])),
@@ -259,7 +261,7 @@ function buildHand() {
   const a4 = stepBlock({
     tag: 'A4', title: 'Another phase on one eigenvector',
     children: [
-      para('Multiply u₂ by i. It is still the same eigenvector: an eigenvector times a phase factor. Redo the two overlaps that contain u₂, then the product of all four.'),
+      para('Multiply u₂ by i. The number i is a phase factor: a complex number of length 1. An eigenvector times a phase factor is still the same eigenvector. Redo the two overlaps that contain u₂, then the product of all four.'),
       rowOf([keyCell(ov('u₁', 'i·u₂')), fieldNode('A4-ov1', { label: '=' })]),
       rowOf([keyCell(ov('i·u₂', 'u₃')), fieldNode('A4-ov2', { label: '=' })]),
       rowOf([keyCell('product'), fieldNode('A4-prod', { label: '=' })]),
@@ -289,7 +291,7 @@ function buildHand() {
       'γ = sum of the four angles;  in units of π: (sum in degrees)/180',
     ]),
   });
-  return [conventions(true), a1, a2, a3, a4, a5];
+  return [conventions(false), a1, a2, a3, a4, a5];
 }
 
 // ---------- tab 2: Zak phase, your code ----------
@@ -297,7 +299,7 @@ function buildCode() {
   const a6 = stepBlock({
     tag: 'A6', title: 'Eigenvectors from the computer',
     children: [
-      para(`J₁ = ${set1.J1}, J₂ = ${set1.J2}, Δ = 0, the same four k as by hand. Now the eigenvectors of the lower band come from <code>eigh</code> (Python) or <code>eig</code> (MATLAB). The computer gives every eigenvector its own phase factor.`),
+      para(`J₁ = ${set1.J1}, J₂ = ${set1.J2}, Δ = 0. M is the number of k points: M = 4 gives the same four k as by hand. Now the eigenvectors of the lower band come from <code>eigh</code> (Python) or <code>eig</code> (MATLAB). The computer gives every eigenvector its own phase factor.`),
       rowOf([keyCell('(a) M = 4'), fieldNode('A6-E', { label: 'eigenvalue of your eigenvector at k = 0:' }), fieldNode('A6-prod4', { label: 'product of the four overlaps =' })]),
       rowOf([keyCell('(b) M = 4'), el('span', { class: 'wb-given', html: 'Multiply every eigenvector by e<sup>iχ</sup>, each with its own random χ. Single overlaps change.' }), fieldNode('A6-prodrand', { label: 'product =' })]),
       rowOf([keyCell('(c) M = 100'), fieldNode('A6-prod100', { label: 'product =' }), fieldNode('A6-gamma100', { label: 'γ =', unitText: 'π' })]),
@@ -314,7 +316,7 @@ function buildCode() {
   const a7 = stepBlock({
     tag: 'A7', title: 'With the on-site term Δ',
     children: [
-      para('+Δ on guide A, −Δ on guide B. Now γ is no longer 0 or π: γ/2π is the position of the light of this band inside the unit cell. Use M = 400.'),
+      para('The on-site term Δ changes the propagation constant of the waveguides (short: guides): +Δ on every guide A, −Δ on every guide B. Now γ is no longer 0 or π: γ/2π is the position of the light of this band inside the unit cell. Use M = 400.'),
       rowOf([keyCell('(a) exact test'), el('span', { class: 'wb-given', html: `J₁ = ${A7.exact.J1}, J₂ = ${A7.exact.J2}, Δ = ${A7.exact.D}` }), fieldNode('A7-exact', { label: 'γ =', unitText: 'π' }),
         fieldNode('A7-wA', { label: 'light of the lower band on guide A, |u<sub>A</sub>|² at any k:' })]),
       doneNote(['A7-exact', 'A7-wA'], 'γ/2π = |u<sub>A</sub>|². With J₁ = 0 the light sits on one pair: guide B of cell m and guide A of cell m + 1. The share on A counts for cell m + 1, so X = m + |u<sub>A</sub>|².'),
@@ -360,10 +362,10 @@ function buildPump() {
   const b2 = stepBlock({
     tag: 'B2', title: 'The open chain: two states in the gap (task 9b)',
     children: [
-      para(`An open chain of ${B.B2.cells} unit cells (${2 * B.B2.cells} guides): J₁ inside each cell, J₂ between the cells, +Δ on every A, −Δ on every B. Calculate its eigenvalues over t/T (figure c). At t = 3T/8 two of them lie inside the gap.`),
+      para(`An open chain of ${B.B2.cells} unit cells (${2 * B.B2.cells} guides): J₁ inside each cell, J₂ between the cells, +Δ on every A, −Δ on every B. Calculate its eigenvalues over t/T (figure c). At t = 3T/8 two of them lie inside the gap. Their eigenvectors are the two states in the gap.`),
       rowOf([fieldNode('B2-Elow', { label: 'the lower one:' }), fieldNode('B2-Eup', { label: 'the upper one:' })]),
-      para('Compare the two numbers with ±Δ at this time. Then plot |ψ|² of the two eigenvectors.'),
-      rowOf([choiceNode('B2-end', { label: 'The state with the upper eigenvalue sits at the' }), choiceNode('B2-guide', { label: 'of the chain, on the guides' })]),
+      para('Compare the two numbers with ±Δ at this time. Then plot <span class="m">|ψ|²</span> of the two eigenvectors.'),
+      rowOf([choiceNode('B2-end', { label: 'The state with the upper eigenvalue has its light at the' }), choiceNode('B2-guide', { label: 'of the chain, on the guides' })]),
       doneNote(['B2-end', 'B2-guide', 'B2-Eup'], b2Note),
     ],
     formula: () => code([
@@ -379,7 +381,7 @@ function buildPump() {
       para(`Solve <span class="m">i·dψ/dt = H(t)·ψ</span> in Runge–Kutta steps of dt = ${B.B3.dt}. H changes during a step: take H(t) for the first slope, H(t + dt/2) for the second and the third, H(t + dt) for the fourth. Input: amplitude 1/√2 on guide A and −1/√2 on guide B of one cell in the middle, short (A − B)/√2. This is the lower band at t = 0. X is the position of the light in unit cells, counted from the cell where it starts.`),
       rowOf([fieldNode('B3-norm', { label: 'Σ|ψ|² after one cycle, T = 20:', wide: true })]),
       rowOf([keyCell('shift per cycle X(T)'), fieldNode('B3-T20', { label: `T = 20 on ${B.B3.cells.T20} cells:` }), fieldNode('B3-T50', { label: `T = 50 on ${B.B3.cells.T50} cells:` })]),
-      rowOf([fieldNode('B3-guide', { label: 'one guide A alone as input, T = 50:' }), fieldNode('B3-sheet', { label: 'numbers of the sheet, T = 20, 60 cells:' })]),
+      rowOf([fieldNode('B3-guide', { label: 'one guide A alone as input, T = 50:' }), fieldNode('B3-sheet', { label: `numbers of the sheet, T = 20, ${CELLS.sheet[20]} cells:` })]),
       doneNote(['B3-T20', 'B3-T50'], 'The light moves toward higher cell numbers. The slower the cycle, the closer the shift comes to one unit cell.'),
     ],
     formula: () => code([
@@ -427,7 +429,7 @@ function buildPump() {
     ]),
   });
   return [conventions(false),
-    para(`One cycle has the length T: <span class="m">${cycleText(handAt, '(2πt/T)')}</span>. These numbers give simple hand values. The task sheet has ${SHEET_TEXT}: the button “numbers of the sheet” shows them here, and you run them afterwards with the same code. Press Play and watch the five figures. Then calculate.`, 'wb-intro'),
+    para(`One cycle has the length T: ${math(cycleParts(handAt, '(2πt/T)'))}. These numbers give simple hand values. The task sheet has ${SHEET_TEXT}: the button “numbers of the sheet” shows them here, and you run them afterwards with the same code. The chain: waveguides (short: guides) A and B in turn. One guide A and the guide B next to it form a unit cell. Press Play and watch the five figures. Then calculate.`, 'wb-intro'),
     b1, b2, b3, b4, b5];
 }
 
@@ -440,7 +442,7 @@ function buildChern() {
   const s6 = stepBlock({
     tag: 'B6', title: 'One plaquette by hand',
     children: [
-      para('A plaquette is one small square of a grid in k and t. Take k from π/2 to π and t from 0 to T/4: the square with the thick frame in the map. Its corners in the order of the walk: <span class="m">a = u(π/2, 0), b = u(π/2, T/4), c = u(π, T/4), d = u(π, 0)</span>.'),
+      para(`A plaquette is one small square of a grid in k and t. Take k from π/2 to π and t from 0 to T/4: the square with the thick frame in the map. Its corners in the order of the walk: ${math(['a = u(π/2, 0)', 'b = u(π/2, T/4)', 'c = u(π, T/4)', 'd = u(π, 0)'])}. Each u is the eigenvector of the lower band at this k and t.`),
       rowOf([keyCell('check 1'), el('span', { class: 'wb-given', html: `Given: b = ${bText}. Write H at k = π/2, t = T/4 and multiply.` }), fieldNode('B6-E', { label: 'H·b =', unitText: '· b' })]),
       rowOf([keyCell('check 2'), el('span', { class: 'wb-given', html: 'Calculate h at k = π, t = T/4. Then H is diagonal. Its eigenvector with the smaller eigenvalue:' }), fieldNode('B6-c', { label: 'c =' })]),
       rowOf([keyCell('from B4'), el('span', { class: 'wb-given', html: 'At t = 0 the eigenvector is the same at every k:' }), fieldNode('B6-a', { label: 'a = d =', unitText: '/√2' })]),
@@ -500,7 +502,7 @@ function buildChern() {
     ]),
   });
   return [conventions(false),
-    para(`Here the same Chern number comes out without following γ through the cycle. The pump is the one of tab 3: <span class="m">${cycleText(handAt, '(2πt/T)')}</span>.`, 'wb-intro'),
+    para(`Here the same Chern number comes out without following γ through the cycle. The pump is the one of tab 3: ${math(cycleParts(handAt, '(2πt/T)'))}.`, 'wb-intro'),
     s6, s7, s8];
 }
 

@@ -171,7 +171,8 @@ export function fieldNode(id, { label = '', unitText = '', wide = false } = {}) 
       f.text[p] = input.value; store.text[keyOf(f, p)] = input.value; save();
       root.dataset.state = 'editing'; f.markEl.textContent = ''; f.msgEl.textContent = ''; f.msgEl.hidden = true;
     });
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); commit(f); afterEnter(f, input); } });
+    // Enter in the first of two parts goes on to the second part without a remark about the missing one
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); commit(f, { quiet: i < f.parts.length - 1 }); afterEnter(f, input); } });
     input.addEventListener('blur', (e) => commit(f, { quiet: !!e.relatedTarget && root.contains(e.relatedTarget) }));
     f.inputs[p] = input; line.append(input);
   });

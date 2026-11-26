@@ -5,9 +5,12 @@
 //   3. a table of typed strings for the reader and the checker of answers.js
 //   4. time of one propagation (T = 50, 60 cells)
 //   5. the functions of model.js against a second, independent way
+//   6. the position counted from the cell where the light starts (the counting of the page and of the code skeletons)
+//   7. the data of the pump figures (app/js/workbook/pump.js)
 import { readFileSync } from 'node:fs';
 import * as M from '../app/js/workbook/model.js';
 import { parse, check } from '../app/js/workbook/answers.js';
+import * as P from '../app/js/workbook/pump.js';
 import { symEig, hermEig, matvec, rk4Step } from '../app/js/linalg.js';
 
 const J = JSON.parse(readFileSync(new URL('./zak_chern_numbers.json', import.meta.url), 'utf8'));
@@ -462,6 +465,72 @@ console.log('\n5. model.js against a second way');
   let dE = 0;
   for (let i = 0; i < 50; i++) { const k = TAU * rnd(), J1 = 3 * rnd(), J2 = 3 * rnd(), D = 2 * rnd() - 1, Hk = M.hMatrix(k, J1, J2, D), ev = hermEig(Hk.re, Hk.im).values, E = M.energy(k, J1, J2, D); dE = Math.max(dE, Math.abs(ev[0] + E), Math.abs(ev[1] - E)); }
   report(dE < 1e-12, 'hMatrix: eigenvalues from hermEig = -energy and +energy', `50 random (k, J1, J2, D), max difference ${sci(dE)}`);
+}
+
+// =====================================================================================================
+console.log('\n6. position counted from the cell where the light starts');
+{
+  // Runge-Kutta 4 in numpy with dense matrices and the cells counted from the start cell, as app/code/zak_chern.py does
+  // (run once outside this file; the numbers are its output at full precision)
+  const NUMPY = {
+    'hand numbers, T = 20, 40 cells, pair': [1, 0.5, 20, 40, 'pair', 0.8890859361636683, [0.0864090908, 0.4528968639, 0.7931916579, 0.8890859362], J.B.B3.shift.T20],
+    'hand numbers, T = 50, 60 cells, pair': [1, 0.5, 50, 60, 'pair', 0.9673320698841453, [0.1262994563, 0.5119365685, 0.7969720703, 0.9673320699], J.B.B3.shift.T50],
+    'hand numbers, T = 100, 120 cells, pair': [1, 0.5, 100, 120, 'pair', 0.9989289087544435, [0.1389427637, 0.4976829113, 0.8537027095, 0.9989289088], J.B.B3.shift.T100],
+    'hand numbers, T = 50, 60 cells, one guide': [1, 0.5, 50, 60, 'guide', 0.08035617124187186, [0.1459456328, 0.0544279313, 0.1291813308, 0.0803561712], J.B.B3.one_guide_T50],
+    'hand numbers, T = 20, 40 cells, one guide': [1, 0.5, 20, 40, 'guide', 0.1635493933647842, [0.0917553746, 0.1280836194, 0.1656922142, 0.1635493934], null],
+    'hand numbers, T = 50, 60 cells, upper band': [1, 0.5, 50, 60, 'upper', -0.967332069884588, [-0.1262994563, -0.5119365685, -0.7969720703, -0.9673320699], null],
+    'hand numbers, T = 20, 40 cells, upper band': [1, 0.5, 20, 40, 'upper', -0.8890859361636643, [-0.0864090908, -0.4528968639, -0.7931916579, -0.8890859362], null],
+    'sheet numbers, T = 20, 60 cells, pair': [0.5, 0.2, 20, 60, 'pair', 0.5525897511887776, [0.0626610508, 0.2602739066, 0.4332656116, 0.5525897512], J.B.B3.sheet_T20_pair],
+  };
+  for (const [name, [dJ, D0, T, Nc, input, shift, quarters, stored]] of Object.entries(NUMPY)) {
+    const r = M.propagate(dJ, D0, T, Nc, 0.05, { input, samples: 4 });
+    const dShift = Math.abs(r.shiftStart - shift), dQ = Math.max(...quarters.map((x, i) => Math.abs(x - r.Xstart[i + 1])));
+    const identity = Math.abs(r.shiftStart - (r.shift + r.m0 * (1 - r.norm)));
+    const ok = r.Xstart[0] === 0 && r.m0 === Nc / 2 && dShift < 1e-11 && dQ < 1e-9 && identity < 1e-11 && (stored === null || Math.abs(r.shiftStart - stored) < 1e-4);
+    report(ok, `shiftStart = numpy: ${name}`, `${r.shiftStart.toFixed(4)} (difference ${sci(dShift)}), X at t/T = 1/4, 1/2, 3/4, 1: ${r.Xstart.slice(1).map((x) => x.toFixed(4)).join(' ')}; shiftStart - shift - m0 (1 - norm) = ${sci(identity)}${stored === null ? '' : `; stored (exact exponential) ${f6(stored)}`}`);
+  }
+  // steps().B.B3.start holds these numbers for the page
+  const st = S.B.B3.start;
+  const table = [[st.shift.T20, 0.8890859361636683], [st.shift.T50, 0.9673320698841453], [st.shift.T100, 0.9989289087544435], [st.one_guide.T50, 0.08035617124187186], [st.one_guide.T20, 0.1635493933647842],
+    [st.upper_band.T50, -0.967332069884588], [st.upper_band.T20, -0.8890859361636643], [st.sheet_T20_pair, 0.5525897511887776]];
+  const dTable = Math.max(...table.map(([a, b]) => Math.abs(a - b)));
+  report(dTable < 1e-11 && st.X_over_cycle_T100.length === 17 && st.X_over_cycle_T100[0] === 0 && st.X_over_cycle_T100[16] === st.shift.T100, 'steps().B.B3.start: the shifts of the page', `T = 20, 50, 100: ${st.shift.T20.toFixed(4)} ${st.shift.T50.toFixed(4)} ${st.shift.T100.toFixed(4)}; one guide, T = 50: ${st.one_guide.T50.toFixed(4)}; sheet numbers, T = 20: ${st.sheet_T20_pair.toFixed(4)}; max difference to numpy ${sci(dTable)}`);
+  // the shift field of the page (tolerance 5e-4): four decimals of either counting are right, the other inputs are not
+  const shiftField = (text, ref, wrong = []) => check(parse(text), ref, { kind: 'real', tol: 5e-4, wrong });
+  const wrong50 = [{ value: st.one_guide.T50, hintId: 'one guide' }, { value: st.upper_band.T50, hintId: 'upper band' }];
+  const typed = [['0.8891', st.shift.T20, [], 'ok', null], ['0.8890', st.shift.T20, [], 'ok', null], ['0.9673', st.shift.T50, wrong50, 'ok', null], ['0.9671', st.shift.T50, wrong50, 'ok', null],
+    ['0.0804', st.shift.T50, wrong50, 'wrong', 'one guide'], ['-0.9673', st.shift.T50, wrong50, 'wrong', 'upper band'], ['0.97', st.shift.T50, wrong50, 'wrong', null], ['0.0804', st.one_guide.T50, [], 'ok', null], ['0.5526', st.sheet_T20_pair, [], 'ok', null]];
+  const res = typed.map(([text, ref, wrong]) => shiftField(text, ref, wrong));
+  report(res.every((r, i) => r.state === typed[i][3] && r.hintId === typed[i][4]), 'the shift per cycle as it is typed: four decimals of the page counting and of the left-end counting are right',
+    typed.map(([text, , , want], i) => `"${text}" ${res[i].state}${res[i].hintId ? ` (${res[i].hintId})` : ''}${res[i].state === want ? '' : ' !'}`).join(', '));
+}
+
+// =====================================================================================================
+console.log('\n7. data of the pump figures (pump.js)');
+{
+  let worstEnd = 0, worstOut = 0;
+  const lines = [];
+  for (const sheet of [false, true]) for (const T of P.T_VALUES) for (const input of ['pair', 'guide']) {
+    const sim = P.simulation(sheet, T, input), set = P.setOf(sheet), ref = M.propagate(set.dJ, set.D0, T, sim.Nc, P.DT, { input });
+    let out = 0;
+    for (const I of sim.frames) { let inside = 0, total = 0; for (let j = 0; j < I.length; j++) { total += I[j]; if (Math.abs((j >> 1) - sim.m0) <= sim.W) inside += I[j]; } out = Math.max(out, 1 - inside / total); }
+    const ok = sim.X[0] === 0 && sim.s[0] === 0 && sim.s[sim.s.length - 1] === 1 && Math.abs(sim.X[sim.X.length - 1] - ref.shiftStart) < 1e-12 && sim.frames.length === sim.X.length && sim.frames.length <= 402
+      && sim.ends < 1e-6 && out <= 0.0101 && sim.W < sim.m0 && P.simulation(sheet, T, input) === sim;
+    worstEnd = Math.max(worstEnd, sim.ends); worstOut = Math.max(worstOut, out);
+    lines.push(`${sheet ? 'sheet' : 'hand'} ${T} ${input}: ${sim.Nc} cells, window ±${sim.W}, shift ${sim.shift.toFixed(4)}${ok ? '' : ' !'}`);
+    if (!ok) report(false, `pump.js simulation ${sheet ? 'sheet' : 'hand'}, T = ${T}, ${input}`, `ends ${sci(sim.ends)}, outside the window ${out.toFixed(4)}, frames ${sim.frames.length}`);
+  }
+  report(lines.every((l) => !l.endsWith('!')), 'pump.js: 12 propagations (two sets of numbers, T = 20, 50, 100, two inputs): X(0) = 0, X(T) = shiftStart, no light at the ends of the chain, 99 % of the light in the window that is drawn',
+    `largest |psi|^2 in the two outermost cells ${sci(worstEnd)}, largest share outside the window ${worstOut.toFixed(4)}; ${lines.join('; ')}`);
+  const sp = P.spectrum(false), j38 = sp.s.indexOf(0.375), inGap = sp.states[j38], stored = J.B.B2.t0375.ingap;
+  const counts = sp.states.map((x) => x.length), open = sp.s.filter((x, j) => counts[j] === 2);
+  report(sp.levels.every((l) => l.length === 2 * P.CHAIN_CELLS) && inGap.length === 2 && inGap.every((x, i) => Math.abs(x.E - stored[i].E) < 1e-6 && x.end === stored[i].end) && counts.every((n) => n === 0 || n === 2) && open[0] > 0.25 && open[open.length - 1] < 0.75,
+    'pump.js: eigenvalues of the open chain over the cycle, two states in the gap between T/4 and 3T/4', `${sp.s.length} times, at t = 3T/8: ${inGap.map((x) => `${f6(x.E)} ${x.end}`).join(', ')}; in the gap from t/T = ${f6(open[0])} to ${f6(open[open.length - 1])}`);
+  const g = P.gammaOverCycle(false), gs = P.gammaOverCycle(true), n = g.s.length - 1;
+  report(g.cells[0] === 0 && Math.abs(g.cells[n] - J.B.B5.C) < 1e-9 && Math.abs(g.overPi[n / 4] - J.B.B5.quarter_M400_over_pi) < 1e-6 && Math.abs(g.cells[n / 2] - 0.5) < 1e-9 && Math.abs(gs.overPi[n / 4] - J.B.B5.sheet_quarter_M400_over_pi) < 1e-6 && Math.abs(gs.cells[n] - 1) < 1e-9,
+    'pump.js: gamma(t)/2pi over the cycle rises from 0 to C', `gamma(T/4)/pi = ${f6(g.overPi[n / 4])} (sheet numbers ${f6(gs.overPi[n / 4])}), gamma(T)/2pi = ${f6(g.cells[n])}`);
+  const b = P.bandsAt(false, 0.25);
+  report(Math.abs(2 * b.min - J.B.B1.gap_min) < 1e-9 && Math.abs(b.E[0] - J.B.B1.E.tq[0]) < 1e-6 && Math.abs(b.E[30] - J.B.B1.E.tq[1]) < 1e-6 && Math.abs(b.E[60] - J.B.B1.E.tq[2]) < 1e-6, 'pump.js: the bands at t = T/4', `E at k = 0, pi/2, pi: ${f6(b.E[0])} ${f6(b.E[30])} ${f6(b.E[60])}, gap ${f6(2 * b.min)}`);
 }
 
 // =====================================================================================================

@@ -287,10 +287,99 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
   .stage-grid { height: auto; }
   .stage-grid[data-act], .stage-grid[data-act][data-inset] { grid-template-columns: minmax(0, 1fr); grid-template-areas: none; grid-template-rows: none; }
   .pane { min-height: 220px; }
-  #pane-cont, #pane-chain, #pane-modes, #pane-trace, #pane-matrix, #pane-eig, #pane-prop, #pane-vec, #pane-norm, #pane-band, #pane-state, #pane-far, #pane-dial, #pane-rk, #pane-sketch, #pane-cell, #pane-eqs, #pane-plane, #pane-phi, #pane-steps, #pane-berry, #pane-ov, #pane-num, #pane-zakd { grid-area: auto; }
+  #pane-cont, #pane-chain, #pane-modes, #pane-trace, #pane-matrix, #pane-eig, #pane-prop, #pane-vec, #pane-norm, #pane-band, #pane-state, #pane-far, #pane-dial, #pane-rk, #pane-sketch, #pane-cell, #pane-eqs, #pane-plane, #pane-phi, #pane-steps, #pane-berry, #pane-ov, #pane-num, #pane-zakd, #pane-wa, #pane-wb, #pane-wc, #pane-wd, #pane-wcircle, #pane-wturn, #pane-wconv, #pane-wpos, #pane-wcycle, #pane-wbands, #pane-wlevels, #pane-wlight, #pane-wshift, #pane-wmap, #pane-wgamma, #pane-wloops { grid-area: auto; }
   #pane-3d { grid-area: auto; height: 260px; }
   #pane-pal, #pane-mat, #pane-hk { grid-area: auto; }
   #pane-mat { min-height: min(92vw, 520px); }
   .pal { overflow: visible; }
   .stage-grid[data-act="ssh"] #pane-chain { order: 9; }
+}
+
+/* ---------- Workbook: Zak phase and Thouless pump ---------- */
+/* steps with their fields on the left, the figures that belong to them on the right */
+/* (only on wide screens: this block comes after the phone rules of the other pages and would win over them) */
+@media (min-width: 981px) {
+  .stage-grid[data-act="hand"] { grid-template-columns: minmax(420px, 1.2fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1.25fr) minmax(0, 0.75fr); grid-template-areas: "wa wcircle" "wa wturn"; }
+  .stage-grid[data-act="code"] { grid-template-columns: minmax(420px, 1.2fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1.25fr) minmax(0, 0.75fr); grid-template-areas: "wb wconv" "wb wpos"; }
+  .stage-grid[data-act="pump"] { grid-template-columns: minmax(360px, 1.45fr) repeat(3, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "wc wcycle wbands wlevels" "wc wlight wlight wshift"; }
+  .stage-grid[data-act="chern"] { grid-template-columns: minmax(400px, 1.25fr) minmax(0, 1.05fr) minmax(0, 0.95fr); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "wd wmap wgamma" "wd wmap wloops"; }
+  #pane-wa { grid-area: wa; } #pane-wb { grid-area: wb; } #pane-wc { grid-area: wc; } #pane-wd { grid-area: wd; }
+  #pane-wcircle { grid-area: wcircle; } #pane-wturn { grid-area: wturn; } #pane-wconv { grid-area: wconv; } #pane-wpos { grid-area: wpos; }
+  #pane-wcycle { grid-area: wcycle; } #pane-wbands { grid-area: wbands; } #pane-wlevels { grid-area: wlevels; } #pane-wlight { grid-area: wlight; } #pane-wshift { grid-area: wshift; }
+  #pane-wmap { grid-area: wmap; } #pane-wgamma { grid-area: wgamma; } #pane-wloops { grid-area: wloops; }
+}
+.workbook .lect-head p { max-width: none; flex: 1 1 520px; }
+.workbook .lect-head h2 { font-size: 22px; }
+.workbook .caption { font-size: 15px; min-height: 2.2em; padding: 8px 12px; }
+.workbook .controls-bar .spacer { flex: 1; }
+.workbook a.btn { text-decoration: none; display: inline-block; }
+.workbook .controls-bar .ctl-slider { min-width: 170px; flex: 0 1 215px; grid-template-columns: auto minmax(0, 1fr) 2.4em; }
+.workbook .controls-bar .ctl-slider.wb-short { min-width: 130px; flex: 0 1 160px; }
+.workbook .controls-bar .time { min-width: 7ch; }
+/* the header: the long title only where it fits beside the tabs, the tabs in their own row where they do not fit */
+@media (min-width: 1251px) and (max-width: 1520px) { .workbook .wb-long { display: none; } }
+@media (max-width: 1250px) { .workbook .top { flex-wrap: wrap; row-gap: 6px; } .workbook .acts { order: 3; flex-basis: 100%; margin-left: 0; } }
+.wb-steps { overflow: auto; padding: 10px 14px 18px; font-size: 13.5px; line-height: 1.5; }
+.wb-steps .m { font-family: var(--font-math); font-size: 14.5px; white-space: nowrap; }
+.wb-steps code { font-family: var(--font-mono); font-size: 12.5px; }
+.wb-steps p { margin: 0 0 7px; max-width: 76ch; }
+.wb-intro { color: var(--fg-2); }
+.wb-small { color: var(--fg-2); font-size: 12.5px; }
+.wb-conv { margin: 0 0 8px; padding: 6px 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); font-size: 12.5px; }
+.wb-conv summary { cursor: pointer; font-weight: 600; font-size: 13px; }
+.wb-conv ul { margin: 6px 0 2px; padding-left: 18px; }
+.wb-conv li { margin: 0 0 3px; max-width: 80ch; }
+.wb-conv .m { font-size: 13.5px; }
+.wb-downloads { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 8px; }
+.wb-downloads .lab { color: var(--fg-2); font-size: 12.5px; }
+.wb-step { border-top: 1px solid var(--line); padding: 10px 0 8px; }
+.wb-step h3 { font: 600 16px/1.3 var(--font-math); margin: 0 0 5px; }
+.wb-step h3 .tag { font: 600 12px/1 var(--font-mono); color: #fff; background: var(--accent); border-radius: 4px; padding: 3px 6px; margin-right: 8px; vertical-align: 2px; }
+.wb-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 6px 16px; padding: 4px 0; }
+.wb-row.worked { padding: 5px 8px; margin: 2px 0; border-left: 3px solid var(--fg-2); background: var(--surface-2); border-radius: 4px; }
+.wb-k { flex: 0 0 auto; min-width: 5.2em; font-family: var(--font-math); font-size: 14.5px; padding-top: 5px; white-space: nowrap; }
+.wb-row.worked .wb-k { padding-top: 0; }
+.wb-k small { display: block; font: 11px var(--font-ui); color: var(--fg-2); }
+.wb-given { font-family: var(--font-math); font-size: 14px; padding-top: 5px; max-width: 60ch; }
+.wb-row.worked .wb-given { padding-top: 0; font-variant-numeric: tabular-nums; }
+.wb-case { padding: 4px 0 2px; border-top: 1px dashed var(--line); }
+.wb-f { display: inline-flex; flex-direction: column; gap: 2px; min-width: 0; max-width: 100%; }
+.wb-line { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 5px; }
+.wb-f .lab { font-family: var(--font-math); font-size: 14.5px; }
+.wb-f .part { font: 500 11px var(--font-ui); color: var(--fg-2); margin-left: 2px; }
+.wb-f .unit { font-family: var(--font-math); font-size: 14.5px; color: var(--fg-2); }
+.wb-in { width: 5.9em; min-width: 0; font: 13.5px var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; padding: 4px 6px; color: var(--fg); background: var(--surface); border: 1px solid var(--axis); border-radius: 4px; }
+.wb-in.wide { width: 7.4em; }
+.wb-in:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.wb-mark { display: inline-block; min-width: 1.1em; font: 700 15px/1 var(--font-ui); text-align: center; }
+.wb-msg { font-size: 12.5px; line-height: 1.4; max-width: 46ch; padding: 1px 0 3px; }
+.wb-f[data-state="ok"] .wb-in { border-color: var(--v1); background: color-mix(in srgb, var(--v1) 12%, var(--surface)); }
+.wb-f[data-state="ok"] .wb-mark { color: var(--v1); }
+.wb-f[data-state="wrong"] .wb-in { border-color: var(--pos); background: color-mix(in srgb, var(--pos) 8%, var(--surface)); }
+.wb-f[data-state="wrong"] .wb-mark, .wb-f[data-state="wrong"] .wb-msg { color: var(--pos); }
+.wb-f[data-state="unreadable"] .wb-in, .wb-f[data-state="other-phase"] .wb-in { border-color: var(--hpsi); background: color-mix(in srgb, var(--hpsi) 8%, var(--surface)); }
+.wb-f[data-state="unreadable"] .wb-mark, .wb-f[data-state="unreadable"] .wb-msg, .wb-f[data-state="other-phase"] .wb-mark, .wb-f[data-state="other-phase"] .wb-msg { color: var(--hpsi); }
+.wb-f[data-state="empty"] .wb-msg { color: var(--fg-2); }
+.wb-opt[aria-pressed="true"] { background: var(--surface-2); border-color: var(--fg); box-shadow: 0 0 0 1px var(--fg); font-weight: 600; }
+.wb-choice[data-state="ok"] .wb-opt[aria-pressed="true"] { border-color: var(--v1); box-shadow: 0 0 0 1px var(--v1); }
+.wb-choice[data-state="wrong"] .wb-opt[aria-pressed="true"] { border-color: var(--pos); box-shadow: 0 0 0 1px var(--pos); }
+.wb-pred { align-self: center; font-size: 12.5px; color: var(--fg-2); max-width: 44ch; }
+.wb-done { margin: 6px 0 4px !important; padding: 6px 10px; border-left: 3px solid var(--v1); background: color-mix(in srgb, var(--v1) 9%, var(--surface)); border-radius: 4px; }
+.wb-formula-btn { margin-top: 4px; font-size: 12.5px; padding: 3px 9px; color: var(--fg-2); }
+.wb-formula { margin: 6px 0 2px; padding: 6px 10px; border-left: 3px solid var(--accent); background: var(--surface-2); border-radius: 4px; overflow-x: auto; }
+.wb-formula code { display: block; white-space: pre-wrap; line-height: 1.7; }
+.wb-formula .note { display: block; font-size: 12px; color: var(--fg-2); margin-top: 3px; }
+@media (max-width: 980px) {
+  .workbook .pane.wb-steps { min-height: 0; overflow: visible; }
+  .workbook .pane:not(.wb-steps) { min-height: 270px; }
+  .workbook #pane-wmap { min-height: 340px; }
+  .wb-in { font-size: 16px; width: 6.4em; }
+  .wb-in.wide { width: 7.6em; }
+  .wb-row { flex-direction: column; gap: 6px; }
+  .wb-k { min-width: 0; padding-top: 2px; font-weight: 600; }
+  .wb-given { padding-top: 0; }
+  .wb-msg { max-width: none; }
+  .wb-steps .m { white-space: normal; }
+  .workbook .acts { flex-wrap: wrap; overflow-x: visible; }
+  .workbook .controls-bar .spacer { display: none; }
 }
