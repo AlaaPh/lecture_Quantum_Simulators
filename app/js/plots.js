@@ -125,15 +125,30 @@ export class Plot {
     if (font) ctx.font = font; ctx.fillText(str, this.x(xv) + dx, this.y(yv) + dy); ctx.restore();
   }
   // M[i][j] drawn with j along x (cells 0..ncol) and i along y (cells 0..nrow); cell (i,j) covers [j, j+1] x [i, i+1]
-  heatmap(M, { cmap = 'seq', vmin, vmax, x0 = 0, y0 = 0, tips } = {}) {
+  // Optional: labels(i, j) returns the text written into cell (i, j) (nothing for an empty string), in an ink that
+  // contrasts with the cell colour; border is the colour of a thin line around every cell.
+  heatmap(M, { cmap = 'seq', vmin, vmax, x0 = 0, y0 = 0, tips, labels, border } = {}) {
     const ctx = this.ctx, nr = M.length, nc = M[0].length;
     if (vmin === undefined || vmax === undefined) { let lo = Infinity, hi = -Infinity; for (const r of M) for (const v of r) { lo = Math.min(lo, v); hi = Math.max(hi, v); } vmin = vmin ?? lo; vmax = vmax ?? hi; }
     const f = cmap === 'div' ? (v) => cmapDiv(v / Math.max(Math.abs(vmin), Math.abs(vmax), 1e-12)) : (v) => cmapSeq((v - vmin) / ((vmax - vmin) || 1));
     for (let i = 0; i < nr; i++) for (let j = 0; j < nc; j++) {
       const X0 = this.x(x0 + j), X1 = this.x(x0 + j + 1), Y0 = this.y(y0 + i), Y1 = this.y(y0 + i + 1);
-      ctx.fillStyle = rgbToCss(f(M[i][j]));
+      const rgb = f(M[i][j]);
+      ctx.fillStyle = rgbToCss(rgb);
       ctx.fillRect(Math.min(X0, X1), Math.min(Y0, Y1), Math.abs(X1 - X0) + 0.6, Math.abs(Y1 - Y0) + 0.6);
       if (tips) this.hits.push({ x: (X0 + X1) / 2, y: (Y0 + Y1) / 2, data: [i, j], tip: tips(i, j) });
+      if (border) { ctx.save(); ctx.strokeStyle = border; ctx.lineWidth = 1; ctx.strokeRect(Math.round(Math.min(X0, X1)) + 0.5, Math.round(Math.min(Y0, Y1)) + 0.5, Math.round(Math.abs(X1 - X0)), Math.round(Math.abs(Y1 - Y0))); ctx.restore(); }
+      const str = labels ? labels(i, j) : '';
+      if (str) {
+        // relative luminance of the cell colour decides between dark and light ink
+        const lin = rgb.map((v) => { const u = v / 255; return u <= 0.04045 ? u / 12.92 : ((u + 0.055) / 1.055) ** 2.4; });
+        const lum = 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
+        const mono = getComputedStyle(document.documentElement).getPropertyValue('--font-mono') || 'monospace';
+        ctx.save(); ctx.fillStyle = lum > 0.2 ? '#10151c' : '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        let size = 12; ctx.font = `500 ${size}px ${mono}`;
+        while (size > 8 && ctx.measureText(str).width > Math.abs(X1 - X0) - 6) { size -= 1; ctx.font = `500 ${size}px ${mono}`; }
+        ctx.fillText(str, (X0 + X1) / 2, (Y0 + Y1) / 2 + 0.5); ctx.restore();
+      }
     }
   }
   legend(items, { x = 8, y = 8, align = 'left' } = {}) {
