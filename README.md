@@ -10,7 +10,7 @@ intuition behind them.
 |---|---|
 | `source/` | Source documents. `Coding_sessions_v1_annotated.pdf` is the task sheet with the reviewer's notes, `LectureNotes.md` the conventions of lectures VL1–VL8 that the exercises follow. |
 | `app/` | **Quantum Simulators Lab**, a static web app (no build step). Open `app/index.html` through any static server. |
-| `tools/` | Helper scripts (`make_artifact.py` builds the preview version of the app). |
+| `tools/` | Helper scripts (`make_artifact.py` builds the preview version of the app) and the tests of the workbook: `zak_chern_numbers.json` holds its reference numbers, `test_zak_chern.mjs` recomputes them, `check_workbook.cjs` drives the page in a browser. |
 
 ## The app
 
@@ -64,6 +64,32 @@ the same picture with more guides.
 4. **Task 3** — on-site potential +Δ on A, −Δ on B: the edge state of 21 guides moves to exactly +Δ with unchanged
    shape, 20 guides give ±Δ at the two ends, and the Zak phase is no longer quantized.
 
+**Workbook** (`app/workbook.html`): the student calculates the Zak phase, the Thouless pump of task 9 and its
+Chern number, in small steps that are checked at once. The same steps and numbers in three forms:
+
+- **Page.** Every hand step is an input field. A right value is marked, a wrong one gets the hint for its mistake,
+  and the figure fills in with the right answers. Four tabs:
+  1. **Zak phase by hand (task 8)** — h(k), its angle, the eigenvector and the four overlaps at k = 0, π/2, π, 3π/2
+     for J₁ = 1, J₂ = 2; product −0.2, γ = π; then J₁ = 2, J₂ = 1, γ = 0.
+  2. **Zak phase, your code** — the same loop with `eigh` and random phases; with on-site term the exact check
+     J₁ = 0, J₂ = 4, Δ = 3 → γ = 0.4π: γ/2π is the position of the light inside the unit cell.
+  3. **Thouless pump (task 9)** — the pump to play: the cycle in the (J₁ − J₂, Δ) plane, the two bands, the
+     eigenvalues of the open chain with the two edge states that cross the gap, the light in the chain and its
+     position X(t), which follows γ(t)/2π. Fields for bands (9a), edge states (9b) and the shift per cycle (9c).
+  4. **Chern number** — one plaquette by hand, all plaquettes of the 4 × 4 grid, C = 1; predictions for the upper
+     band, the reversed cycle and a cycle that does not go around the point where the gap closes.
+- **Code skeleton.** `app/code/zak_chern.py` with `zak_chern_check.py` (Python, numpy) and `app/code/zak_chern.m`
+  with `zak_chern_check.m` (MATLAB; tested with GNU Octave 8.4 only). One missing line per step. The file stops at the
+  first open step and names the mistake where a test identifies it. The last block applies the same functions to the
+  Harper–Hofstadter model at flux 1/3 and to the Haldane model.
+- **Worksheet.** `app/pdf/zak_chern_worksheet.pdf`, two double-sided sheets with the tables of the hand steps and
+  four questions to answer in words.
+
+Conventions of all three: H(k) = [[Δ, h*], [h, −Δ]], h = J₁ + J₂e^{ik}; lower band; γ = −arg ∏⟨uₛ|uₛ₊₁⟩; plaquette
+with the same −arg, walked (k, t) → (k, t+dt) → (k+dk, t+dt) → (k+dk, t); C = sum/2π; position X counted in unit cells
+from the cell where the light starts. Lower band and the cycle of task 9: C = +1, the light moves one unit cell toward
+higher cell numbers. Solutions are not in this repository.
+
 **Hamiltonian builder** (`app/builder.html`): a free instrument instead of a guided exercise. A tight-binding
 Hamiltonian is built by plugging couplings into a matrix, and its spectrum is shown at once.
 
@@ -111,7 +137,7 @@ demand from the Actions tab). Three one-time settings on github.com, all of whic
    "No restriction"), otherwise the job is rejected before it starts.
 
 The app is then at <https://alaaph.github.io/lecture_Quantum_Simulators/>, Exercise 2 at `/exercise2.html`, Exercise 3 at `/exercise3.html`, the
-Hamiltonian builder at `/builder.html`, the geometry appendix at `/chapters.html`, and a QR code to project at `/share.html`.
+workbook at `/workbook.html`, the Hamiltonian builder at `/builder.html`, the geometry appendix at `/chapters.html`, and a QR code to project at `/share.html`.
 
 ### Publish with GitLab Pages (university GitLab)
 
@@ -152,4 +178,12 @@ import { preset, solve } from './builder/model.js';
 const s = solve(preset('ssh3'));                      // SSH with a third-neighbour coupling
 console.log(s.chiral.nu, s.inGap.filter(Boolean).length);      // winding number 2, four edge states
 "
+```
+
+The workbook has its own tests. `tools/zak_chern_numbers.json` holds every number of its steps; each one was
+computed two independent ways (closed form, and `eigh` with a random phase on every eigenvector).
+
+```bash
+node tools/test_zak_chern.mjs      # app/js/workbook/model.js against the stored numbers, and the reader of typed answers
+node tools/check_workbook.cjs      # the page in headless Chromium (needs Playwright): every field, hints, phone width
 ```
