@@ -8,7 +8,7 @@
 //   Zak phase     γ = −arg( ⟨u_1|u_2⟩⟨u_2|u_3⟩ … ⟨u_M|u_1⟩ )
 //   plaquette     F = −arg( ⟨a|b⟩⟨b|c⟩⟨c|d⟩⟨d|a⟩ ),  a = u(k, t), b = u(k, t+dt), c = u(k+dk, t+dt), d = u(k+dk, t)
 //   Chern number  C = (sum of all F)/2π
-//   position      X = Σ over cells m of m·(I_A,m + I_B,m)
+//   position      X = Σ over cells m of m·(I_A,m + I_B,m), the cells counted from the cell where the light starts
 //
 // Data types: a complex number is { re, im }. A vector is an array of complex numbers.
 // A Hermitian matrix is { re: rows, im: rows }, the form that hermEig of linalg.js takes.
@@ -320,10 +320,12 @@ export function chainStep(psi, pa, pm, pb, h) {
   rk4Chain(out, pa, pm, pb, h, makeWork(out.re.length));
   return out;
 }
-// Position of the light, X = Σ_m m·(I_A,m + I_B,m), and the norm Σ|ψ|².
-export function position(re, im) {
+// Position of the light, X = Σ_m (m − m0)·(I_A,m + I_B,m), and the norm Σ|ψ|².
+// m0 is the cell from which the cells are counted: 0 counts from the left end of the chain,
+// the cell of the input counts from the cell where the light starts, so that X = 0 at the start.
+export function position(re, im, m0 = 0) {
   let x = 0;
-  for (let j = 0; j < re.length; j++) x += (j >> 1) * (re[j] * re[j] + im[j] * im[j]);
+  for (let j = 0; j < re.length; j++) x += ((j >> 1) - m0) * (re[j] * re[j] + im[j] * im[j]);
   return x;
 }
 export function norm2(re, im) {
@@ -336,36 +338,41 @@ export function norm2(re, im) {
 //        'guide' = guide A of that cell alone,
 //        'upper' = (A + B)/√2 on that cell (the upper band at t = 0).
 // The number of steps per cycle is n = round(T/dt); the step used is T/n, so that a cycle closes exactly.
-// onStep({ step, t, X, re, im }) is called before the first step and after every step; X is the shift X(t) − X(0),
+// The position is given in two countings of the cells:
+//   Xstart  the cells are counted from the cell m0 where the light starts, so Xstart = 0 at the start. This is the
+//           counting of the page, of the worksheet and of the code skeletons.
+//   X       the cells are counted from the left end of the chain, and X(0) is subtracted. The Runge–Kutta step loses
+//           a little norm, and this loss times m0 enters X (1·10⁻³ for T = 100, 120 cells, dt = 0.05):
+//           X = Xstart − m0·(1 − Σ|ψ|²).
+// onStep({ step, t, X, Xstart, re, im }) is called before the first step and after every step;
 // re and im are the live arrays (copy them if you keep them).
-// samples: X is recorded every floor(n/samples) steps and at the end of each cycle. cycles: number of cycles to run.
+// samples: the positions are recorded every floor(n/samples) steps and at the end of each cycle. cycles: number of cycles.
 // Choose Nc so large that the light does not reach the ends (60 cells for T = 50, 120 cells for T = 100).
-// Returns { shift, norm, centreShift, t, X, shifts, X0, n, dt, re, im }: shift = X(T) − X(0) of the first cycle,
-// norm = Σ|ψ|² after it, t and X the recorded times and shifts (starting with 0), shifts the shift of each cycle,
-// re and im the final state. The Runge–Kutta step loses a little norm, and X is a sum over all cells, so this loss
-// times the cell number of the input enters the shift (1·10⁻³ for T = 100, 120 cells, dt = 0.05).
-// centreShift is the shift of X/Σ|ψ|², which does not have this error.
+// Returns { shiftStart, shift, norm, centreShift, t, Xstart, X, shifts, X0, m0, n, dt, re, im }:
+// shiftStart = Xstart(T) and shift = X(T) of the first cycle, norm = Σ|ψ|² after it, t the recorded times, Xstart and X
+// the recorded positions (starting with 0), shifts the change of X in each cycle, re and im the final state.
+// centreShift is the shift of X/Σ|ψ|², which has no error from the loss of norm.
 export function propagate(dJ, D0, T, Nc, dt, { input = 'pair', onStep = null, samples = 16, cycles = 1 } = {}) {
   const N = 2 * Nc, n = Math.max(1, Math.round(T / dt)), h = T / n, m0 = Math.floor(Nc / 2);
   const psi = { re: new Float64Array(N), im: new Float64Array(N) }, w = makeWork(N);
   if (input === 'guide') psi.re[2 * m0] = 1;
   else { psi.re[2 * m0] = Math.SQRT1_2; psi.re[2 * m0 + 1] = input === 'upper' ? Math.SQRT1_2 : -Math.SQRT1_2; }
   const X0 = position(psi.re, psi.im), every = Math.max(1, Math.floor(n / samples));
-  const ts = [0], Xs = [0], shifts = [];
-  let shift = 0, norm = 1, last = 0;
-  if (onStep) onStep({ step: 0, t: 0, X: 0, re: psi.re, im: psi.im });
+  const ts = [0], Xs = [0], Xst = [0], shifts = [];
+  let shift = 0, shiftStart = 0, norm = 1, last = 0;
+  if (onStep) onStep({ step: 0, t: 0, X: 0, Xstart: 0, re: psi.re, im: psi.im });
   for (let i = 0; i < n * cycles; i++) {
     const t = i * h;
     rk4Chain(psi, pumpParams(t / T, dJ, D0), pumpParams((t + h / 2) / T, dJ, D0), pumpParams((t + h) / T, dJ, D0), h, w);
     const step = i + 1, record = step % every === 0, endOfCycle = step % n === 0;
     if (record || endOfCycle || onStep) {
-      const X = position(psi.re, psi.im) - X0;
-      if (record || endOfCycle) { ts.push(step * h); Xs.push(X); }
-      if (endOfCycle) { shifts.push(X - last); last = X; if (step === n) { shift = X; norm = norm2(psi.re, psi.im); } }
-      if (onStep) onStep({ step, t: step * h, X, re: psi.re, im: psi.im });
+      const X = position(psi.re, psi.im) - X0, Xstart = position(psi.re, psi.im, m0);
+      if (record || endOfCycle) { ts.push(step * h); Xs.push(X); Xst.push(Xstart); }
+      if (endOfCycle) { shifts.push(X - last); last = X; if (step === n) { shift = X; shiftStart = Xstart; norm = norm2(psi.re, psi.im); } }
+      if (onStep) onStep({ step, t: step * h, X, Xstart, re: psi.re, im: psi.im });
     }
   }
-  return { shift, norm, centreShift: (X0 + shift) / norm - X0, t: ts, X: Xs, shifts, X0, n, dt: h, re: Array.from(psi.re), im: Array.from(psi.im) };
+  return { shiftStart, shift, norm, centreShift: (X0 + shift) / norm - X0, t: ts, Xstart: Xst, X: Xs, shifts, X0, m0, n, dt: h, re: Array.from(psi.re), im: Array.from(psi.im) };
 }
 
 // ---------- 2D lattices: the same plaquettes, the second variable in place of t ----------
@@ -469,15 +476,24 @@ export function stepsB() {
     },
     B3: () => {
       const cells = { T20: 40, T50: 60, T100: 120 }, dt = 0.05;
-      const out = { dt, shift: {}, shift_centre: {}, cells };      // shift_centre: with X divided by the norm, see propagate
+      // shift, X_over_cycle_T100, one_guide_T50, upper_band_T50, sheet_T20_pair: cells counted from the left end, as the stored numbers.
+      // shift_centre: with X divided by the norm. start: cells counted from the cell where the light starts (see propagate);
+      // these are the numbers that the page asks for and that the code skeletons print.
+      const out = { dt, shift: {}, shift_centre: {}, cells, start: { shift: {}, one_guide: {}, upper_band: {} } };
       for (const T of [20, 50, 100]) {
         const r = propagate(dJ, D0, T, cells[`T${T}`], dt);
         out.shift[`T${T}`] = r.shift; out.shift_centre[`T${T}`] = r.centreShift; out[`norm_T${T}`] = r.norm;
-        if (T === 100) out.X_over_cycle_T100 = r.X;                // 17 values, t/T = 0, 1/16, …, 1
+        out.start.shift[`T${T}`] = r.shiftStart;
+        if (T === 100) { out.X_over_cycle_T100 = r.X; out.start.X_over_cycle_T100 = r.Xstart; }   // 17 values, t/T = 0, 1/16, …, 1
       }
-      out.one_guide_T50 = propagate(dJ, D0, 50, 60, dt, { input: 'guide' }).shift;
-      out.upper_band_T50 = propagate(dJ, D0, 50, 60, dt, { input: 'upper' }).shift;   // the mistake "input is the upper band"
-      out.sheet_T20_pair = propagate(SHEET.dJ, SHEET.D0, 20, 60, dt).shift;
+      const guide50 = propagate(dJ, D0, 50, 60, dt, { input: 'guide' }), upper50 = propagate(dJ, D0, 50, 60, dt, { input: 'upper' });
+      const sheet20 = propagate(SHEET.dJ, SHEET.D0, 20, 60, dt);
+      out.one_guide_T50 = guide50.shift;
+      out.upper_band_T50 = upper50.shift;                          // the mistake "input is the upper band"
+      out.sheet_T20_pair = sheet20.shift;
+      out.start.one_guide.T50 = guide50.shiftStart; out.start.upper_band.T50 = upper50.shiftStart; out.start.sheet_T20_pair = sheet20.shiftStart;
+      out.start.one_guide.T20 = propagate(dJ, D0, 20, 40, dt, { input: 'guide' }).shiftStart;      // the mistake "one guide alone as input"
+      out.start.upper_band.T20 = propagate(dJ, D0, 20, 40, dt, { input: 'upper' }).shiftStart;
       return out;
     },
     B4: () => {
