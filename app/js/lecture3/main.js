@@ -35,8 +35,22 @@ function eigvec(kk, j1, d, up) {
   const ca = up ? Math.cos(th / 2) : -Math.sin(th / 2), cb = up ? Math.sin(th / 2) : Math.cos(th / 2);
   return { a: { re: ca * Math.cos(p), im: -ca * Math.sin(p) }, b: { re: cb, im: 0 } };
 }
-// Zak phase of the lower band, γ = ½∮ dφ/dk·(1 − Δ/E) dk (periodic integrand: the rectangle rule converges fast)
-function zakLower(j1, d) { const n = 1440; let s = 0; for (let i = 0; i < n; i++) { const kk = (TAU * i) / n; const E = Math.hypot(d, absH(kk, j1)); s += dphi(kk, j1) * (E > 1e-12 ? 1 - d / E : 1); } return (0.5 * s * TAU) / n; }
+// Zak phase of the lower band, γ = ½∮ dφ/dk·(1 − Δ/E) dk (periodic integrand: the rectangle rule converges fast).
+// At J₁ = J₂ the integrand misses the jump of φ at k = π, where h = 0: there γ comes from the closed product of overlaps.
+function zakLower(j1, d) {
+  if (Math.abs(j1 - J2) < 1e-9 && Math.abs(d) > 1e-12) return zakLoop(j1, d);
+  const n = 1440; let s = 0; for (let i = 0; i < n; i++) { const kk = (TAU * i) / n; const E = Math.hypot(d, absH(kk, j1)); s += dphi(kk, j1) * (E > 1e-12 ? 1 - d / E : 1); } return (0.5 * s * TAU) / n;
+}
+// γ = −arg ∏⟨uₛ|uₛ₊₁⟩ on n points of the Brillouin zone, in [0, 2π). Valid whenever the gap is open.
+function zakLoop(j1, d, n = 1440) {
+  const u0 = eigvec(0, j1, d, false); let u = u0, pr = 1, pi = 0;
+  for (let i = 1; i <= n; i++) {
+    const v = i === n ? u0 : eigvec((TAU * i) / n, j1, d, false);
+    const re = u.a.re * v.a.re + u.a.im * v.a.im + u.b.re * v.b.re + u.b.im * v.b.im, im = u.a.re * v.a.im - u.a.im * v.a.re + u.b.re * v.b.im - u.b.im * v.b.re;
+    [pr, pi] = [pr * re - pi * im, pr * im + pi * re]; u = v;
+  }
+  const g = -Math.atan2(pi, pr); return ((g % TAU) + TAU) % TAU;
+}
 const runningZak = (kk) => 0.5 * (phiOf(kk) - phiOf(0));
 const gapOf = (J) => 1 - 0.3 * Math.log(Math.max(J, 0.1) / J2);      // sketch only: J ∝ e^(−d/d₀)
 const cmul = (p, q) => ({ re: p.re * q.re - p.im * q.im, im: p.re * q.im + p.im * q.re });
