@@ -304,7 +304,7 @@ const acts = [
     },
     caption() {
       const z = discreteZak(), nu = winding();
-      return `M = ${M}: γ = ${inPi(z.gamma, 4)} · analytic: ${nu === null ? 'not defined' : nu ? 'π' : '0'}${z.tooCoarse && nu !== null ? ' · too few points: between two neighbours φ changes by π or more, the product cannot tell which way round. Increase M.' : ''}${randomGauge ? ' · the single overlaps change with the random phases, their product does not' : ''}`;
+      return `M = ${M}: γ = ${inPi(z.gamma, 4)} · analytic: ${nu === null ? 'not defined' : nu ? 'π' : '0'}${z.tooCoarse && nu !== null ? ' · too few points: between two neighbours φ changes by π or more, the product cannot tell which way round. Increase M.' : ''}${randomGauge ? ' · the single overlaps change with the random phases, their product does not' : ''} · <a href="workbook.html">Now calculate it yourself: the workbook</a>`;
     },
     render() {
       const c = colors(), z = discreteZak(), cum = []; z.args.reduce((s, a, i) => (cum[i] = s + a), 0);

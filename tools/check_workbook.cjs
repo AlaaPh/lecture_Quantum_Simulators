@@ -357,17 +357,20 @@ async function otherPages(browser) {
   console.log('\nthe other pages (new header link, shared CSS and plots.js)');
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, colorScheme: 'light' });
   const page = await context.newPage();
-  for (const [file, hashes] of [['index.html', ['']], ['exercise2.html', ['']], ['exercise3.html', ['', '#task3']], ['builder.html', ['', '#hk']]]) {
+  // with the tabs that draw a heatmap (plots.js was changed): Exercise 1 task 1, Exercise 2 step and SSH, the builder
+  for (const [file, hashes] of [['index.html', ['#task1', '']], ['exercise2.html', ['#step', '#ssh', '']], ['exercise3.html', ['#task3', '']], ['builder.html', ['#hk', '']]]) {
     const errors = [];
     const onConsole = (m) => { if (m.type() === 'error') errors.push(m.text()); }, onError = (e) => errors.push(e.message);
     page.on('console', onConsole); page.on('pageerror', onError);
     let info = null;
+    const seen = [];
     for (const hash of hashes) {
-      await page.goto(BASE + file + hash); await page.waitForTimeout(500);
-      info = await page.evaluate(() => { const a = document.querySelector('.top a[href="workbook.html"]'), n = document.getElementById('acts'); return { link: a && a.textContent, title: a && a.title, doc: [document.documentElement.scrollWidth, innerWidth], tabs: [n.scrollWidth, n.clientWidth] }; });
+      await page.goto(BASE + file + hash); await page.reload(); await page.waitForTimeout(500);
+      info = await page.evaluate(() => { const a = document.querySelector('.top a[href="workbook.html"]'), n = document.getElementById('acts'); return { link: a && a.textContent, title: a && a.title, doc: [document.documentElement.scrollWidth, innerWidth], tabs: [n.scrollWidth, n.clientWidth], act: document.getElementById('stage').dataset.act }; });
+      seen.push(info.act);
     }
     page.off('console', onConsole); page.off('pageerror', onError);
-    report(errors.length === 0 && info.link === 'workbook' && info.doc[0] <= info.doc[1], `${file}: no console error, link "workbook" in the header`, `${errors.join(' | ')}tab row needs ${info.tabs[0]} px and has ${info.tabs[1]} px at 1280`);
+    report(errors.length === 0 && info.link === 'workbook' && info.doc[0] <= info.doc[1], `${file}: no console error, link "workbook" in the header`, `${errors.join(' | ')}tabs opened: ${seen.join(', ')}; the tab row needs ${info.tabs[0]} px and has ${info.tabs[1]} px at 1280`);
   }
   await page.goto(BASE + 'exercise3.html'); await page.click('.top a[href="workbook.html"]'); await page.waitForSelector('#pane-wa .wb-step');
   report((await page.title()) === 'Quantum Simulators Workbook: Zak phase and Thouless pump', 'the link of Exercise 3 opens the workbook', `title "${await page.title()}"`);
