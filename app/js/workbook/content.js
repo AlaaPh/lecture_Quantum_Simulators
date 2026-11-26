@@ -116,7 +116,7 @@ function definePump() {
   field({ id: 'B2-Elow', tab, tol: CODE, ref: low.E, hint, aria: 'the lower of the two eigenvalues in the gap at t = 3T/8' });
   field({ id: 'B2-Eup', tab, tol: CODE, ref: up.E, hint, aria: 'the upper of the two eigenvalues in the gap at t = 3T/8' });
   choice({ id: 'B2-end', tab, options: [{ value: 'left', label: 'left end' }, { value: 'right', label: 'right end' }], right: up.end, hint: 'not this end. Plot |ψ|² of the eigenvector over the guide number.', aria: 'the end of the chain where the state with the upper eigenvalue sits' });
-  choice({ id: 'B2-guide', tab, options: [{ value: 'A', label: 'A' }, { value: 'B', label: 'B' }], right: up.weight_A > 0.5 ? 'A' : 'B', hint: 'not these guides. Guide A has an even index in the code (0, 2, 4, …).', aria: 'the guides that carry the state with the upper eigenvalue' });
+  choice({ id: 'B2-guide', tab, options: [{ value: 'A', label: 'A' }, { value: 'B', label: 'B' }], right: up.weight_A > 0.5 ? 'A' : 'B', hint: 'not these guides. The guides A are the first, third, fifth, … guide of the chain.', aria: 'the guides that carry the state with the upper eigenvalue' });
   field({ id: 'B3-norm', tab, tol: CODE, ref: B.B3.norm_T20, hint: HINT.norm, aria: 'norm after one cycle, T = 20' });
   for (const T of [20, 50]) field({ id: `B3-T${T}`, tab, tol: SHIFT, ref: st.shift[`T${T}`], hint, wrong: [{ value: st.one_guide[`T${T}`], hint: HINT.oneGuide }, { value: st.upper_band[`T${T}`], hint: HINT.upperInput }], aria: `shift per cycle for T = ${T}` });
   field({ id: 'B3-guide', tab, tol: SHIFT, ref: st.one_guide.T50, hint, wrong: [{ value: st.shift.T50, hint: 'this is the shift for the input (A − B)/√2. Put all light on guide A of the middle cell.' }], aria: 'shift per cycle with one guide alone as input, T = 50' });
@@ -306,11 +306,11 @@ function buildCode() {
       doneNote(['A6-prod4', 'A6-prodrand'], 'The same product as by hand, for every choice of the phase factors: only the closed product is fixed.'),
     ],
     formula: () => code([
-      'Python:  E, V = np.linalg.eigh(H);  u = V[:, 0]        column 0 belongs to the smallest eigenvalue',
-      'MATLAB:  [V, D] = eig(H);  [E, order] = sort(real(diag(D)));  u = V(:, order(1))',
-      '⟨u|v⟩ = np.vdot(u, v)        MATLAB: u\'*v',
+      'H·u = E·u:  eigh and eig return the eigenvectors as the columns of a matrix V',
+      'lower band:  Python eigh: the first column of V.  MATLAB eig: sort the eigenvalues, then take the column of the smallest',
+      '⟨u|v⟩ = Σ conj(u_i)·v_i        Python np.vdot(u, v), MATLAB u\'*v',
       'product = ⟨u₁|u₂⟩·⟨u₂|u₃⟩· … ·⟨u_M|u₁⟩,  k_s = 2π(s − 1)/M',
-      'γ = −np.angle(product);  type γ/π',
+      'γ = −arg(product);  type γ/π',
     ]),
   });
   const a7 = stepBlock({
@@ -329,11 +329,11 @@ function buildCode() {
     formula: () => code([
       'H(k) = [[Δ, conj(h)], [h, −Δ]],  h = J₁ + J₂·e^(ik),  k_s = 2π(s − 1)/M',
       'γ = −arg(⟨u₁|u₂⟩·⟨u₂|u₃⟩· … ·⟨u_M|u₁⟩) with the eigenvectors of the smallest eigenvalue;  type γ/π',
-      '|u_A|² = abs(u[0])**2        MATLAB: abs(u(1))^2',
+      '|u_A|² = squared length of the first component of the eigenvector u',
     ]),
   });
   return [conventions(false), downloads(),
-    para('Your code repeats tab 1 and then goes on. Put zak_chern.py and zak_chern_check.py (or the two .m files) into one folder and run zak_chern.py. It stops at the first open step. Write the line marked TODO there and run again. Every OK line prints numbers: type them here with four decimals.', 'wb-intro'),
+    para('Your code repeats tab 1 and then goes on. Put the two Python files (or the two MATLAB files) into one folder and run zak_chern.py (or zak_chern.m). It stops at the first open step. Write the line marked TODO there and run again. Every OK line prints numbers: type them here with four decimals.', 'wb-intro'),
     a6, a7];
 }
 
@@ -369,8 +369,9 @@ function buildPump() {
       doneNote(['B2-end', 'B2-guide', 'B2-Eup'], b2Note),
     ],
     formula: () => code([
-      'cell m: guide A at index 2m, guide B at index 2m + 1',
-      'H[2m][2m] = +Δ,  H[2m+1][2m+1] = −Δ,  H[2m][2m+1] = J₁,  H[2m+1][2m+2] = J₂  (and transposed)',
+      `H is a matrix with ${2 * B.B2.cells} rows and columns: one for every guide, in the order A, B, A, B, …`,
+      'on the diagonal: +Δ for every guide A, −Δ for every guide B',
+      'next to the diagonal: J₁ between A and B of one cell, J₂ between B and the A of the next cell',
       `t = 3T/8:  ${cycleAtDeg(0.375)}`,
       `the two eigenvalues in the middle of the sorted list: number ${B.B2.cells} and ${B.B2.cells + 1} of ${2 * B.B2.cells}`,
     ]),
@@ -424,8 +425,8 @@ function buildPump() {
     ],
     formula: () => code([
       'γ(t) = −arg(⟨u₁|u₂⟩· … ·⟨u_M|u₁⟩) with J₁, J₂, Δ at the time t, M = 400',
-      'Python:  gamma = np.unwrap(gamma_raw);  C = (gamma[-1] − gamma[0])/(2·np.pi)',
-      'MATLAB:  gamma = unwrap(gamma_raw);  C = (gamma(end) − gamma(1))/(2*pi)',
+      'γ without jumps: put the 17 raw values through unwrap (Python np.unwrap, MATLAB unwrap)',
+      'C = (γ at the last time − γ at the first time)/2π',
     ]),
   });
   return [conventions(false),
@@ -496,7 +497,7 @@ function buildChern() {
       doneNote(['B8-cross', 'B8-c1', 'B8-c2', 'B8-c3', 'B8-c4'], `${crossing === 1 ? 'One state crosses' : `${crossing} states cross`} the gap at each end per cycle: this is |C|. The cycle that does not go around the point (0, 0) has C = ${B.B8.not_enclosing}. The direction of the cycle and the band decide the sign.`),
     ],
     formula: () => code([
-      'U = grid(8, cycle, band):  band = 0 is the lower band, band = 1 the upper band',
+      'grid of 8 × 8 eigenvectors:  k_i = 2πi/8,  t_j = jT/8;  upper band: the eigenvector of the larger eigenvalue',
       `backwards:  J₁ and J₂ as before,  Δ = −${plain(HAND.D0)}·sin(2πt/T)`,
       'C = (sum of the 64 plaquette phases)/2π',
     ]),

@@ -8,6 +8,7 @@
 //   change, the verdict is "ok"; one catalogued wrong value gives its hint; "-0,2" and "−0.2" are read as −0.2;
 //   "abc" is unreadable; a single overlap with the right length and another angle is answered as such;
 //   after a reload the values are back and checked; Play on tab 3 advances the time.
+// Then: the page with a storage that is blocked or holds something unreadable, and the other pages of the app.
 // The right values are taken from tools/zak_chern_numbers.json, rounded as a student would type them,
 // not from the page: the test also shows that page and stored numbers agree.
 const { chromium } = require('playwright');
@@ -265,6 +266,16 @@ async function pass(browser, theme, width, height, { first, shots }) {
       const t2 = Number(await page.locator('#ts').inputValue()); await page.waitForTimeout(250);
       const t3 = Number(await page.locator('#ts').inputValue());
       report(t1 > t0 + 0.01 && label === 'Pause' && t3 === t2, `${name}, tab pump: Play advances the time, Pause stops it`, `t/T ${t0} -> ${t1.toFixed(3)} in 0.7 s, "${clock}", then ${t2.toFixed(3)} and ${t3.toFixed(3)}`);
+      // the space bar plays, but not while a field has the focus
+      const e0 = page.locator('#f-B1-E0');
+      await e0.click(); await e0.press('End'); await e0.press('Space');
+      const inField = [await page.locator('#play').innerText(), await e0.inputValue()];
+      await e0.press('Backspace'); await page.evaluate(() => document.activeElement.blur());
+      await page.keyboard.press('Space'); const outside = await page.locator('#play').innerText();
+      await page.keyboard.press('Space'); const again = await page.locator('#play').innerText();
+      report(inField[0] === 'Play' && inField[1] === ANSWERS.pump['B1-E0'][0] + ' ' && outside === 'Pause' && again === 'Play', `${name}, tab pump: the space bar plays only outside a field`, `in the field: button "${inField[0]}", text "${inField[1]}"; outside: "${outside}", then "${again}"`);
+      const e0state = await stateOf(page, 'B1-E0');
+      if (e0state.state !== 'ok') report(false, `${name}, tab pump: B1-E0 right again after the space test`, e0state.state);
       // every setting of the pump draws without an error
       const before = errors.length;
       for (const T of [1, 2, 0]) for (const input of ['in-guide', 'in-pair']) for (const sheet of [true, false]) {
@@ -307,6 +318,35 @@ async function pass(browser, theme, width, height, { first, shots }) {
   await context.close();
 }
 
+// ---------- the storage of the browser is off, or holds something else ----------
+async function storageCases(browser) {
+  console.log('\nstorage that is blocked or unreadable');
+  const cases = [
+    ['localStorage throws on every call', () => { const stop = () => { throw new Error('storage is off'); }; Storage.prototype.getItem = stop; Storage.prototype.setItem = stop; Storage.prototype.removeItem = stop; }],
+    ['the stored text is not JSON', () => { localStorage.setItem('qsl-workbook-v1', '{"text": {"A1-wind": "1"'); }],
+    ['the stored object has other types', () => { localStorage.setItem('qsl-workbook-v1', JSON.stringify({ v: 9, text: { 'A1-wind': 1, 'A1-phi2': ['63.43'], 'A3-gamma': 'x'.repeat(500) }, choice: 'left' })); }],
+    ['a stored choice that no button has', () => { localStorage.setItem('qsl-workbook-v1', JSON.stringify({ v: 1, text: { 'A1-wind': ' 1 ' }, choice: { 'A3-pred': '7', 'B2-end': 'middle' } })); }],
+  ];
+  for (const [name, init] of cases) {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.addInitScript(init);
+    let states = '';
+    for (const tab of TABS) {
+      await page.goto(`${BASE}workbook.html#${tab}`); await page.waitForSelector(`#stage[data-act="${tab}"] .wb-step`); await page.waitForTimeout(150);
+      if (tab === 'hand') {
+        const r = await typeField(page, tab, 'A1-E2', ANSWERS.hand['A1-E2'], { perKey: false });
+        states = `A1-E2 typed: ${r.state}, A1-wind: ${(await stateOf(page, 'A1-wind')).state}, A3-pred: ${(await stateOf(page, 'A3-pred')).state}, result fields of A3 closed: ${!(await page.locator('#f-A3-len').isVisible())}`;
+      }
+    }
+    report(errors.length === 0 && states.startsWith('A1-E2 typed: ok') && states.endsWith('closed: true'), `storage: ${name}`, `${states}${errors.length ? ' | ' + errors.slice(0, 3).join(' | ') : ''}`);
+    await context.close();
+  }
+}
+
 // ---------- the other pages: header and shared files were changed ----------
 async function otherPages(browser) {
   console.log('\nthe other pages (new header link, shared CSS and plots.js)');
@@ -347,6 +387,7 @@ async function otherPages(browser) {
     await pass(browser, 'light', 400, 800, { first: false, shots: ['hand', 'pump'] });
     await pass(browser, 'dark', 1280, 800, { first: false, shots: [] });
     await pass(browser, 'dark', 400, 800, { first: false, shots: [] });
+    await storageCases(browser);
     await otherPages(browser);
   } catch (e) {
     report(false, 'the test ran to its end', e.stack || String(e));
