@@ -31,7 +31,8 @@ the slide PDFs. The slides themselves are on OLAT and are not part of this repos
 - **Winding.** H(k) = −(J₁ + J₂cos k)σₓ − (J₂ sin k)σ_y; circle with centre J₁ and radius J₂; winding number 0 for
   J₂ < J₁, 1 for J₂ > J₁, ill-defined at J₂ = J₁ (VL6 p13–15).
 - **Zak phase.** γ = i∮⟨ψ|∂_kψ⟩dk; discrete γ = −arg(⟨ψ₁|ψ₂⟩⟨ψ₂|ψ₃⟩…⟨ψ_N|ψ₁⟩), gauge invariant; values 0 and π
-  (VL5 p30–32). VL6 p06 and VL5 p31 print it without the minus sign, VL8 p19 with −i: no effect on 0 or π.
+  (VL5 p30–32). VL6 p06 and VL5 p31 print it without the minus sign, VL8 p19 with −i: no effect on 0 or π, but
+  with an on-site term and in the pump the sign matters (see "One rule for the signs" below).
 - **Chiral symmetry.** Γ̂ĤΓ̂† = −Ĥ, Γ̂ = P̂_A − P̂_B; symmetric spectrum; E = 0 states live on one sublattice (VL6 p21–28).
 - **On-site term.** +Δσ_z, +Δ on A and −Δ on B; "winding number not defined" (VL6 p31–33). Rice–Mele uses ±Δ/2
   (VL8 p27), so its smallest gap is Δ₀.
@@ -43,6 +44,30 @@ the slide PDFs. The slides themselves are on OLAT and are not part of this repos
   φ^Zak = Chern number (VL8 p22–35).
 - **Bloch oscillations.** Produced with curved waveguides, ẍ₀ = const (VL3 p42–47, VL4 p08–13). No period or
   amplitude formula on the slides.
+
+## One rule for the signs (workbook, Exercise 3, code skeletons)
+
+Checked numerically (numpy and JavaScript, random phase on every eigenvector) and by propagation in real space.
+
+- H(k) = [[Δ, h*], [h, −Δ]], h = J₁ + J₂e^{ik}, basis (A, B); lower band = smallest eigenvalue.
+- Zak phase γ = −arg ∏⟨uₛ|uₛ₊₁⟩ = +i∮⟨u|∂_k u⟩dk modulo 2π. γ/2π is the position of the light of the band
+  inside the unit cell (VL8 p32–33, written there with +i).
+- With on-site term, lower band: γ = ½∮(dφ/dk)(1 − Δ/E₀)dk, E₀ = √(Δ² + |h|²), φ = arg h, as long as h(k) ≠ 0.
+  Example J₁ = 1, J₂ = 2, Δ = 0.5: γ = 0.7079π. The upper band, +arg, e^{−ik} in h, or −Δ on A each give −0.7079π.
+- Plaquette of the (k, t) grid: the same −arg, walked (k, t) → (k, t+dt) → (k+dk, t+dt) → (k+dk, t) → back.
+  C = (sum of the plaquettes)/2π. The plaquettes between two times add up to the change of γ (modulo 2π).
+  This equals +arg walked the other way round, which is the definition of VL8 p19 (A = −i⟨ψ|∇ψ⟩, k_x = k, k_y := t).
+- Cycle of task 9 (J₁ − J₂ ∝ cos, Δ ∝ +sin), lower band: C = +1, γ rises by 2π, the light moves one unit cell
+  (two waveguides) toward higher cell numbers. Upper band or reversed cycle: −1. −J instead of +J changes none of
+  these numbers; only the lower-band pair becomes (A + B)/√2 instead of (A − B)/√2.
+- The +i of VL5 p30–32 and VL8 p32–34 and the −i of VL8 p19 are consistent only together with the orientation
+  above: the −i reverses the sign of A, the order (k, t) of the curl reverses it back.
+- On-site term in the pump: VL8 p27 writes ±Δ/2, the task sheet "potential difference Δ", VL6 and Exercise 3 ±Δ.
+  The workbook uses +Δ on A and −Δ on B. C is the same for both readings; the shift at finite T is not.
+- Shift per cycle, input (A − B)/√2 on one cell, δJ = 1, Δ₀ = 0.5: 0.889 (T = 20), 0.967 (T = 50), 0.999 (T = 100,
+  at least 100 cells). Numbers of the task sheet (δJ = 0.5, Δ₀ = 0.2, T = 20): 0.55, the cycle is too fast.
+- Grid sizes: 4 × 4 is enough for the pump (3 × 3 gives 0 for the numbers of the task sheet). Three k points give
+  a zero overlap for J₁ = 1, J₂ = 2. Harper–Hofstadter at flux 1/4 has touching bands and needs the two-band form.
 
 ## Where the app differs
 
