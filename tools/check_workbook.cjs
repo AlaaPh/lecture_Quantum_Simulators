@@ -76,6 +76,7 @@ const WRONG = {
 const OTHER = { hand: ['A2-ov2', c4(i2)], chern: ['B6-ov1', c4([B.B6.ov[0][1], B.B6.ov[0][0]])] };
 const MINUS = { field: 'A3-prod', variants: ['-0,2', '−0.2'], im: '0' };       // −0.2 with a decimal comma, and with the minus sign U+2212
 const TABS = ['hand', 'code', 'pump', 'chern'];
+const PANE = { hand: 'wa', code: 'wb', pump: 'wc', chern: 'wd' };          // the pane that holds the steps of a tab
 const inputId = (field, n, i, kind) => `f-${field}${n === 1 ? '' : kind === 'vector' ? `-${i}` : i === 0 ? '-re' : '-im'}`;
 
 // ---------- the server ----------
@@ -142,7 +143,7 @@ async function pass(browser, theme, width, height, { first, shots }) {
 
   for (const tab of TABS) {
     await page.goto(`${BASE}workbook.html#${tab}`);
-    await page.waitForSelector(`#pane-${{ hand: 'wa', code: 'wb', pump: 'wc', chern: 'wd' }[tab]} .wb-step`);
+    await page.waitForSelector(`#pane-${PANE[tab]} .wb-step`);
     await page.waitForTimeout(250);
     const dark = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
     const [sw, iw] = await overflow(page);
@@ -153,11 +154,15 @@ async function pass(browser, theme, width, height, { first, shots }) {
     report(blank.length === 0, `${name}, tab ${tab}: every figure has something drawn`, blank.length ? `empty: ${blank.join(', ')}` : '');
 
     // the fields of the page and the fields of the table are the same
-    const onPage = await page.evaluate((pane) => [...document.querySelectorAll(`#${pane} [data-field]`)].map((e) => e.dataset.field), `pane-${{ hand: 'wa', code: 'wb', pump: 'wc', chern: 'wd' }[tab]}`);
+    const onPage = await page.evaluate((pane) => [...document.querySelectorAll(`#${pane} [data-field]`)].map((e) => e.dataset.field), `pane-${PANE[tab]}`);
     const inTable = [...Object.keys(ANSWERS[tab]), ...Object.keys(PREDICTIONS[tab]), ...Object.keys(CHOICES[tab])];
     const missing = onPage.filter((f) => !inTable.includes(f)), extra = inTable.filter((f) => !onPage.includes(f));
     report(missing.length === 0 && extra.length === 0, `${name}, tab ${tab}: the test knows every field of the tab`, `${onPage.length} fields${missing.length ? `, not in the test: ${missing.join(' ')}` : ''}${extra.length ? `, not on the page: ${extra.join(' ')}` : ''}`);
 
+    // every field: a text input without help from the browser, 16 px on a phone (below that iOS zooms into the field)
+    const boxes = await page.evaluate((pane) => [...document.querySelectorAll(`#${pane} input`)].map((e) => ({ id: e.id, ok: e.type === 'text' && e.getAttribute('autocomplete') === 'off' && e.getAttribute('autocapitalize') === 'off' && e.getAttribute('spellcheck') === 'false' && !!e.getAttribute('aria-label'), size: parseFloat(getComputedStyle(e).fontSize) })), `pane-${PANE[tab]}`);
+    const badBoxes = boxes.filter((b) => !b.ok || (width <= 980 && b.size < 16));
+    report(boxes.length > 0 && badBoxes.length === 0, `${name}, tab ${tab}: ${boxes.length} inputs of type text, autocomplete, autocapitalize and spellcheck off${width <= 980 ? ', font size 16 px' : ''}`, badBoxes.length ? badBoxes.map((b) => `${b.id} ${b.size}px`).join(' ') : `font size ${boxes[0].size} px`);
     // predictions first: the result fields behind them are closed until then
     for (const [pred, value] of Object.entries(PREDICTIONS[tab])) {
       const gated = { 'A3-pred': 'f-A3-len', 'B5-pred': 'f-B5-quarter', 'B8-p1': 'f-B8-c1', 'B8-p2': 'f-B8-c2', 'B8-p3': 'f-B8-c3', 'B8-p4': 'f-B8-c4' }[pred];
@@ -208,7 +213,7 @@ async function pass(browser, theme, width, height, { first, shots }) {
     await page.evaluate(() => { try { localStorage.removeItem('qsl-theme'); } catch (e) { /* ignore */ } document.documentElement.removeAttribute('data-theme'); });
 
     // the formula of the first step opens and holds no field
-    const step = await page.evaluate((pane) => document.querySelector(`#${pane} .wb-formula-btn`).id.slice(5), `pane-${{ hand: 'wa', code: 'wb', pump: 'wc', chern: 'wd' }[tab]}`);
+    const step = await page.evaluate((pane) => document.querySelector(`#${pane} .wb-formula-btn`).id.slice(5), `pane-${PANE[tab]}`);
     await page.click(`#show-${step}`);
     const formula = await page.evaluate((s) => { const b = document.getElementById(`formula-${s}`); return { hidden: b.hidden, lines: b.querySelectorAll('code').length, inputs: b.querySelectorAll('input').length }; }, step);
     await page.click(`#show-${step}`);
@@ -336,7 +341,7 @@ async function storageCases(browser) {
     await page.addInitScript(init);
     let states = '';
     for (const tab of TABS) {
-      await page.goto(`${BASE}workbook.html#${tab}`); await page.waitForSelector(`#stage[data-act="${tab}"] .wb-step`); await page.waitForTimeout(150);
+      await page.goto(`${BASE}workbook.html#${tab}`); await page.waitForSelector(`#pane-${PANE[tab]} .wb-step`); await page.waitForTimeout(150);
       if (tab === 'hand') {
         const r = await typeField(page, tab, 'A1-E2', ANSWERS.hand['A1-E2'], { perKey: false });
         states = `A1-E2 typed: ${r.state}, A1-wind: ${(await stateOf(page, 'A1-wind')).state}, A3-pred: ${(await stateOf(page, 'A3-pred')).state}, result fields of A3 closed: ${!(await page.locator('#f-A3-len').isVisible())}`;

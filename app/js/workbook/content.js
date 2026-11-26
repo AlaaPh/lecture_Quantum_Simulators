@@ -119,7 +119,7 @@ function definePump() {
   choice({ id: 'B2-guide', tab, options: [{ value: 'A', label: 'A' }, { value: 'B', label: 'B' }], right: up.weight_A > 0.5 ? 'A' : 'B', hint: 'not these guides. The guides A are the first, third, fifth, … guide of the chain.', aria: 'the guides that carry the state with the upper eigenvalue' });
   field({ id: 'B3-norm', tab, tol: CODE, ref: B.B3.norm_T20, hint: HINT.norm, aria: 'norm after one cycle, T = 20' });
   for (const T of [20, 50]) field({ id: `B3-T${T}`, tab, tol: SHIFT, ref: st.shift[`T${T}`], hint, wrong: [{ value: st.one_guide[`T${T}`], hint: HINT.oneGuide }, { value: st.upper_band[`T${T}`], hint: HINT.upperInput }], aria: `shift per cycle for T = ${T}` });
-  field({ id: 'B3-guide', tab, tol: SHIFT, ref: st.one_guide.T50, hint, wrong: [{ value: st.shift.T50, hint: 'this is the shift for the input (A − B)/√2. Put all light on guide A of the middle cell.' }], aria: 'shift per cycle with one guide alone as input, T = 50' });
+  field({ id: 'B3-guide', tab, tol: SHIFT, ref: st.one_guide.T50, hint, aria: 'shift per cycle with one guide alone as input, T = 50' });
   field({ id: 'B3-sheet', tab, tol: SHIFT, ref: st.sheet_T20_pair, hint, aria: 'shift per cycle with the numbers of the task sheet, T = 20' });
   const half = pumpParams(0.5, HAND.dJ, HAND.D0), openHalf = loopOverlaps(bandStates(half.J1, half.J2, half.D, 4)).slice(0, 3).reduce((p, z) => cx.mul(p, z), cx.of(1));
   field({ id: 'B4-prod0', tab, kind: 'complex', ref: B.B4.t0.prod, otherPhase: false, aria: 'product of the four overlaps at t = 0' });
