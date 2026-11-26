@@ -19,13 +19,17 @@ function zak_chern()
 % The function run_steps below lists all steps in their order. The functions that you complete come after it, in the
 % same order. Search for the step, for example "TODO A1", write the line marked TODO there, and run again.
 % Keep the file zak_chern_check.m in the same folder.
+    if exist('zak_chern_check', 'file') ~= 2
+        fprintf('The file zak_chern_check.m is missing. Put it into the folder of this file and run again.\n');
+        return
+    end
     try
         run_steps();
-    catch stop                                     % the check stops the run at the first open step
-        if ~strcmp(stop.identifier, 'zak_chern:stop')
-            rethrow(stop);
+    catch err                                      % the check stops the run at the first open step
+        if ~strcmp(err.identifier, 'zak_chern:stop')
+            rethrow(err);
         end
-        fprintf('%s\n', stop.message);
+        fprintf('%s\n', err.message);
     end
 end
 
@@ -33,10 +37,7 @@ end
 function run_steps()
     FIGURES = usejava('desktop');                  % the figures are drawn if MATLAB runs with its desktop. false: none
     LONG = false;                                  % true: step B3 also runs the slow cycle T = 100 on 120 cells
-    BLUE = [37, 125, 224] / 255;
-    ORANGE = [244, 114, 48] / 255;
-    AQUA = [0, 184, 148] / 255;
-    INK = [25, 25, 25] / 255;
+    % given: g hands the functions of this file to the check
     g = struct('file', [mfilename('fullpath'), '.m'], 'h', @h, 'H_k', @H_k, 'overlap', @overlap, ...
                'loop_product', @loop_product, 'zak', @zak, 'eigenvector', @eigenvector, 'states', @states, ...
                'zak_ssh', @zak_ssh, 'pump', @pump, 'zak_pump', @zak_pump, 'H_haldane', @H_haldane);
@@ -71,22 +72,7 @@ function run_steps()
     % ================================================================================================================
     check('B1', @band_energy);                     % B1: you write the function band_energy
     check('B1', smallest_gap(@pump), smallest_gap(@pump_sheet));
-    if FIGURES                                     % figure (given): the two bands over k and t/T
-        k_grid = linspace(0, 2 * pi, 41);
-        s_grid = linspace(0, 1, 41);
-        E = zeros(41, 41);
-        for j = 1:41
-            [J1, J2, Delta] = pump(s_grid(j));
-            for i = 1:41
-                E(i, j) = band_energy(k_grid(i), J1, J2, Delta);
-            end
-        end
-        figure(1); clf;
-        mesh(k_grid / pi, s_grid, E.', 'EdgeColor', ORANGE); hold on;
-        mesh(k_grid / pi, s_grid, -E.', 'EdgeColor', BLUE); hold off;
-        xlabel('k / pi'); ylabel('t / T'); zlabel('E');
-        title('B1: upper band (orange) and lower band (blue)');
-    end
+    draw(FIGURES, 'B1');                           % figure (given): the two bands over k and t/T
 
     check('B2', @H_chain);                         % B2: you write one line in the function H_chain
     [J1, J2, Delta] = pump(3 / 8);
@@ -96,17 +82,7 @@ function run_steps()
     [J1, J2, Delta] = pump(1 / 2);
     E_half = sort(real(eig(H_chain(40, J1, J2, Delta))));          % the same at t = T/2
     check('B2', E(40:41), V(:, 40:41), E_half(40:41));             % the two in the middle lie in the gap
-    if FIGURES                                     % figure (given): all eigenvalues of the open chain over t/T
-        ss = linspace(0, 1, 161);
-        levels = zeros(161, 80);
-        for n = 1:161
-            [J1, J2, Delta] = pump(ss(n));
-            levels(n, :) = sort(real(eig(H_chain(40, J1, J2, Delta))));
-        end
-        figure(2); clf;
-        plot(ss, levels, '.', 'Color', INK, 'MarkerSize', 4);
-        xlabel('t / T'); ylabel('eigenvalues'); title('B2: all eigenvalues of the open chain of 40 cells');
-    end
+    draw(FIGURES, 'B2');                           % figure (given): all eigenvalues of the open chain over t/T
 
     check('B3', @propagate);                       % B3: you write one line in the function propagate
     dt = 0.05;                                     % given: the length of one Runge-Kutta step
@@ -123,14 +99,7 @@ function run_steps()
         [psi, X_slow] = propagate(start(120, [1, -1]), 100, dt, @pump);
         check('B3', 'T = 100', X_slow, psi);
     end
-    if FIGURES                                     % figure (given): the position of the light during one cycle
-        figure(3); clf;
-        plot(linspace(0, 1, numel(X20)), X20, 'Color', BLUE, 'LineWidth', 2); hold on;
-        plot(linspace(0, 1, numel(X50)), X50, 'Color', ORANGE, 'LineWidth', 2);
-        plot(linspace(0, 1, numel(X_guide)), X_guide, 'Color', AQUA, 'LineWidth', 2); hold off;
-        xlabel('t / T'); ylabel('X (unit cells)'); title('B3: position of the light');
-        legend('T = 20', 'T = 50', 'one guide, T = 50', 'Location', 'northwest'); grid on;
-    end
+    draw(FIGURES, 'B3', X20, X50, X_guide);        % figure (given): the position of the light during one cycle
 
     check('B4', @zak_pump);                        % B4: you write the function zak_pump
 
@@ -145,60 +114,14 @@ function run_steps()
     gamma = TODO;                                                  % TODO B5, first line
     C = TODO;                                                      % TODO B5, second line
     check('B5', gamma_raw, gamma, C, X_slow);
-    if FIGURES                                     % figure (given): gamma/2pi on top of the position X of B3
-        figure(4); clf;
-        plot(linspace(0, 1, numel(X_slow)), X_slow, 'Color', BLUE, 'LineWidth', 2); hold on;
-        plot(s_list, gamma / (2 * pi), 'o', 'Color', ORANGE, 'MarkerFaceColor', ORANGE, 'MarkerSize', 6); hold off;
-        xlabel('t / T'); ylabel('unit cells'); title('B5: the light follows the Zak phase');
-        legend('X(t) of B3, slowest cycle', 'gamma(t) / 2pi', 'Location', 'northwest'); grid on;
-    end
+    draw(FIGURES, 'B5', X_slow, s_list, gamma);    % figure (given): gamma/2pi on top of the position X of B3
 
     check('B6', @plaquette);                       % B6: you write the function plaquette
     check('B7', @chern);                           % B7: you write the function chern
     F = plaquettes(grid_kt(4, @pump, 1));          % row i: k interval, column j: t interval
     check('B7', F, chern(grid_kt(4, @pump, 1)), chern(grid_kt(24, @pump, 1)));
-    if FIGURES                                     % figure (given): the 16 plaquette phases and the sum of each column
-        figure(5); clf;
-        imagesc([0.125, 0.875], [0.25, 1.75], F / pi); axis xy;
-        top = max(abs(F(:))) / pi;
-        caxis([-top, top]);
-        colormap(interp1([0; 0.5; 1], [BLUE; 0.94, 0.94, 0.94; 0.86, 0.24, 0.24], linspace(0, 1, 64)'));
-        colorbar;
-        for i = 1:4
-            for j = 1:4
-                text((j - 0.5) / 4, (i - 0.5) / 2, sprintf('%.4f', F(i, j) / pi), 'HorizontalAlignment', 'center');
-            end
-        end
-        xlabel('t / T'); ylabel('k / pi');
-        title(sprintf('B7: F / pi. Sum of each t column: %.4f  %.4f  %.4f  %.4f', sum(F, 1) / pi));
-    end
-    if FIGURES                                     % figure (given): the cycles in the plane (J1 - J2, Delta)
-        figure(6); clf; hold on;
-        cycles = {@pump, @pump_sheet, @pump_aside};
-        colors = {BLUE, ORANGE, AQUA};
-        for n = 1:3
-            cycle = cycles{n};
-            [J1, J2, Delta] = cycle(linspace(0, 1, 201));
-            plot(J1 - J2, Delta, 'Color', colors{n}, 'LineWidth', 2);
-        end
-        for n = 1:3                                % one arrow head on each cycle: the direction in which t runs
-            cycle = cycles{n};
-            [J1, J2, Delta] = cycle([0.12, 0.125]);
-            d = [diff(J1 - J2) / 6.9; diff(Delta) / 1.6];          % the direction on the screen
-            d = d / norm(d);
-            for turn = [-0.45, 0.45]                               % the two strokes of the arrow head
-                stroke = 0.04 * [cos(turn), -sin(turn); sin(turn), cos(turn)] * d;
-                plot(J1(2) - J2(2) - [6.9 * stroke(1), 0], Delta(2) - [1.6 * stroke(2), 0], ...
-                     'Color', colors{n}, 'LineWidth', 2);
-            end
-        end
-        plot(0, 0, 'x', 'Color', INK, 'MarkerSize', 9);
-        text(0.1, -0.08, 'gap closed');
-        hold off; grid on; xlim([-2.3, 4.6]); ylim([-0.8, 0.8]);
-        xlabel('J1 - J2'); ylabel('Delta');
-        legend({'pump', 'pump_sheet', 'pump_aside'}, 'Location', 'east', 'Interpreter', 'none');
-        title('B8: the cycles. pump_back is pump with the arrow reversed', 'Interpreter', 'none');
-    end
+    draw(FIGURES, 'B7', F);                        % figure (given): the 16 plaquette phases, the sum of each column
+    draw(FIGURES, 'B8');                           % figure (given): the cycles in the plane (J1 - J2, Delta)
 
     % B8. Predict first, then calculate. Look at each cycle in the plane (J1 - J2, Delta): does it go around the point
     %     (0, 0), where the gap closes, and which way round? Type the Chern number that you expect, an integer.
@@ -504,6 +427,115 @@ function H = H_haldane(k1, k2, m, phi)             % given: Haldane model. k1, k
     s = sin(k1) + sin(k2 - k1) - sin(k2);
     c = cos(k1) + cos(k2 - k1) + cos(k2);
     H = [m + 2 * t2 * (cos(phi) * c + sin(phi) * s), f; conj(f), -m + 2 * t2 * (cos(phi) * c - sin(phi) * s)];
+end
+
+
+% ====================================================================================================================
+% Given: the figures. You do not have to read this part.
+% ====================================================================================================================
+
+function draw(FIGURES, name, varargin)             % given: draws the figure of one step, if FIGURES is true
+    if ~FIGURES
+        return
+    end
+    BLUE = [37, 125, 224] / 255;
+    ORANGE = [244, 114, 48] / 255;
+    AQUA = [0, 184, 148] / 255;
+    INK = [25, 25, 25] / 255;
+    try
+        switch name
+            case 'B1'                              % the two bands over k and t/T
+                k_grid = linspace(0, 2 * pi, 41);
+                s_grid = linspace(0, 1, 41);
+                E = zeros(41, 41);
+                for j = 1:41
+                    [J1, J2, Delta] = pump(s_grid(j));
+                    for i = 1:41
+                        E(i, j) = band_energy(k_grid(i), J1, J2, Delta);
+                    end
+                end
+                figure(1); clf;
+                mesh(k_grid / pi, s_grid, E.', 'EdgeColor', ORANGE); hold on;
+                mesh(k_grid / pi, s_grid, -E.', 'EdgeColor', BLUE); hold off;
+                xlabel('k / pi'); ylabel('t / T'); zlabel('E');
+                title('B1: upper band (orange) and lower band (blue)');
+            case 'B2'                              % all eigenvalues of the open chain over t/T
+                ss = linspace(0, 1, 161);
+                levels = zeros(161, 80);
+                for n = 1:161
+                    [J1, J2, Delta] = pump(ss(n));
+                    levels(n, :) = sort(real(eig(H_chain(40, J1, J2, Delta))));
+                end
+                figure(2); clf;
+                plot(ss, levels, '.', 'Color', INK, 'MarkerSize', 4);
+                xlabel('t / T'); ylabel('eigenvalues'); title('B2: all eigenvalues of the open chain of 40 cells');
+            case 'B3'                              % the position of the light during one cycle
+                X20 = varargin{1};
+                X50 = varargin{2};
+                X_guide = varargin{3};
+                figure(3); clf;
+                plot(linspace(0, 1, numel(X20)), X20, 'Color', BLUE, 'LineWidth', 2); hold on;
+                plot(linspace(0, 1, numel(X50)), X50, 'Color', ORANGE, 'LineWidth', 2);
+                plot(linspace(0, 1, numel(X_guide)), X_guide, 'Color', AQUA, 'LineWidth', 2); hold off;
+                xlabel('t / T'); ylabel('X (unit cells)'); title('B3: position of the light');
+                legend('T = 20', 'T = 50', 'one guide, T = 50', 'Location', 'northwest'); grid on;
+            case 'B5'                              % gamma/2pi on top of the position X of B3
+                X_slow = varargin{1};
+                s_list = varargin{2};
+                gamma = varargin{3};
+                figure(4); clf;
+                plot(linspace(0, 1, numel(X_slow)), X_slow, 'Color', BLUE, 'LineWidth', 2); hold on;
+                plot(s_list, gamma / (2 * pi), 'o', 'Color', ORANGE, 'MarkerFaceColor', ORANGE, 'MarkerSize', 6);
+                hold off;
+                xlabel('t / T'); ylabel('unit cells'); title('B5: the light follows the Zak phase');
+                legend('X(t) of B3, slowest cycle', 'gamma(t) / 2pi', 'Location', 'northwest'); grid on;
+            case 'B7'                              % the 16 plaquette phases and the sum of each column
+                F = varargin{1};
+                figure(5); clf;
+                imagesc([0.125, 0.875], [0.25, 1.75], F / pi); axis xy;
+                top = max(abs(F(:))) / pi;
+                caxis([-top, top]);
+                colormap(interp1([0; 0.5; 1], [BLUE; 0.94, 0.94, 0.94; 0.86, 0.24, 0.24], linspace(0, 1, 64)'));
+                colorbar;
+                for i = 1:4
+                    for j = 1:4
+                        text((j - 0.5) / 4, (i - 0.5) / 2, sprintf('%.4f', F(i, j) / pi), ...
+                             'HorizontalAlignment', 'center');
+                    end
+                end
+                xlabel('t / T'); ylabel('k / pi');
+                title(sprintf('B7: F / pi. Sum of each t column: %.4f  %.4f  %.4f  %.4f', sum(F, 1) / pi));
+            case 'B8'                              % the cycles in the plane (J1 - J2, Delta)
+                figure(6); clf; hold on;
+                cycles = {@pump, @pump_sheet, @pump_aside};
+                colors = {BLUE, ORANGE, AQUA};
+                for n = 1:3
+                    cycle = cycles{n};
+                    [J1, J2, Delta] = cycle(linspace(0, 1, 201));
+                    plot(J1 - J2, Delta, 'Color', colors{n}, 'LineWidth', 2);
+                end
+                for n = 1:3                        % one arrow head on each cycle: the direction in which t runs
+                    cycle = cycles{n};
+                    [J1, J2, Delta] = cycle([0.12, 0.125]);
+                    d = [diff(J1 - J2) / 6.9; diff(Delta) / 1.6];      % the direction on the screen
+                    d = d / norm(d);
+                    for turn = [-0.45, 0.45]                           % the two strokes of the arrow head
+                        stroke = 0.04 * [cos(turn), -sin(turn); sin(turn), cos(turn)] * d;
+                        plot(J1(2) - J2(2) - [6.9 * stroke(1), 0], Delta(2) - [1.6 * stroke(2), 0], ...
+                             'Color', colors{n}, 'LineWidth', 2);
+                    end
+                end
+                plot(0, 0, 'x', 'Color', INK, 'MarkerSize', 9);
+                text(0.1, -0.08, 'gap closed');
+                hold off; grid on; xlim([-2.3, 4.6]); ylim([-0.8, 0.8]);
+                xlabel('J1 - J2'); ylabel('Delta');
+                legend({'pump', 'pump_sheet', 'pump_aside'}, 'Location', 'east', 'Interpreter', 'none');
+                title('B8: the cycles. pump_back is pump with the arrow reversed', 'Interpreter', 'none');
+        end
+        drawnow;
+    catch err
+        fprintf('         The figure of step %s could not be drawn: %s\n', name, err.message);
+    end
 end
 
 

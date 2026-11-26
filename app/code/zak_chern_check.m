@@ -13,6 +13,7 @@ function zak_chern_check(g, label, varargin)
     if nargin < 2 || ~isstruct(g) || ~ischar(label)
         error('zak_chern:usage', 'Call the check as zak_chern.m does: check(''A1'', @h).');
     end
+    g.todo = scan_todo_(g);
     switch label
         case 'end'
             fprintf('All steps are done.\n');
@@ -300,7 +301,7 @@ function text = fmt_(x, digits)
     if nargin < 2
         digits = 4;
     end
-    text = sprintf('%.*f', digits, double(real(x)));
+    text = sprintf(sprintf('%%.%df', digits), double(real(x)));
     if text(1) == '-' && str2double(text) == 0
         text = text(2:end);
     end
@@ -466,29 +467,35 @@ function fun = need_(g, label, name)
 end
 
 
+function found = scan_todo_(g)
+    % For every function of zak_chern.m: does its body still contain the word TODO? found.(name) = true or false.
+    found = struct();
+    try
+        all_lines = regexp(fileread(g.file), '\r?\n', 'split');
+        name = '';
+        for n = 1:numel(all_lines)
+            code = regexprep(all_lines{n}, '%.*$', '');                 % the line without its comment
+            head = regexp(code, '^function\s+(?:.*=\s*)?(\w+)', 'tokens', 'once');
+            if ~isempty(head)
+                name = head{1};
+                found.(name) = false;
+            elseif ~isempty(name) && ~isempty(regexp(code, '(^|[^A-Za-z0-9_])TODO($|[^A-Za-z0-9_])', 'once'))
+                found.(name) = true;
+            end
+        end
+    catch
+        found = struct();
+    end
+end
+
+
 function state = todo_state_(g, fun)
     % 1: the body of this function of zak_chern.m still contains the word TODO. 0: it does not. -1: not known.
     state = -1;
     try
         name = regexprep(func2str(fun), '^.*[>/]', '');
-        if ~isvarname(name) || ~isfield(g, 'file')
-            return
-        end
-        all_lines = regexp(fileread(g.file), '\r?\n', 'split');
-        inside = false;
-        for n = 1:numel(all_lines)
-            code = regexprep(all_lines{n}, '%.*$', '');                 % the line without its comment
-            if ~isempty(regexp(code, '^function\s', 'once'))
-                inside = ~isempty(regexp(code, ['^function\s+(.*=\s*)?' name '\s*\('], 'once'));
-                if inside
-                    state = 0;
-                end
-            elseif inside
-                if ~isempty(regexp(code, '(^|[^A-Za-z0-9_])TODO($|[^A-Za-z0-9_])', 'once'))
-                    state = 1;
-                    return
-                end
-            end
+        if isfield(g, 'todo') && isvarname(name) && isfield(g.todo, name)
+            state = double(g.todo.(name));
         end
     catch
         state = -1;
@@ -1102,7 +1109,8 @@ function A6_(g, label, values)
             end
             if miss > 1e-8
                 [~, V] = sorted_eig_(H);
-                is_row = was_row || close_(u, V(1, :).') || close_(u, V(2, :).');
+                is_row = was_row || close_(u, V(1, :).') || close_(u, V(2, :).') ...
+                         || close_(u, V(1, :)') || close_(u, V(2, :)');
                 seen = sprintf('H u is not E u for your vector u = (%s, %s).', fc_(u(1)), fc_(u(2)));
                 if is_row
                     stop_(g, label, seen, hint_('3'));
