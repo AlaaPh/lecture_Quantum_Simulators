@@ -4,13 +4,14 @@ The idea. The overlap <u|v> = conj(u_A) v_A + conj(u_B) v_B of two eigenvectors 
 The computer gives every eigenvector an arbitrary phase factor, so the angle of a single overlap means nothing.
 Around a closed loop every phase factor cancels: Berry phase of the loop = -(angle of the product of the overlaps).
 Loop once through all k from 0 to 2 pi: the Zak phase gamma. gamma/2pi is the position of the light of this band
-inside the unit cell (one guide A and one guide B). In a pump gamma changes with the time t.
+inside the unit cell (one waveguide A and one waveguide B; short: guide). In a pump gamma changes with the time t.
 Chern number C = how often gamma goes around in one cycle = number of unit cells the light moves per cycle.
 
 Conventions. H(k) = [[Delta, conj(h)], [h, -Delta]], h(k) = J1 + J2 exp(ik), basis (A, B), +Delta on guide A.
 Lower band = smallest eigenvalue. k_s = 2 pi (s-1)/M, s = 1 .. M. gamma = -arg(<u_1|u_2> <u_2|u_3> ... <u_M|u_1>).
 Plaquette (one small square of a grid in k and t): the same -arg, walked (k, t) -> (k, t+dt) -> (k+dk, t+dt) ->
-(k+dk, t) -> back. C = (sum of all plaquettes)/2pi. Position of the light: X = sum over the cells m of m (I_A,m + I_B,m).
+(k+dk, t) -> back. C = (sum of all plaquettes)/2pi. Position of the light: X = sum over the cells m of
+m (I_A,m + I_B,m). I_A,m is the light on guide A of cell m. Cell 0 is the cell where the light starts.
 How to work: run this file. It stops at the first open step. Write the line marked TODO there. Run again.
 """
 import os
@@ -28,13 +29,13 @@ try:                                               # figures need matplotlib; wi
     import matplotlib.pyplot as plt
 except Exception:
     plt = None
-BLUE, ORANGE, AQUA, INK = "#257de0", "#f47230", "#00b894", "#191919"
+BLUE, ORANGE, AQUA, INK, GRID = "#257de0", "#f47230", "#00b894", "#191919", "#e7e7e7"
 
 
 def save(name):                                    # given: stores the newest figure as zak_chern_<name>.png
-    path = os.path.join(os.path.dirname(os.path.abspath(globals().get("__file__", "."))), "zak_chern_" + name + ".png")
-    plt.savefig(path, dpi=130, bbox_inches="tight")
-    print("         figure saved:", path)
+    folder = os.path.dirname(os.path.abspath(globals().get("__file__", ".")))
+    plt.savefig(os.path.join(folder, "zak_chern_" + name + ".png"), dpi=130, bbox_inches="tight")
+    print("         figure saved:", os.path.join(folder, "zak_chern_" + name + ".png"))
 
 
 # ====================================================================================================================
@@ -50,11 +51,11 @@ def h(k, J1, J2):
 check("A1", h)
 
 
-def H_k(k, J1, J2, Delta=0.0):                     # given: H(k) in the basis (A, B); +Delta on guide A, -Delta on guide B
+def H_k(k, J1, J2, Delta=0.0):                     # given: H(k) in the basis (A, B); +Delta on guide A, -Delta on B
     return np.array([[Delta, np.conj(h(k, J1, J2))], [h(k, J1, J2), -Delta]])
 
 
-def k_points(M):                                   # given: k_s = 2 pi (s-1)/M. The point 2 pi is the point 0: not repeated
+def k_points(M):                                   # given: k_s = 2 pi (s-1)/M. The point 2 pi is the point 0 again
     return 2 * pi * np.arange(M) / M
 
 
@@ -174,16 +175,17 @@ def H_chain(N, J1, J2, Delta):
 
 
 check("B2", H_chain)
-E, V = np.linalg.eigh(H_chain(40, *pump(3 / 8)))                   # 40 cells at t = 3T/8: 80 eigenvalues in rising order.
-E_half = np.linalg.eigvalsh(H_chain(40, *pump(1 / 2)))             # The two in the middle (numbers 39, 40) lie in the gap.
-check("B2", E[39:41], V[:, 39:41], E_half[39:41])
+E, V = np.linalg.eigh(H_chain(40, *pump(3 / 8)))                   # 40 cells at t = 3T/8: 80 eigenvalues, rising
+E_half = np.linalg.eigvalsh(H_chain(40, *pump(1 / 2)))             # the same at t = T/2
+check("B2", E[39:41], V[:, 39:41], E_half[39:41])                  # the two in the middle lie in the gap
 if FIGURES and plt:                                # figure (given): all eigenvalues of the open chain over t/T
     ss = np.linspace(0, 1, 161)
     plt.figure(figsize=(6.4, 4.4))
     plt.plot(ss, [np.linalg.eigvalsh(H_chain(40, *pump(s))) for s in ss], ".", color=INK, markersize=1.5)
     plt.plot(ss, 0.5 * np.sin(2 * pi * ss), color=ORANGE, linewidth=1, label="+Delta(t)")
     plt.plot(ss, -0.5 * np.sin(2 * pi * ss), color=BLUE, linewidth=1, label="-Delta(t)")
-    plt.xlabel("t / T"), plt.ylabel("eigenvalues"), plt.title("B2: open chain of 40 cells"), plt.legend(frameon=False)
+    plt.xlabel("t / T"), plt.ylabel("eigenvalues"), plt.title("B2: open chain of 40 cells")
+    plt.legend(frameon=False, loc="center", bbox_to_anchor=(0.5, 0.72))
     save("B2")
 
 
@@ -199,7 +201,7 @@ def start(N, amplitudes=(1, -1)):                  # given: the input state. Lig
 def propagate(psi, T, dt=0.05, cycle=pump):
     """One cycle of length T. Returns the state at the end and the position X of the light after every step."""
     N = len(psi) // 2
-    cell = np.repeat(np.arange(N), 2) - N // 2     # cell number m of every guide; m = 0 is the cell where the light starts
+    cell = np.repeat(np.arange(N), 2) - N // 2     # cell number m of every guide; the light starts in cell m = 0
     H = lambda t: H_chain(N, *cycle(t / T))
     X = [np.sum(cell * np.abs(psi) ** 2)]
     for n in range(int(round(T / dt))):
@@ -223,16 +225,17 @@ psi, X_guide = propagate(start(60, (1, 0)), T=50)                  # all light o
 check("B3", "one guide, T = 50", X_guide, psi)
 psi, X_sheet = propagate(start(60), T=20, cycle=pump_sheet)
 check("B3", "sheet, T = 20", X_sheet, psi)
+X_slow = X50                                       # the slowest cycle that was run; B5 compares it with gamma
 if LONG:
-    psi, X100 = propagate(start(120), T=100)
-    check("B3", "T = 100", X100, psi)
+    psi, X_slow = propagate(start(120), T=100)
+    check("B3", "T = 100", X_slow, psi)
 if FIGURES and plt:                                # figure (given): the position of the light during one cycle
     plt.figure(figsize=(6.4, 4.4))
     plt.plot(np.linspace(0, 1, len(X20)), X20, color=BLUE, linewidth=2, label="T = 20")
     plt.plot(np.linspace(0, 1, len(X50)), X50, color=ORANGE, linewidth=2, label="T = 50")
     plt.plot(np.linspace(0, 1, len(X_guide)), X_guide, color=AQUA, linewidth=2, label="one guide, T = 50")
-    plt.xlabel("t / T"), plt.ylabel("X (unit cells)"), plt.title("B3: position of the light"), plt.legend(frameon=False)
-    plt.grid(color="#e7e7e7")
+    plt.xlabel("t / T"), plt.ylabel("X (unit cells)"), plt.title("B3: position of the light")
+    plt.legend(frameon=False), plt.grid(color=GRID)
     save("B3")
 
 
@@ -252,13 +255,13 @@ s_list = np.arange(17) / 16
 gamma_raw = np.array([zak_pump(s, 400) for s in s_list])
 gamma = TODO                                                       # TODO B5, first line
 C = TODO                                                           # TODO B5, second line
-check("B5", gamma_raw, gamma, C, X50)
+check("B5", gamma_raw, gamma, C, X_slow)
 if FIGURES and plt:                                # figure (given): gamma/2pi on top of the position X of B3
     plt.figure(figsize=(6.4, 4.4))
-    plt.plot(np.linspace(0, 1, len(X50)), X50, color=BLUE, linewidth=2, label="X(t) of B3, T = 50")
+    plt.plot(np.linspace(0, 1, len(X_slow)), X_slow, color=BLUE, linewidth=2, label="X(t) of B3, slowest cycle")
     plt.plot(s_list, gamma / (2 * pi), "o", color=ORANGE, markersize=6, label="gamma(t) / 2pi")
     plt.xlabel("t / T"), plt.ylabel("unit cells"), plt.title("B5: the light follows the Zak phase")
-    plt.legend(frameon=False), plt.grid(color="#e7e7e7")
+    plt.legend(frameon=False), plt.grid(color=GRID)
     save("B5")
 
 
@@ -275,9 +278,9 @@ def grid(N, cycle=pump, band=0):                   # given: U[i][j] = eigenvecto
     return [[eigenvector(H_k(2 * pi * i / N, *cycle(j / N)), band) for j in range(N)] for i in range(N)]
 
 
-def plaquettes(U):                                 # given: F[i, j] = plaquette (k_i, t_j) -> (k_i, t_j+1) -> (k_i+1, t_j+1)
-    N = len(U)                                     # -> (k_i+1, t_j) -> back. Point N is point 0 again (% N): the grid closes.
-    F = np.zeros((N, N))
+def plaquettes(U):                                 # given: F[i, j] = plaquette that starts at (k_i, t_j) and is walked
+    N = len(U)                                     # (k_i, t_j) -> (k_i, t_j+1) -> (k_i+1, t_j+1) -> (k_i+1, t_j) -> back.
+    F = np.zeros((N, N))                           # Point N is point 0 again (% N): the grid closes in k and in t.
     for i in range(N):
         for j in range(N):
             F[i, j] = plaquette(U[i][j], U[i][(j + 1) % N], U[(i + 1) % N][(j + 1) % N], U[(i + 1) % N][j])
@@ -294,18 +297,18 @@ def chern(U):
 check("B7", chern)
 F = plaquettes(grid(4))                            # row i: k interval, column j: t interval
 check("B7", F, chern(grid(4)), chern(grid(24)))
-if FIGURES and plt:                                # figure (given): the 16 plaquette phases and the sum of each t column
+if FIGURES and plt:                                # figure (given): the 16 plaquette phases and the sum of each column
     from matplotlib.colors import LinearSegmentedColormap
     top = np.abs(F).max() / pi
     plt.figure(figsize=(6.4, 4.8))
-    plt.imshow(F / pi, origin="lower", vmin=-top, vmax=top, extent=(0, 1, 0, 2),
-               aspect="auto", cmap=LinearSegmentedColormap.from_list("two_sided", [BLUE, "#efefef", "#dc3c3d"]))
-    for i in range(4):
-        for j in range(4):
+    plt.imshow(F / pi, origin="lower", vmin=-top, vmax=top, extent=(0, 1, 0, 2), aspect="auto",
+               cmap=LinearSegmentedColormap.from_list("two_sided", [BLUE, "#efefef", "#dc3c3d"]))
+    for j in range(4):
+        plt.text((j + 0.5) / 4, 2.03, "sum %.4f" % (F[:, j].sum() / pi), ha="center", va="bottom", color=INK)
+        for i in range(4):
             plt.text((j + 0.5) / 4, (i + 0.5) / 2, "%.4f" % (F[i, j] / pi), ha="center", va="center", color=INK)
-    plt.xticks((np.arange(4) + 0.5) / 4, ["sum %.4f" % x for x in F.sum(axis=0) / pi])
-    plt.xlabel("t / T from 0 to 1; below each column its sum, in units of pi"), plt.ylabel("k / pi")
-    plt.title("B7: plaquette phases F / pi"), plt.colorbar(label="F / pi")
+    plt.xlabel("t / T"), plt.ylabel("k / pi"), plt.colorbar(label="F / pi")
+    plt.title("B7: plaquette phases F / pi, and the sum of each t column", pad=24)
     save("B7")
 
 
@@ -313,21 +316,21 @@ def pump_back(s):                                  # given: the cycle run backwa
     return 1 + np.cos(2 * pi * s), 1 - np.cos(2 * pi * s), -0.5 * np.sin(2 * pi * s)
 
 
-def pump_aside(s):                                 # given: a cycle that does not go around the point J1 - J2 = 0, Delta = 0
+def pump_aside(s):                                 # given: a cycle that does not go around the point (0, 0) of the figure
     return 2.5 + 0.5 * np.cos(2 * pi * s), 1 - 0.5 * np.cos(2 * pi * s), 0.2 * np.sin(2 * pi * s)
 
 
-if FIGURES and plt:                                # figure (given): the four cycles in the plane (J1 - J2, Delta)
+if FIGURES and plt:                                # figure (given): the cycles in the plane (J1 - J2, Delta)
     plt.figure(figsize=(6.4, 4.4))
-    for cycle, color, name in ((pump, BLUE, "pump"), (pump_sheet, ORANGE, "pump_sheet"), (pump_aside, AQUA, "pump_aside")):
+    for cycle, color in ((pump, BLUE), (pump_sheet, ORANGE), (pump_aside, AQUA)):
         J1, J2, Delta = cycle(np.linspace(0, 1, 201))
-        plt.plot(J1 - J2, Delta, color=color, linewidth=2, label=name)
-        plt.annotate("", xy=(J1[30] - J2[30], Delta[30]), xytext=(J1[20] - J2[20], Delta[20]),
-                     arrowprops=dict(arrowstyle="-|>", color=color, linewidth=2))
+        plt.plot(J1 - J2, Delta, color=color, linewidth=2, label=cycle.__name__)
+        plt.annotate("", xy=(J1[26] - J2[26], Delta[26]), xytext=(J1[22] - J2[22], Delta[22]),
+                     arrowprops=dict(arrowstyle="-|>", color=color, mutation_scale=22))
     plt.plot(0, 0, "x", color=INK, markersize=9)
     plt.annotate("gap closed", (0, 0), textcoords="offset points", xytext=(8, 8), color=INK)
-    plt.xlabel("J1 - J2"), plt.ylabel("Delta"), plt.legend(frameon=False), plt.grid(color="#e7e7e7")
-    plt.title("B8: the cycles. pump_back is pump with the arrow reversed")
+    plt.xlabel("J1 - J2"), plt.ylabel("Delta"), plt.xlim(-2.3, 4.6), plt.grid(color=GRID)
+    plt.legend(frameon=False, loc="center right"), plt.title("B8: the cycles. pump_back is pump with the arrow reversed")
     save("B8")
 
 # B8. Predict first, then calculate. Look at each cycle in the plane (J1 - J2, Delta): does it go around the point
@@ -345,12 +348,13 @@ check("B8", predicted, [chern(U) for U in grids], grids)
 # Part C: 2D lattices. The same functions, with k_y in place of the time t.
 # ====================================================================================================================
 
-def grid_2d(H, N, band=0, **parameters):           # given: U[i][j] = eigenvector of H(x_i, y_j), x_i = 2 pi i/N, y_j = 2 pi j/N
-    return [[eigenvector(H(2 * pi * i / N, 2 * pi * j / N, **parameters), band) for j in range(N)] for i in range(N)]
+def grid_2d(H, N, band=0, **more):                 # given: U[i][j] = eigenvector of H(x_i, y_j, **more), x_i = 2 pi i/N,
+    return [[eigenvector(H(2 * pi * i / N, 2 * pi * j / N, **more), band) for j in range(N)]     # y_j = 2 pi j/N
+            for i in range(N)]
 
 
-def H_hofstadter(kappa, ky):                       # given: Harper-Hofstadter lattice with flux 1/3. Three sites per cell.
-    H = np.zeros((3, 3), dtype=complex)            # kappa = 3 k_x. Only the link that leaves the cell has a phase factor.
+def H_hofstadter(kappa, ky):                       # given: Harper-Hofstadter lattice with flux 1/3, three sites per cell.
+    H = np.zeros((3, 3), dtype=complex)            # kappa = 3 k_x. Only the link that leaves the cell has a phase.
     for j in range(3):
         H[j, j] = 2 * np.cos(ky + 2 * pi * j / 3)
     H[0, 1] = H[1, 0] = H[1, 2] = H[2, 1] = 1.0
@@ -372,8 +376,8 @@ def H_haldane(k1, k2, m=0.0, t1=1.0, t2=0.1, phi=pi / 2):          # given: Hald
                      [np.conj(f), -m + 2 * t2 * (np.cos(phi) * c - np.sin(phi) * s)]])
 
 
-# C2. Lower band of the Haldane model on a 6 x 6 grid. Extra arguments of grid_2d go on to H: grid_2d(H_haldane, 6, m=0.6).
-#     Write the Chern number for m = 0, for m = 0.6, and for m = 0 with phi = -pi/2.
+# C2. Lower band of the Haldane model on a 6 x 6 grid. grid_2d hands extra arguments on to H, for example
+#     grid_2d(H_haldane, 6, m=0.6). Write the Chern number for m = 0, for m = 0.6, and for m = 0 with phi = -pi/2.
 C_haldane = [TODO, TODO, TODO]                                     # TODO C2
 check("C2", C_haldane)
 
