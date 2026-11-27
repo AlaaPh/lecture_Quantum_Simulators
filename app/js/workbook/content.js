@@ -1,5 +1,6 @@
 // The steps of the workbook: every sentence, every field with its reference value and its hints, every formula.
-// Reference values come from model.js (steps()), computed when the page loads. No result is typed here.
+// Reference values come from model.js (steps()), computed when the page loads. No result of a field is typed here.
+// One number of a note is typed, because its propagation is too long for the start of the page: SLOW_SHEET.
 import { el } from '../ui.js';
 import { steps, cx, hOf, bandStates, loopOverlaps, inGapStates, pumpParams, notEnclosingParams, HAND as HAND_SET, SHEET } from './model.js';
 import { CELLS } from './pump.js';
@@ -53,23 +54,24 @@ const HINT = {
   sign: 'right size, wrong sign. One of: +arg in place of −arg; the upper band; e^(−ik) in h; −Δ on guide A.',
   unwrap: 'C = 0: the jumps of 2π are still in γ. Use unwrap before you take γ(T) − γ(0).',
   total: '0: you took arg of the total product, or you added both bands. Take −arg of every single plaquette and add them all.',
-  coarse: '0: with these numbers a 3 × 3 grid gives 0. Use the 8 × 8 grid. If you did: you took arg of the total product, or you added both bands.',
+  coarse: 'The numbers of the task sheet on a 3 × 3 grid give C = 0; three k points give a zero overlap for J₁ = 1, J₂ = 2 → use 4 points or more, an even number. Here: the 8 × 8 grid. If you used it: you took arg of the total product, or you added both bands.',
   swapped: '0 and π are swapped. One of: the complex conjugate is missing (then the product has the wrong sign); your unit cell holds the J₂ pair. Here J₁ couples A and B inside the unit cell.',
   cell: '0 and π are swapped: your unit cell holds the J₂ pair. Here J₁ couples A and B inside the unit cell.',
-  norm: 'Σ|ψ|² is not 1: the step dt is too large, or H is not symmetric.',
+  norm: 'the sum of |ψ|² leaves 1: the step dt is too large, or H is not symmetric.',
   upperInput: 'the light moves to lower cell numbers. One of: the input is the upper band (the lower band at t = 0 is (A − B)/√2; with −J in your matrix it is (A + B)/√2); −Δ on guide A; the cycle runs backwards.',
   oneGuide: 'the light hardly moves: this is one guide alone as input. It excites both bands, and they move in opposite directions. Use (A − B)/√2.',
   fourPoints: 'this is the value for four k points. A value that is not 0 or π needs many points: use M = 400.',
   plusArg: 'this is +arg. The field asks for −arg: the same number with the opposite sign.',
   walk: 'right size, wrong sign: +arg in place of −arg, or the square is walked the other way round. Walk a → b → c → d → a.',
+  walkProduct: 'this is the complex conjugate of the product. One of: the square is walked the other way round; the star stands on the right vector. Walk a → b → c → d → a.',
   walkCode: 'right size, wrong sign. One of: +arg in place of −arg; the square walked the other way round; the upper band; e^(−ik) in h; −Δ on guide A.',
   alongT: 'you added along t. Add the four plaquettes that lie between the same two times.',
   positive: 'type the positive number: the field stands behind ±.',
   halfGap: 'this is E. The gap is the distance between the two bands: 2E.',
   overTwoPi: 'this is γ/2π. Type γ/π.',
   gammaHand: 'not this value. Divide the sum of the four −arg, in degrees, by 180.',
-  gammaProduct: 'not this value. γ = −arg(product): the angle of the product with the opposite sign, divided by π.',
-  fProduct: 'not this value. F = −arg(product): the angle of the product with the opposite sign, divided by π.',
+  gammaProduct: 'not this value. γ = −arg(product): minus the angle of the product, divided by π.',
+  fProduct: 'not this value. F = −arg(product): minus the angle of the product, divided by π.',
   asTyped: 'right size, wrong sign: take a and c exactly as you typed them above.',
   lengthA: 'right direction, wrong length. The factor 1/√2 is printed behind the field: type the two numbers in front of it.',
 };
@@ -81,8 +83,12 @@ const set1 = S.A.set1, set2 = S.A.set2, A7 = S.A.A7, B = S.B;
 // to two decimals (also 1/√2 = 0.71) is still right: tools/test_zak_chern.mjs runs such students through all hand fields.
 const CODE = 2e-4, SHIFT = 5e-4;                  // code fields; the shift per cycle
 const DEG = 0.06;                                 // φ in degrees, from the exact h
-const HAND = 0.012, PROD6 = 0.015;                // u_A, overlaps, lengths, products; the product of B6
+const HAND = 0.012, PROD6 = 0.015, PROD0 = 0.045;  // u_A, overlaps, lengths, products; the product of B6; the product of B4 at t = 0
+                                                  // (four overlaps of 2·0.71² = 1.0082 give 1.03 or 1.04 for the exact 1)
 const ANG = 0.8, SUM = 1.5, ANG5 = 0.4, SUM5 = 0.75, GAMMA = 0.012;    // −arg of an overlap in degrees and their sum, A2/A3 and A5; γ of A3 in units of π
+// The shift per cycle with the numbers of the task sheet in a slow cycle, for the note of B3: propagate(δJ, Δ₀, T, cells, dt)
+// of model.js with dt = 0.05 gives 0.952125. tools/test_zak_chern.mjs computes it again and compares.
+export const SLOW_SHEET = { T: 400, cells: 800, shift: 0.9521 };
 
 function defineHand() {
   const tab = 'hand';
@@ -143,12 +149,12 @@ function definePump() {
   field({ id: 'B2-Eup', tab, tol: CODE, ref: up.E, code, aria: 'the upper of the two eigenvalues in the gap at t = 3T/8' });
   choice({ id: 'B2-end', tab, options: [{ value: 'left', label: 'left end' }, { value: 'right', label: 'right end' }], right: up.end, hint: 'not this end. Plot |ψ|² of the eigenvector over the guide number.', aria: 'the end of the chain where the state with the upper eigenvalue sits' });
   choice({ id: 'B2-guide', tab, options: [{ value: 'A', label: 'A' }, { value: 'B', label: 'B' }], right: up.weight_A > 0.5 ? 'A' : 'B', hint: 'not these guides. The guides A are the first, third, fifth, … guide of the chain.', aria: 'the guides that carry the state with the upper eigenvalue' });
-  field({ id: 'B3-norm', tab, tol: CODE, ref: B.B3.norm_T20, code, hint: HINT.norm, aria: 'norm after one cycle, T = 20' });
-  for (const T of [20, 50]) field({ id: `B3-T${T}`, tab, tol: SHIFT, ref: st.shift[`T${T}`], code, wrong: [{ value: st.one_guide[`T${T}`], hint: HINT.oneGuide }, { value: st.upper_band[`T${T}`], hint: HINT.upperInput }], aria: `shift per cycle for T = ${T}` });
+  field({ id: 'B3-norm', tab, tol: CODE, ref: B.B3.norm_T20, code, hint: HINT.norm, aria: 'sum of |psi|^2 after one cycle, T = 20' });
+  for (const T of [20, 50, 100]) field({ id: `B3-T${T}`, tab, tol: SHIFT, ref: st.shift[`T${T}`], code, wrong: [{ value: st.one_guide[`T${T}`], hint: HINT.oneGuide }, { value: st.upper_band[`T${T}`], hint: HINT.upperInput }], aria: `shift per cycle for T = ${T}` });
   field({ id: 'B3-guide', tab, tol: SHIFT, ref: st.one_guide.T50, code, aria: 'shift per cycle with one guide alone as input, T = 50' });
   field({ id: 'B3-sheet', tab, tol: SHIFT, ref: st.sheet_T20_pair, code, aria: 'shift per cycle with the numbers of the task sheet, T = 20' });
   const half = pumpParams(0.5, HAND_SET.dJ, HAND_SET.D0), openHalf = loopOverlaps(bandStates(half.J1, half.J2, half.D, 4)).slice(0, 3).reduce((p, z) => cx.mul(p, z), cx.of(1));
-  field({ id: 'B4-prod0', tab, kind: 'complex', tol: HAND, ref: B.B4.t0.prod, otherPhase: false, aria: 'product of the four overlaps at t = 0' });
+  field({ id: 'B4-prod0', tab, kind: 'complex', tol: PROD0, ref: B.B4.t0.prod, otherPhase: false, aria: 'product of the four overlaps at t = 0' });
   field({ id: 'B4-g0', tab, kind: 'angle', unit: 'pi', ref: B.B4.t0.gamma_over_pi, hint: HINT.gammaProduct, wrong: [{ value: 1, hint: HINT.cell }], aria: 'Zak phase at t = 0, in units of pi' });
   field({ id: 'B4-prodh', tab, kind: 'complex', tol: HAND, ref: B.B4.thalf.prod, otherPhase: false, wrong: [{ value: openHalf, hint: HINT.open }, { value: neg(B.B4.thalf.prod), hint: HINT.noConj }], aria: 'product of the four overlaps at t = T/2' });
   field({ id: 'B4-gh', tab, kind: 'angle', unit: 'pi', ref: B.B4.thalf.gamma_over_pi, hint: HINT.gammaProduct, wrong: [{ value: 0, hint: HINT.swapped }], aria: 'Zak phase at t = T/2, in units of pi' });
@@ -172,16 +178,16 @@ function defineChern() {
     field({ id: `B6-ov${i + 1}`, tab, kind: 'complex', tol: HAND, ref: o, otherPhase: false, after: ['B6-c', 'B6-a'],
       wrong: () => [...(Math.abs(b6.ov[i].im) > 1e-9 ? [{ value: conjOf(o()), hint: HINT.conj }] : []), ...(i < 3 ? [{ value: neg(o()), hint: HINT.asTyped }] : [])], aria: `overlap of ${name}` });
   });
-  field({ id: 'B6-prod', tab, kind: 'complex', tol: PROD6, ref: b6.prod, otherPhase: false, wrong: [{ value: conjOf(b6.prod), hint: HINT.walk }], aria: 'product of the four overlaps around the plaquette' });
+  field({ id: 'B6-prod', tab, kind: 'complex', tol: PROD6, ref: b6.prod, otherPhase: false, wrong: [{ value: conjOf(b6.prod), hint: HINT.walkProduct }], aria: 'product of the four overlaps around the plaquette' });
   field({ id: 'B6-F', tab, kind: 'value', unit: 'pi', ref: b6.F_over_pi, hint: HINT.fProduct, wrong: [{ value: -b6.F_over_pi, hint: HINT.walk }], aria: 'plaquette phase F in units of pi' });
   const rowSums = b7.F_over_pi.map((row) => row.reduce((x, y) => x + y, 0));        // the mistake "added along t": one sum per k
   ['0 to T/4', 'T/4 to T/2', 'T/2 to 3T/4', '3T/4 to T'].forEach((name, j) => field({ id: `B7-col${j + 1}`, tab, kind: 'value', unit: 'pi', tol: CODE, ref: b7.col_sums_over_pi[j], code,
     wrong: [{ value: -b7.col_sums_over_pi[j], hint: HINT.walkCode }, ...[...new Set(rowSums.map((x) => +x.toFixed(6)))].map((value) => ({ value, hint: HINT.alongT }))], aria: `sum of the four plaquettes of the column t from ${name}, in units of pi` }));
-  field({ id: 'B7-total', tab, kind: 'value', unit: 'pi', tol: CODE, ref: b7.total_over_pi, code, wrong: [{ value: 0, hint: HINT.total }, { value: -b7.total_over_pi, hint: HINT.walkCode }], aria: 'sum of all 16 plaquettes, in units of pi' });
+  field({ id: 'B7-total', tab, kind: 'value', unit: 'pi', tol: CODE, ref: b7.total_over_pi, code, wrong: [{ value: 0, hint: HINT.total }, { value: -b7.total_over_pi, hint: HINT.walkCode }], aria: 'sum of all 16 plaquette phases, in units of pi' });
   field({ id: 'B7-C', tab, kind: 'integer', ref: b7.C, code, wrong: [{ value: 0, hint: HINT.total }, { value: -b7.C, hint: HINT.walkCode }], aria: 'Chern number from the 4 by 4 grid' });
   field({ id: 'B7-C24', tab, kind: 'integer', ref: b7.C_24, code, wrong: [{ value: 0, hint: HINT.total }, { value: -b7.C_24, hint: HINT.walkCode }], aria: 'Chern number from the 24 by 24 grid' });
-  const b8 = [['upper band of the solid cycle', B.B8.upper_band, []], ['solid cycle run backwards, lower band', B.B8.reversed_cycle, []], ['dotted cycle, lower band', B.B8.not_enclosing, []],
-    ['dashed cycle with the numbers of the task sheet, lower band', B.B8.sheet, b7.C_sheet_3_wrong !== B.B8.sheet ? [{ value: b7.C_sheet_3_wrong, hint: HINT.coarse }] : []]];
+  const b8 = [['upper band of pump (solid cycle)', B.B8.upper_band, []], ['pump_back (solid cycle backwards), lower band', B.B8.reversed_cycle, []], ['pump_aside (dotted cycle), lower band', B.B8.not_enclosing, []],
+    ['pump_sheet with the numbers of the task sheet (dashed cycle), lower band', B.B8.sheet, b7.C_sheet_3_wrong !== B.B8.sheet ? [{ value: b7.C_sheet_3_wrong, hint: HINT.coarse }] : []]];
   b8.forEach(([name, ref, wrong], i) => {
     choice({ id: `B8-p${i + 1}`, tab, options: [{ value: -1, key: 'm1', label: '−1' }, { value: 0, label: '0' }, { value: 1, label: '+1' }], lock: `B8-c${i + 1}`, aria: `your prediction of the Chern number: ${name}` });
     field({ id: `B8-c${i + 1}`, tab, kind: 'integer', ref, code, wrong, aria: `calculated Chern number: ${name}` });
@@ -208,10 +214,11 @@ function conventions(open) {
     'Lower band = the smallest eigenvalue.',
     '<span class="m">k<sub>s</sub> = 2π(s − 1)/M</span>, s = 1 … M. The point 2π is the point 0 and is not repeated. The loop closes with ⟨u<sub>M</sub>|u₁⟩.',
     'By hand, for Δ = 0: <span class="m">E = −|h|</span> and <span class="m">u = (u<sub>A</sub>, u<sub>B</sub>) = (−e<sup>−iφ</sup>, 1)/√2</span>, with φ = angle of h. Another phase factor gives other single overlaps and the same product.',
-    '<span class="m">γ = −arg(⟨u₁|u₂⟩⟨u₂|u₃⟩ … ⟨u<sub>M</sub>|u₁⟩)</span>. The angles −π and π are the same. 0 and π swap if the unit cell is chosen with the J₂ pair inside: a choice, not a mistake. Here: J₁ inside.',
-    'Plaquette (one small square of a grid in k and t): the same −arg, walked (k, t) → (k, t+dt) → (k+dk, t+dt) → (k+dk, t) → back. <span class="m">C = (sum of all plaquette phases)/2π</span>.',
+    'arg is the angle of a complex number in the complex plane. Zak phase: <span class="m">γ = −arg(⟨u₁|u₂⟩⟨u₂|u₃⟩ … ⟨u<sub>M</sub>|u₁⟩)</span>, minus the angle of the product. The angles −π and π are the same. 0 and π swap if the unit cell is chosen with the J₂ pair inside: a choice, not a mistake. Here: J₁ inside.',
+    'Plaquette (one small square of a grid in k and t): the same −arg, walked (k, t) → (k, next t) → (next k, next t) → (next k, t) → back: the plaquette phase F. <span class="m">C = (sum of all plaquette phases)/2π</span>.',
     'Position of the light: <span class="m">X = Σ<sub>m</sub> m·(I<sub>A,m</sub> + I<sub>B,m</sub>)</span>. I<sub>A,m</sub> is the light |ψ|² on guide A of cell m. The cells are counted from the cell where the light starts, so X(0) = 0.',
-    'Typing: decimal point or comma, a fraction such as 3/8, a multiple of π such as pi/2. A field with π behind it is in units of π: type the angle divided by π, a number between −2 and 2. By hand: calculate with four decimals, type two or more. From your code type four decimals. A field is checked when you press Enter or leave it. An empty field is not a wrong try.',
+    'Calculate with four decimals. By hand, type two or more; from your code type four. Angles in degrees by hand: two decimals. γ and plaquette phases: in units of π.',
+    'Typing: decimal point or comma, a fraction such as 3/8, a multiple of π such as pi/2. A field with π behind it is in units of π: type the number divided by π, between −2 and 2. A field is checked when you press Enter or leave it. An empty field is not a wrong try.',
   ];
   const d = el('details', { class: 'wb-conv' }, [el('summary', { text: 'Conventions and how to type (open this before you start)' }), el('ul', {}, items.map((html) => el('li', { html })))]);
   d.open = open;
@@ -273,21 +280,22 @@ function buildHand() {
   const a3 = stepBlock({
     tag: 'A3', title: 'The product of the overlaps and the Zak phase γ',
     children: [
-      para('The Zak phase is the Berry phase of this loop through all k: <span class="m">γ = −arg(product of the four overlaps)</span>. A product of complex numbers multiplies the lengths and adds the angles. Predict first: use the picture of A1 and your values of −arg in A2.'),
+      para('The Zak phase is the Berry phase of this loop through all k: <span class="m">γ = −arg(product of the four overlaps)</span>, minus the angle of the product. A product of complex numbers multiplies the lengths and adds the angles. Predict first: use the picture of A1 and your values of −arg in A2.'),
       rowOf([choiceNode('A3-pred', { label: 'I predict γ =' }), dynamic(el('span', { class: 'wb-pred' }), predNote('A3-pred', 'A3-gamma', 'γ =', set1.gamma_over_pi))]),
       gate('A3-pred', [
         rowOf([fieldNode('A3-len', { label: 'Multiply the four lengths:' }), fieldNode('A3-sum', { label: 'Add the four values of −arg:', unitText: '°' })]),
         rowOf([fieldNode('A3-prod', { label: 'product =' })]),
         rowOf([fieldNode('A3-gamma', { label: 'γ = −arg(product) =', unitText: 'π' })]),
-        para('The angles −π and π are the same. Both are accepted.', 'wb-small'),
-        doneNote(['A3-gamma', 'A1-wind'], `h goes around the origin ${howOften(set1.winding)}, and γ = ${inPi(set1.gamma_over_pi)}: γ is half of the full turn of φ. Compare with Exercise 3, tab 2.`),
+        // nothing here names a value of γ before the field is right: −π is accepted, and the remark about it comes afterwards
+        dynamic(el('p', { class: 'wb-small' }), () => (isOk('A3-gamma') ? 'A calculator may give −π: the same angle.' : null)),
+        doneNote(['A3-gamma', 'A1-wind'], `h goes around the origin ${howOften(set1.winding)}, and γ = ${inPi(set1.gamma_over_pi)}: γ is half of the full turn of φ. Compare with Exercise 3, tabs 2 and 3.`),
       ]),
     ],
     formula: () => code([
       `length of the product = ${lens()}`,
       `sum of the four −arg = ${angs()}`,
       'product = length·e^(−i·sum) = length·(cos(sum) − i·sin(sum))',
-      'γ = −arg(product) = −atan2(Im, Re);  γ in units of π = (this angle in degrees)/180',
+      'γ = −arg(product) = −atan2(Im, Re);  γ in units of π = (−arg in degrees)/180',
     ]),
   });
 
@@ -332,7 +340,7 @@ function buildCode() {
   const a6 = stepBlock({
     tag: 'A6', title: 'Eigenvectors from the computer',
     children: [
-      para(`J₁ = ${set1.J1}, J₂ = ${set1.J2}, Δ = 0. M is the number of k points: M = 4 gives the same four k as by hand. Now the eigenvectors of the lower band come from <code>eigh</code> (Python) or <code>eig</code> (MATLAB). The computer gives every eigenvector its own phase factor.`),
+      para(`J₁ = ${set1.J1}, J₂ = ${set1.J2}, Δ = 0. M is the number of k points: M = 4 gives the same four k as by hand. Now the eigenvectors of the lower band come from <code>eigh</code> (Python) or <code>eig</code> (MATLAB): TODO A6 <code>eigenvector</code> in the file. The computer gives every eigenvector its own phase factor.`),
       rowOf([keyCell('(a) M = 4'), fieldNode('A6-E', { label: 'eigenvalue of your eigenvector at k = 0:' }), fieldNode('A6-prod4', { label: 'product of the four overlaps =' })]),
       rowOf([keyCell('(b) M = 4'), el('span', { class: 'wb-given', html: 'Multiply every eigenvector by e<sup>iχ</sup>, each with its own random χ. Single overlaps change.' }), fieldNode('A6-prodrand', { label: 'product =' })]),
       rowOf([keyCell('(c) M = 100'), fieldNode('A6-prod100', { label: 'product =' }), fieldNode('A6-gamma100', { label: 'γ =', unitText: 'π' })]),
@@ -349,15 +357,15 @@ function buildCode() {
   const a7 = stepBlock({
     tag: 'A7', title: 'With the on-site term Δ',
     children: [
-      para('The on-site term Δ changes the propagation constant of the waveguides (short: guides): +Δ on every guide A, −Δ on every guide B. Now γ is no longer 0 or π: γ/2π is the position of the light of this band inside the unit cell.'),
+      para('The on-site term Δ changes the propagation constant of the waveguides (short: guides): +Δ on every guide A, −Δ on every guide B. Now γ is no longer 0 or π: γ/2π is the position of the light of this band inside the unit cell. In the file: TODO A7 <code>zak_ssh</code>.'),
       rowOf([keyCell('(a) test, M = 400'), el('span', { class: 'wb-given', html: `J₁ = ${A7.exact.J1}, J₂ = ${A7.exact.J2}, Δ = ${A7.exact.D}` }), fieldNode('A7-exact', { label: 'γ =', unitText: 'π' }),
         fieldNode('A7-wA', { label: 'light of the lower band on guide A, |u<sub>A</sub>|² at any k:' })]),
       doneNote(['A7-exact', 'A7-wA'], 'γ/2π = |u<sub>A</sub>|². With J₁ = 0 the light sits on one pair: guide B of cell m and guide A of cell m + 1. The share on A counts for cell m + 1, so X = m + |u<sub>A</sub>|².'),
       rowOf([keyCell(`(b) Δ = ${A7.set1.D}`), el('span', { class: 'wb-given', html: `J₁ = ${set1.J1}, J₂ = ${set1.J2}` }), fieldNode('A7-s1-M4', { label: 'M = 4: γ =', unitText: 'π' }),
         fieldNode('A7-s1-M100', { label: 'M = 100: γ =', unitText: 'π' }), fieldNode('A7-s1-M400', { label: 'M = 400: γ =', unitText: 'π' })]),
       rowOf([keyCell(`(c) Δ = ${A7.set2.D}`), el('span', { class: 'wb-given', html: `J₁ = ${set2.J1}, J₂ = ${set2.J2}` }), fieldNode('A7-s2-M400', { label: 'M = 400: γ =', unitText: 'π' })]),
-      para('This step tests the sign and the band. A3 to A6 cannot: there −π and π are the same angle.', 'wb-small'),
       doneNote(['A7-s1-M4', 'A7-s1-M400'], 'Four points are not enough here: a value that is not 0 or π needs many k points.'),
+      para('This step tests the sign and the band. A3 to A6 cannot: without on-site term the Zak phase is 0 or π, and each of them is the same angle with the opposite sign.', 'wb-small'),
     ],
     formula: () => code([
       'H(k) = [[Δ, conj(h)], [h, −Δ]],  h = J₁ + J₂·e^(ik),  k_s = 2π(s − 1)/M',
@@ -366,7 +374,7 @@ function buildCode() {
     ]),
   });
   return [conventions(false), downloads(),
-    para('Your code repeats tab 1 and then goes on. Put the two Python files (or the two MATLAB files) into one folder and run zak_chern.py (or zak_chern.m). It stops at the first open step. Write the line marked TODO there and run again. Every OK line prints numbers: type them here with four decimals.', 'wb-intro'),
+    para('Your code repeats tab 1 and then goes on. Put the two Python files (or the two MATLAB files) into one folder and run zak_chern.py (or zak_chern.m). It stops at the first open step. Write the line marked TODO there and run again. The steps of this tab in the file: TODO A1 <code>h</code>, TODO A2 <code>overlap</code>, TODO A3 <code>loop_product</code> and <code>zak</code>, TODO A6 <code>eigenvector</code>, TODO A7 <code>zak_ssh</code>. For the hand steps A1 to A5 the code prints no numbers: it says that your function is right and reproduces the hand step. Check your own numbers on tab 1. The first numbers that the code prints are those of A6: type them here with four decimals.', 'wb-intro'),
     a6, a7];
 }
 
@@ -374,6 +382,7 @@ function buildCode() {
 function buildPump() {
   // the two states in the gap, in words, read from the model: which end has +Δ(t), and which way each one crosses the gap
   const g = B.B2.t0375.ingap, later = B.B2.t0625.ingap, upEnd = g[1].end, lowEnd = g[0].end, upLater = later.find((x) => x.end === upEnd).E;
+  const st = B.B3.start, sheetAt0 = pumpParams(0, SHEET.dJ, SHEET.D0);
   const b2Note = `The state at the ${upEnd} end has the eigenvalue +Δ(t), the state at the ${lowEnd} end −Δ(t).`
     + (g[1].E > 0 && upLater < 0 ? ` In one cycle the ${upEnd} one crosses the gap from the upper to the lower band, the ${lowEnd} one the other way.` : '');
   const b1 = stepBlock({
@@ -382,8 +391,8 @@ function buildPump() {
       para('The two bands are <span class="m">E = ±√(Δ² + |h|²)</span>. Calculate E by hand at t = T/4 for k = 0, π/2 and π. The row for t = 0 is worked.'),
       rowOf([keyCell('t = 0'), el('span', { class: 'wb-given', html: `${atTime(0)}, so h = ${whole(hOf(0, handAt(0).J1, handAt(0).J2))} at every k: E = ±${num(B.B1.E.t0[0])}, ±${num(B.B1.E.t0[1])}, ±${num(B.B1.E.t0[2])}` })], 'worked'),
       rowOf([keyCell('t = T/4'), fieldNode('B1-E0', { label: 'k = 0: E = ±' }), fieldNode('B1-E1', { label: 'k = π/2: E = ±' }), fieldNode('B1-E2', { label: 'k = π: E = ±' })]),
-      para('In your code: calculate E on a grid in k and t/T. The gap is the distance between the two bands.'),
-      rowOf([fieldNode('B1-gap', { label: 'smallest gap in the whole cycle:' }), fieldNode('B1-gapsheet', { label: 'with the numbers of the sheet:' })]),
+      para('In your code (TODO B1 <code>band_energy</code>): calculate E on a grid in k and t/T. The gap is the distance between the two bands. The code prints the smallest gap, not the numbers of your table.'),
+      rowOf([fieldNode('B1-gap', { label: 'smallest gap in the whole cycle:' }), fieldNode('B1-gapsheet', { label: 'with the numbers of the task sheet:' })]),
       doneNote(['B1-gap', 'B1-gapsheet'], 'The gap never closes during the cycle: the lower band stays separate from the upper band.'),
     ],
     formula: () => code([
@@ -395,7 +404,7 @@ function buildPump() {
   const b2 = stepBlock({
     tag: 'B2', title: 'The open chain: two states in the gap (task 9b)',
     children: [
-      para(`An open chain of ${B.B2.cells} unit cells (${2 * B.B2.cells} guides): J₁ inside each cell, J₂ between the cells, +Δ on every A, −Δ on every B. Guide 1 (an A) is the left end, guide ${2 * B.B2.cells} (a B) the right end. Calculate its eigenvalues over t/T (figure c). At t = 3T/8 two of them lie inside the gap. Their eigenvectors are the two states in the gap.`),
+      para(`An open chain of ${B.B2.cells} unit cells (${2 * B.B2.cells} guides): J₁ inside each cell, J₂ between the cells, +Δ on every A, −Δ on every B. Guide 1 (an A) is the left end, guide ${2 * B.B2.cells} (a B) the right end. In the file: TODO B2, the on-site line of <code>H_chain</code>. Calculate its eigenvalues over t/T (figure c). At t = 3T/8 two of them lie inside the gap. Their eigenvectors are the two states in the gap (edge states).`),
       rowOf([fieldNode('B2-Elow', { label: 'the lower one:' }), fieldNode('B2-Eup', { label: 'the upper one:' })]),
       para('Compare the two numbers with ±Δ at this time. Then plot <span class="m">|ψ|²</span> of the two eigenvectors.'),
       rowOf([choiceNode('B2-end', { label: 'The state with the upper eigenvalue has its light at the' }), choiceNode('B2-guide', { label: 'of the chain, on the guides' })]),
@@ -412,13 +421,15 @@ function buildPump() {
   const b3 = stepBlock({
     tag: 'B3', title: 'Light through the pump (task 9c)',
     children: [
-      para(`Solve <span class="m">i·dψ/dt = H(t)·ψ</span> in Runge–Kutta steps of dt = ${B.B3.dt}. H changes during a step: take H(t) for the first slope, H(t + dt/2) for the second and the third, H(t + dt) for the fourth. Input: amplitude 1/√2 on guide A and −1/√2 on guide B of one cell in the middle, short (A − B)/√2. This is the lower band at t = 0. X is the position of the light in unit cells, counted from the cell where it starts.`),
-      rowOf([fieldNode('B3-norm', { label: 'Σ|ψ|² after one cycle, T = 20:', wide: true })]),
+      para(`Solve <span class="m">i·dψ/dt = H(t)·ψ</span> in Runge–Kutta steps of dt = ${B.B3.dt}. H changes during a step: take H(t) for the first slope, H(t + dt/2) for the second and the third, H(t + dt) for the fourth. Input: amplitude 1/√2 on guide A and −1/√2 on guide B of one cell in the middle, short (A − B)/√2. This is the lower band at t = 0. X is the position of the light in unit cells, counted from the cell where it starts. In the file the Runge–Kutta step is given: at TODO B3 you write the three H(t).`),
+      rowOf([fieldNode('B3-norm', { label: 'sum of |ψ|² after one cycle, T = 20:', wide: true })]),
       rowOf([keyCell('shift per cycle X(T)'), fieldNode('B3-T20', { label: `T = 20 on ${B.B3.cells.T20} cells:` }), fieldNode('B3-T50', { label: `T = 50 on ${B.B3.cells.T50} cells:` })]),
-      rowOf([fieldNode('B3-guide', { label: `one guide A alone as input, T = 50 on ${B.B3.cells.T50} cells:` }), fieldNode('B3-sheet', { label: `numbers of the sheet, T = 20 on ${CELLS.sheet[20]} cells:` })]),
+      rowOf([fieldNode('B3-T100', { label: `T = 100 on ${B.B3.cells.T100} cells:` }), el('span', { class: 'wb-small wb-note', html: 'Your code prints this number with <code>LONG</code> set to true: <code>LONG = True</code> in zak_chern.py, <code>LONG = true</code> in zak_chern.m.' })]),
+      rowOf([fieldNode('B3-guide', { label: `one guide A alone as input, T = 50 on ${B.B3.cells.T50} cells:` }), fieldNode('B3-sheet', { label: `numbers of the task sheet, T = 20 on ${CELLS.sheet[20]} cells:` })]),
       doneNote(['B3-T20', 'B3-T50'], 'The light moves toward higher cell numbers. The slower the cycle, the closer the shift comes to one unit cell.'),
       doneNote(['B3-guide'], 'One guide alone excites both bands. They move in opposite directions, so the mean position X hardly moves.'),
-      dynamic(el('p', { class: 'wb-done' }), () => (isOk('B3-sheet') ? `With the numbers of the sheet the gap is smaller${allOk(['B1-gap', 'B1-gapsheet']) ? ` (${plain(B.B1.gap_min_sheet)} in place of ${plain(B.B1.gap_min)})` : ''}. The cycle must then be slower: T = 20 is too fast, and the shift stays well below one unit cell.` : null)),
+      // the shift with the numbers of the task sheet: its two reasons, and where a slow cycle ends (SLOW_SHEET)
+      dynamic(el('p', { class: 'wb-done' }), () => (isOk('B3-sheet') ? `The shift with the numbers of the task sheet (${num(st.sheet_T20_pair)} at T = 20) is well below one unit cell. It has two reasons: the cycle is too fast${allOk(['B1-gap', 'B1-gapsheet']) ? ` (the smallest gap is ${plain(B.B1.gap_min_sheet)} in place of ${plain(B.B1.gap_min)})` : ''}, and <span class="nb">(A − B)/√2</span> is not exactly the lower band at t = 0, because J₂ = ${plain(sheetAt0.J2)} there and not 0. A slow cycle ends near ${num(SLOW_SHEET.shift, 2)} cell (${num(SLOW_SHEET.shift)} at T = ${SLOW_SHEET.T} on ${SLOW_SHEET.cells} cells), not at 1.` : null)),
     ],
     formula: () => code([
       'k1 = −i·H(t)·ψ',
@@ -432,7 +443,7 @@ function buildPump() {
   const b4 = stepBlock({
     tag: 'B4', title: 'The Zak phase at t = 0 and at t = T/2, by hand',
     children: [
-      para('At t = 0 and at t = T/2 the on-site term is zero. Calculate γ with four k, as on tab 1.'),
+      para('At t = 0 and at t = T/2 the on-site term is zero. Calculate γ with four k, as on tab 1. In the file this step is TODO B4 <code>zak_pump</code>: the code says that your function is right and prints no number of this step.'),
       rowOf([keyCell('t = 0'), el('span', { class: 'wb-given', html: `J₁ = ${plain(handAt(0).J1)}, J₂ = ${plain(handAt(0).J2)}: h = ${plain(handAt(0).J1)} at every k` }), fieldNode('B4-prod0', { label: 'product of the four overlaps =' }), fieldNode('B4-g0', { label: 'γ =', unitText: 'π' })]),
       rowOf([keyCell('t = T/2'), el('span', { class: 'wb-given', html: `J₁ = ${plain(handAt(0.5).J1)}, J₂ = ${plain(handAt(0.5).J2)}: h = ${plain(handAt(0.5).J2)}·e<sup>ik</sup>` }), fieldNode('B4-prodh', { label: 'product =' }), fieldNode('B4-gh', { label: 'γ =', unitText: 'π' })]),
       para('γ/2π is the position of the light inside the unit cell. Compare γ(T/2)/2π with X(T/2) in figure e.'),
@@ -451,9 +462,9 @@ function buildPump() {
       para('The Chern number C counts how many times γ grows by 2π in one cycle. Predict first: γ/2π is the position of the light, and figure e shows how far the light moves in one cycle.'),
       rowOf([choiceNode('B5-pred', { label: 'In one cycle γ changes by' }), dynamic(el('span', { class: 'wb-pred' }), predNote('B5-pred', 'B5-C', 'a change of', 2 * B.B5.C))]),
       gate('B5-pred', [
-        para('In your code: γ(t) at the 17 times t/T = 0, 1/16, …, 1, each with M = 400.'),
+        para('In your code (TODO B5: <code>unwrap</code> and C): γ(t) with your function <code>zak_pump</code> at the 17 times t/T = 0, 1/16, …, 1, each with M = 400.'),
         rowOf([fieldNode('B5-quarter', { label: 'γ(T/4) =', unitText: 'π' })]),
-        para('The function arg only gives angles between −π and π, so the values jump by 2π. Rule to follow γ without jumps: from one time to the next, add or subtract 2π until the change lies between −π and π (Python <code>np.unwrap</code>, MATLAB <code>unwrap</code>).'),
+        para('The function arg only gives angles between −π and π, so the values jump by 2π. Rule to follow γ without jumps: from one time to the next, take the change that lies between −π and π (Python <code>np.unwrap</code>, MATLAB <code>unwrap</code>).'),
         rowOf([fieldNode('B5-C', { label: 'after the rule: C = (γ(T) − γ(0))/2π =' })]),
         doneNote(['B5-quarter', 'B5-C'], `Figure e now shows γ(t)/2π together with X(t). Set T = 100: the two curves lie on each other. At T = 20 the cycle is too fast for the light to follow exactly. C = ${B.B5.C}: γ rises by ${inPi(2 * B.B5.C)}, and in a slow cycle the light moves ${B.B5.C === 1 ? 'one unit cell' : `${B.B5.C} unit cells`}.`),
       ]),
@@ -465,7 +476,7 @@ function buildPump() {
     ]),
   });
   return [conventions(false),
-    para(`One cycle has the length T: ${math(cycleParts(handAt, '(2πt/T)'))}. These numbers give simple hand values. The task sheet has ${SHEET_TEXT}: the button “numbers of the sheet” shows them here, and you run them afterwards with the same code. The chain: waveguides (short: guides) A, B, A, B, … from left to right. Each guide A and the guide B to its right form a unit cell. Press Play and watch the five figures. Then calculate.`, 'wb-intro'),
+    para(`One cycle has the length T: ${math(cycleParts(handAt, '(2πt/T)'))}. These numbers give simple hand values. The task sheet has ${SHEET_TEXT}: the button “numbers of the task sheet” shows them here, and you run them afterwards with the same code. The chain: waveguides (short: guides) A, B, A, B, … from left to right. Each guide A and the guide B to its right form a unit cell. Press Play and watch the five figures. Then calculate.`, 'wb-intro'),
     b1, b2, b3, b4, b5];
 }
 
@@ -479,7 +490,7 @@ function buildChern() {
   const s6 = stepBlock({
     tag: 'B6', title: 'One plaquette by hand',
     children: [
-      para(`A plaquette is one small square of a grid in k and t. Take k from π/2 to π and t from 0 to T/4: the square with the thick frame in the map. Its corners in the order of the walk: ${math(['a = u(π/2, 0)', 'b = u(π/2, T/4)', 'c = u(π, T/4)', 'd = u(π, 0)'])}. Each u is the eigenvector of the lower band at this k and t.`),
+      para(`A plaquette is one small square of a grid in k and t. Take k from π/2 to π and t from 0 to T/4: the square with the thick frame in the map. Its corners in the order of the walk: ${math(['a = u(π/2, 0)', 'b = u(π/2, T/4)', 'c = u(π, T/4)', 'd = u(π, 0)'])}. Each u is the eigenvector of the lower band at this k and t. In the file this step is TODO B6 <code>plaquette</code>: the code says that your function is right and prints no number of this step.`),
       rowOf([keyCell('check 1'), el('span', { class: 'wb-given', html: `Given: b = ${bText}. Write H at k = π/2, t = T/4 and multiply.` }), fieldNode('B6-E', { label: 'H·b =', unitText: '· b' })]),
       rowOf([keyCell('check 2'), el('span', { class: 'wb-given', html: 'Calculate h at k = π, t = T/4. Then H is diagonal. Its eigenvector with the smaller eigenvalue, with length 1:' }), fieldNode('B6-c', { label: 'c =' })]),
       rowOf([keyCell('from B4'), el('span', { class: 'wb-given', html: 'At t = 0 the eigenvector is the same at every k:' }), fieldNode('B6-a', { label: 'a = d =', unitText: '/√2' })]),
@@ -497,46 +508,47 @@ function buildChern() {
       `⟨b|c⟩ = b_A*·c_A + b_B*·c_B  with c = ${cNum()}`,
       '⟨c|d⟩ and ⟨d|a⟩ in the same way, d = a',
       `1/(√2·√6) = ${num(1 / Math.sqrt(12))},  1/√6 = ${num(1 / Math.sqrt(6))},  1/√2 = ${num(Math.SQRT1_2)}`,
-      'F = −arg(product) = −atan2(Im, Re);  in units of π: (angle in degrees)/180',
+      'F = −arg(product) = −atan2(Im, Re);  in units of π: (−arg in degrees)/180',
     ]),
   });
   const colName = ['0 → T/4', 'T/4 → T/2', 'T/2 → 3T/4', '3T/4 → T'];
   const s7 = stepBlock({
     tag: 'B7', title: 'All 16 plaquettes in your code',
     children: [
-      para('Grid: <span class="m">k = 0, π/2, π, 3π/2</span> and <span class="m">t = 0, T/4, T/2, 3T/4</span>. After the last point comes the first one again, in k and in t. Inner edges are walked once in each direction and drop out. So the four plaquettes between two times add up to the change of γ between these times. Add the four plaquettes of each t column.'),
+      para('In the file: TODO B7 <code>chern</code>. Grid: <span class="m">k = 0, π/2, π, 3π/2</span> and <span class="m">t = 0, T/4, T/2, 3T/4</span>. After the last point comes the first one again, in k and in t. Inner edges are walked once in each direction and drop out. So the four plaquettes between two times add up to the change of γ between these times. Add the four plaquettes of each t column.'),
       ...colName.map((name, j) => rowOf([keyCell(`t: ${name}`), fieldNode(`B7-col${j + 1}`, { label: 'column sum =', unitText: 'π' })])),
-      rowOf([fieldNode('B7-total', { label: 'Sum of all 16:', unitText: 'π' }), fieldNode('B7-C', { label: 'C = sum/2π =' }), fieldNode('B7-C24', { label: '24 × 24 grid: C =' })]),
+      rowOf([fieldNode('B7-total', { label: 'Sum of all 16 plaquette phases:', unitText: 'π' }), fieldNode('B7-C', { label: 'C = sum/2π =' }), fieldNode('B7-C24', { label: '24 × 24 grid: C =' })]),
       para('Compare the first column sum with γ(T/4) for four k points, which your code prints in B5.', 'wb-small'),
-      doneNote(['B7-total', 'B7-C'], `The sum is ${inPi(B.B7.total_over_pi)} and C = ${B.B7.C}, without the rule of B5.${Math.min(...B.B7.F_over_pi.flat()) < 0 ? ' Single plaquettes can be negative: only the sum counts.' : ''}`),
+      doneNote(['B7-total', 'B7-C'], `The sum of all plaquette phases is ${inPi(B.B7.total_over_pi)} and C = ${B.B7.C}, without the rule of B5.${Math.min(...B.B7.F_over_pi.flat()) < 0 ? ' Single plaquettes can be negative: only the sum counts.' : ''}`),
     ],
     formula: () => code([
       'plaquette(a, b, c, d) = −arg(⟨a|b⟩·⟨b|c⟩·⟨c|d⟩·⟨d|a⟩)',
-      'F[i][j] = plaquette(U[i][j], U[i][j+1], U[i+1][j+1], U[i+1][j]),  index 4 = index 0',
-      'U[i][j] = eigenvector at k = i·π/2 and t = j·T/4;  i and j are the indices 0 … 3 (here i is an index, not the imaginary unit)',
-      'column sum j = F[0][j] + F[1][j] + F[2][j] + F[3][j]',
-      'C = (sum of all F)/2π;  type the sums divided by π',
+      'U(s, j) = eigenvector at k_s = 2π(s − 1)/4 and t_j = (j − 1)·T/4;  s, j = 1 … 4, point 5 is point 1 again',
+      'F(s, j) = plaquette(U(s, j), U(s, j+1), U(s+1, j+1), U(s+1, j))',
+      'column sum j = F(1, j) + F(2, j) + F(3, j) + F(4, j)',
+      'C = (sum of all plaquette phases)/2π;  type the sums divided by π',
     ]),
   });
-  const rows8 = [['(a)', 'the solid cycle, <b>upper</b> band'], ['(b)', 'the solid cycle run backwards (Δ → −Δ), lower band'],
-    ['(c)', `the dotted cycle, lower band: ${ASIDE_TEXT}`], ['(d)', 'the dashed cycle (numbers of the task sheet), lower band']];
+  // the four cases in the words of the code file: its cycles are pump, pump_back, pump_aside and pump_sheet
+  const rows8 = [['(a)', '<b>upper</b> band of <code>pump</code> (solid cycle)'], ['(b)', '<code>pump_back</code> (solid cycle backwards, Δ → −Δ), lower band'],
+    ['(c)', `<code>pump_aside</code> (dotted cycle), lower band. One more cycle: ${ASIDE_TEXT}`], ['(d)', '<code>pump_sheet</code> with the numbers of the task sheet (dashed cycle), lower band']];
   const right8 = [B.B8.upper_band, B.B8.reversed_cycle, B.B8.not_enclosing, B.B8.sheet];
   const s8 = stepBlock({
     tag: 'B8', title: 'Other bands and other cycles: predict, then calculate',
     children: [
-      para('The picture shows the cycles in the plane (J₁ − J₂, Δ). The solid cycle is the pump of tab 3: you have its C for the lower band from B5 and B7. Look at each case: does the cycle go around the point (0, 0), and which way round? Predict C, then calculate it on an 8 × 8 grid.'),
+      para('The picture shows the cycles in the plane (J₁ − J₂, Δ). The solid cycle is the pump of tab 3: you have its C for the lower band from B5 and B7. Look at each case: does the cycle go around the point (0, 0), and which way round? Predict C, then calculate it on an 8 × 8 grid. In the file: TODO B8, your four predictions. The code prints the four C after them.'),
       ...rows8.map(([tag, text], i) => el('div', { class: 'wb-case' }, [
         rowOf([keyCell(tag), el('span', { class: 'wb-given', html: text })]),
         rowOf([choiceNode(`B8-p${i + 1}`, { label: 'I predict C =' }), dynamic(el('span', { class: 'wb-pred' }), predNote(`B8-p${i + 1}`, `B8-c${i + 1}`, 'C =', right8[i]))]),
         gate(`B8-p${i + 1}`, [rowOf([fieldNode(`B8-c${i + 1}`, { label: 'calculated: C =' })])]),
       ])),
-      para('Tab 3, figure c again: the eigenvalues of the open chain over one cycle.'),
+      para('Tab 3, figure c again: the eigenvalues of the open chain over one cycle, with the two states in the gap (edge states).'),
       rowOf([choiceNode('B8-cross', { label: 'States that cross the gap at each end of the chain in one cycle:' })]),
-      doneNote(['B8-cross', 'B8-c1', 'B8-c2', 'B8-c3', 'B8-c4'], `${crossing === 1 ? 'One state crosses' : `${crossing} states cross`} the gap at each end per cycle: this is |C|. The cycle that does not go around the point (0, 0) has C = ${B.B8.not_enclosing}. The direction of the cycle and the band decide the sign.`),
+      doneNote(['B8-cross', 'B8-c1', 'B8-c2', 'B8-c3', 'B8-c4'], `${crossing === 1 ? 'One state crosses' : `${crossing} states cross`} the gap at each end per cycle: this is |C|. <code>pump_aside</code> does not go around the point (0, 0) and has C = ${B.B8.not_enclosing}. The direction of the cycle and the band decide the sign.`),
     ],
     formula: () => code([
-      'grid of 8 × 8 eigenvectors:  k = i·2π/8 and t = j·T/8 with the indices i, j = 0 … 7;  upper band: the eigenvector of the larger eigenvalue',
-      `backwards:  J₁ and J₂ as before,  Δ = −${plain(HAND_SET.D0)}·sin(2πt/T)`,
+      'grid of 8 × 8 eigenvectors:  k_s = 2π(s − 1)/8 and t_j = (j − 1)·T/8,  s, j = 1 … 8;  upper band: the eigenvector of the larger eigenvalue',
+      `pump_back:  J₁ and J₂ as in pump,  Δ = −${plain(HAND_SET.D0)}·sin(2πt/T)`,
       'C = (sum of the 64 plaquette phases)/2π',
     ]),
   });

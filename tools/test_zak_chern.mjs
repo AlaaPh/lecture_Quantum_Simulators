@@ -8,13 +8,14 @@
 //   6. the position counted from the cell where the light starts (the counting of the page and of the code skeletons)
 //   7. the data of the pump figures (app/js/workbook/pump.js)
 //   8. the fields of the page (app/js/workbook/content.js and fields.js, which run without a browser): the unit rule,
-//      every reference and every known wrong value, the hints, students who go on with rounded numbers
+//      every reference and every known wrong value, the hints, students who go on with rounded numbers, a code value
+//      typed with too few decimals, the words that all forms of the workbook share (task sheet, −arg, four decimals)
 import { readFileSync } from 'node:fs';
 import * as M from '../app/js/workbook/model.js';
 import { parse, check } from '../app/js/workbook/answers.js';
 import * as P from '../app/js/workbook/pump.js';
 import * as F from '../app/js/workbook/fields.js';
-import '../app/js/workbook/content.js';               // defines every field of the page
+import { SLOW_SHEET } from '../app/js/workbook/content.js';   // defines every field of the page
 import { symEig, hermEig, matvec, rk4Step } from '../app/js/linalg.js';
 
 const J = JSON.parse(readFileSync(new URL('./zak_chern_numbers.json', import.meta.url), 'utf8'));
@@ -118,7 +119,7 @@ console.log('\n2. random phases on all eigenvectors');
 
   const cases = [
     ['pump, hand numbers, 4 x 4', M.pumpState(1, 0.5), 4, 1], ['pump, hand numbers, 24 x 24', M.pumpState(1, 0.5), 24, 1],
-    ['pump, sheet numbers, 4 x 4', M.pumpState(0.5, 0.2), 4, 1], ['pump, sheet numbers, 8 x 8', M.pumpState(0.5, 0.2), 8, 1],
+    ['pump, numbers of the task sheet, 4 x 4', M.pumpState(0.5, 0.2), 4, 1], ['pump, numbers of the task sheet, 8 x 8', M.pumpState(0.5, 0.2), 8, 1],
     ['pump, upper band, 8 x 8', M.pumpState(1, 0.5, { band: 1 }), 8, -1], ['pump, reversed cycle, 8 x 8', M.pumpState(1, 0.5, { sign: -1 }), 8, -1],
     ['cycle not around (0, 0), 8 x 8', M.cycleState(M.notEnclosingParams), 8, 0],
     ...[0, 1, 2].map((b) => [`Hofstadter band ${b}, 6 x 6`, (x, s) => M.eigenvector(M.hofstadter(x, TAU * s), b), 6, J.C.C1.chern_lower_to_upper[b]]),
@@ -423,7 +424,7 @@ console.log('\n5. model.js against a second way');
     }
     return { shift: X() - x0, norm: re.reduce((s, x, j) => s + x * x + im[j] * im[j], 0) };
   }
-  for (const [name, dJ, D0, T, Nc, input] of [['hand numbers, T = 20, 40 cells, pair', 1, 0.5, 20, 40, 'pair'], ['sheet numbers, T = 20, 60 cells, pair', 0.5, 0.2, 20, 60, 'pair'], ['hand numbers, T = 20, 40 cells, one guide', 1, 0.5, 20, 40, 'guide']]) {
+  for (const [name, dJ, D0, T, Nc, input] of [['hand numbers, T = 20, 40 cells, pair', 1, 0.5, 20, 40, 'pair'], ['numbers of the task sheet, T = 20, 60 cells, pair', 0.5, 0.2, 20, 60, 'pair'], ['hand numbers, T = 20, 40 cells, one guide', 1, 0.5, 20, 40, 'guide']]) {
     const a = M.propagate(dJ, D0, T, Nc, 0.05, { input }), b = dense(dJ, D0, T, Nc, 0.05, input);
     report(Math.abs(a.shift - b.shift) < 1e-10 && Math.abs(a.norm - b.norm) < 1e-12, `propagate = Runge-Kutta 4 with dense matrices: ${name}`, `shift ${f6(a.shift)} and ${f6(b.shift)} (difference ${sci(Math.abs(a.shift - b.shift))}), norm ${f6(a.norm)} and ${f6(b.norm)}`);
   }
@@ -435,7 +436,7 @@ console.log('\n5. model.js against a second way');
 
   // the stored shifts are from the exact exponential, which keeps the norm: compare them with the shift of X/norm
   const centre = [['T = 20', M.propagate(1, 0.5, 20, 40, 0.05), J.B.B3.shift.T20], ['T = 50', M.propagate(1, 0.5, 50, 60, 0.05), J.B.B3.shift.T50], ['T = 100', M.propagate(1, 0.5, 100, 120, 0.05), J.B.B3.shift.T100],
-    ['one guide, T = 50', M.propagate(1, 0.5, 50, 60, 0.05, { input: 'guide' }), J.B.B3.one_guide_T50], ['sheet numbers, T = 20', M.propagate(0.5, 0.2, 20, 60, 0.05), J.B.B3.sheet_T20_pair]];
+    ['one guide, T = 50', M.propagate(1, 0.5, 50, 60, 0.05, { input: 'guide' }), J.B.B3.one_guide_T50], ['numbers of the task sheet, T = 20', M.propagate(0.5, 0.2, 20, 60, 0.05), J.B.B3.sheet_T20_pair]];
   report(centre.every(([, r, ref]) => Math.abs(r.centreShift - ref) < 1e-4), 'centreShift (X divided by the norm) = stored shift of the exact exponential within 1e-4', centre.map(([name, r, ref]) => `${name}: ${f6(r.centreShift)} (stored ${f6(ref)}, shift ${f6(r.shift)})`).join('; '));
   // smaller steps: the shift itself goes to the same limit
   const fineStep = [[20, 40], [50, 60], [100, 120]].map(([T, Nc]) => [T, M.propagate(1, 0.5, T, Nc, 0.0125).shift, M.propagate(1, 0.5, T, Nc, 0.05).centreShift]);
@@ -524,7 +525,7 @@ console.log('\n6. position counted from the cell where the light starts');
     'hand numbers, T = 20, 40 cells, one guide': [1, 0.5, 20, 40, 'guide', 0.1635493933647842, [0.0917553746, 0.1280836194, 0.1656922142, 0.1635493934], null],
     'hand numbers, T = 50, 60 cells, upper band': [1, 0.5, 50, 60, 'upper', -0.967332069884588, [-0.1262994563, -0.5119365685, -0.7969720703, -0.9673320699], null],
     'hand numbers, T = 20, 40 cells, upper band': [1, 0.5, 20, 40, 'upper', -0.8890859361636643, [-0.0864090908, -0.4528968639, -0.7931916579, -0.8890859362], null],
-    'sheet numbers, T = 20, 60 cells, pair': [0.5, 0.2, 20, 60, 'pair', 0.5525897511887776, [0.0626610508, 0.2602739066, 0.4332656116, 0.5525897512], J.B.B3.sheet_T20_pair],
+    'numbers of the task sheet, T = 20, 60 cells, pair': [0.5, 0.2, 20, 60, 'pair', 0.5525897511887776, [0.0626610508, 0.2602739066, 0.4332656116, 0.5525897512], J.B.B3.sheet_T20_pair],
   };
   for (const [name, [dJ, D0, T, Nc, input, shift, quarters, stored]] of Object.entries(NUMPY)) {
     const r = M.propagate(dJ, D0, T, Nc, 0.05, { input, samples: 4 });
@@ -535,10 +536,21 @@ console.log('\n6. position counted from the cell where the light starts');
   }
   // steps().B.B3.start holds these numbers for the page
   const st = S.B.B3.start;
+  // (T = 100 with one guide and with the upper band: a second numpy run, written independently of model.js, tridiagonal H)
   const table = [[st.shift.T20, 0.8890859361636683], [st.shift.T50, 0.9673320698841453], [st.shift.T100, 0.9989289087544435], [st.one_guide.T50, 0.08035617124187186], [st.one_guide.T20, 0.1635493933647842],
-    [st.upper_band.T50, -0.967332069884588], [st.upper_band.T20, -0.8890859361636643], [st.sheet_T20_pair, 0.5525897511887776]];
+    [st.upper_band.T50, -0.967332069884588], [st.upper_band.T20, -0.8890859361636643], [st.sheet_T20_pair, 0.5525897511887776],
+    [st.one_guide.T100, -0.01588661897941535], [st.upper_band.T100, -0.9989289087544346]];
   const dTable = Math.max(...table.map(([a, b]) => Math.abs(a - b)));
-  report(dTable < 1e-11 && st.X_over_cycle_T100.length === 17 && st.X_over_cycle_T100[0] === 0 && st.X_over_cycle_T100[16] === st.shift.T100, 'steps().B.B3.start: the shifts of the page', `T = 20, 50, 100: ${st.shift.T20.toFixed(4)} ${st.shift.T50.toFixed(4)} ${st.shift.T100.toFixed(4)}; one guide, T = 50: ${st.one_guide.T50.toFixed(4)}; sheet numbers, T = 20: ${st.sheet_T20_pair.toFixed(4)}; max difference to numpy ${sci(dTable)}`);
+  report(dTable < 1e-11 && st.X_over_cycle_T100.length === 17 && st.X_over_cycle_T100[0] === 0 && st.X_over_cycle_T100[16] === st.shift.T100, 'steps().B.B3.start: the shifts of the page', `T = 20, 50, 100: ${st.shift.T20.toFixed(4)} ${st.shift.T50.toFixed(4)} ${st.shift.T100.toFixed(4)}; one guide, T = 50: ${st.one_guide.T50.toFixed(4)}, T = 100: ${st.one_guide.T100.toFixed(4)}; upper band, T = 100: ${st.upper_band.T100.toFixed(4)}; numbers of the task sheet, T = 20: ${st.sheet_T20_pair.toFixed(4)}; max difference to numpy ${sci(dTable)}`);
+  // The note of B3 for the numbers of the task sheet: "a slow cycle ends near 0.95 cell (0.9521 at T = 400 on 800 cells), not at 1",
+  // because (A − B)/√2 is not exactly the lower band at t = 0 (J₂ = 0.5 there). The number of the note is typed in content.js.
+  const slow = M.propagate(M.SHEET.dJ, M.SHEET.D0, SLOW_SHEET.T, SLOW_SHEET.cells, 0.05), short = M.propagate(M.SHEET.dJ, M.SHEET.D0, SLOW_SHEET.T, SLOW_SHEET.cells / 2, 0.05);
+  const p0 = M.pumpParams(0, M.SHEET.dJ, M.SHEET.D0), h0 = M.pumpParams(0, M.HAND.dJ, M.HAND.D0);
+  const lowShare = (p) => { let sum = 0; const Mk = 400; for (const k of M.kGrid(Mk)) { const u = M.lowerHand(k, p.J1, p.J2, p.D), o = cx.scale(cx.sub(cx.conj(u[0]), cx.conj(u[1])), Math.SQRT1_2); sum += (o.re * o.re + o.im * o.im) / Mk; } return sum; };
+  report(SLOW_SHEET.T === 400 && SLOW_SHEET.cells === 800 && Math.abs(slow.shiftStart - 0.952124563029912) < 1e-9 && Math.abs(slow.shiftStart - SLOW_SHEET.shift) < 5e-5 && slow.shiftStart.toFixed(2) === '0.95'
+    && Math.abs(short.shiftStart - slow.shiftStart) > 0.5 && Math.abs(p0.J2 - 0.5) < 1e-12 && h0.J2 === 0 && Math.abs(lowShare(h0) - 1) < 1e-12 && lowShare(p0) < 0.99 && st.sheet_T20_pair.toFixed(4) === '0.5526',
+    'B3, the note for the numbers of the task sheet: 0.5526 at T = 20; a slow cycle ends at 0.9521 (T = 400 on 800 cells), not at 1; (A − B)/√2 is not exactly the lower band at t = 0, because J₂ = 0.5 there',
+    `T = 400 on 800 cells: ${slow.shiftStart.toFixed(6)} (numpy 0.952125, typed in content.js ${SLOW_SHEET.shift}); on 400 cells the light reaches the ends: ${short.shiftStart.toFixed(4)}; share of the lower band in (A − B)/√2 at t = 0: ${lowShare(p0).toFixed(4)} (workbook numbers, J₂ = 0: ${lowShare(h0).toFixed(4)})`);
   // the shift field of the page (tolerance 5e-4): four decimals of either counting are right, the other inputs are not
   const shiftField = (text, ref, wrong = []) => check(parse(text), ref, { kind: 'real', tol: 5e-4, wrong });
   const wrong50 = [{ value: st.one_guide.T50, hintId: 'one guide' }, { value: st.upper_band.T50, hintId: 'upper band' }];
@@ -583,7 +595,7 @@ console.log('\n7. data of the pump figures (pump.js)');
     'pump.js: eigenvalues of the open chain over the cycle, two states in the gap between T/4 and 3T/4', `${sp.s.length} times, at t = 3T/8: ${inGap.map((x) => `${f6(x.E)} ${x.end}`).join(', ')}; in the gap from t/T = ${f6(open[0])} to ${f6(open[open.length - 1])}`);
   const g = P.gammaOverCycle(false), gs = P.gammaOverCycle(true), n = g.s.length - 1;
   report(g.cells[0] === 0 && Math.abs(g.cells[n] - J.B.B5.C) < 1e-9 && Math.abs(g.overPi[n / 4] - J.B.B5.quarter_M400_over_pi) < 1e-6 && Math.abs(g.cells[n / 2] - 0.5) < 1e-9 && Math.abs(gs.overPi[n / 4] - J.B.B5.sheet_quarter_M400_over_pi) < 1e-6 && Math.abs(gs.cells[n] - 1) < 1e-9,
-    'pump.js: gamma(t)/2pi over the cycle rises from 0 to C', `gamma(T/4)/pi = ${f6(g.overPi[n / 4])} (sheet numbers ${f6(gs.overPi[n / 4])}), gamma(T)/2pi = ${f6(g.cells[n])}`);
+    'pump.js: gamma(t)/2pi over the cycle rises from 0 to C', `gamma(T/4)/pi = ${f6(g.overPi[n / 4])} (numbers of the task sheet ${f6(gs.overPi[n / 4])}), gamma(T)/2pi = ${f6(g.cells[n])}`);
   const b = P.bandsAt(false, 0.25);
   report(Math.abs(2 * b.min - J.B.B1.gap_min) < 1e-9 && Math.abs(b.E[0] - J.B.B1.E.tq[0]) < 1e-6 && Math.abs(b.E[30] - J.B.B1.E.tq[1]) < 1e-6 && Math.abs(b.E[60] - J.B.B1.E.tq[2]) < 1e-6, 'pump.js: the bands at t = T/4', `E at k = 0, pi/2, pi: ${f6(b.E[0])} ${f6(b.E[30])} ${f6(b.E[60])}, gap ${f6(2 * b.min)}`);
 }
@@ -655,8 +667,8 @@ console.log('\n8. the fields of the page (content.js, fields.js)');
 
   // (e) the example numbers in the messages are not the result of any step: none of them is, to two decimals, the
   //     reference of a field or a part of it. The examples are the numbers of the message for unreadable input and those
-  //     behind "For the angle" in the message about the unit (3π/4 and 3pi/4 are read as 0.75, the number that is typed).
-  const exText = `${T.unreadable} ${T.unitPi.slice(T.unitPi.indexOf('For the angle'))}`;
+  //     behind "For 3π/4" in the message about the unit (3π/4 and 3pi/4 are read as 0.75, the number that is typed).
+  const exText = `${T.unreadable} ${T.unitPi.slice(T.unitPi.indexOf('For 3π/4'))}`;
   const examples = [...new Set((exText.match(/\d+(?:\.\d+)?(?:(?:π|pi)?\/\d+)?/g) || []).map((x) => x.replace(/π|pi/, '').split('/').map(Number).reduce((a, b) => a / b)))];
   const giveaway = [];
   for (const f of texts) {
@@ -666,12 +678,13 @@ console.log('\n8. the fields of the page (content.js, fields.js)');
   }
   const allNumbers = Object.values(T).join(' ');
   report(giveaway.length === 0 && examples.slice().sort((a, b) => a - b).join() === '0.375,0.75,2.36,12.5,135' && !/0\.7236|1\/4/.test(allNumbers), 'the example numbers in the messages (unreadable input, unit) are not the result of any field', giveaway.join('; ') || `examples: ${examples.join(', ')}; "${T.unreadable}" | "${T.unitPi}"`);
-  report(/four decimals/.test(T.wrongHand) && /two or more/.test(T.wrongHand) && !/[Tt]wo decimals are enough/.test(allNumbers) && !/four decimals/i.test(T.wrongInteger), 'the general hints: "calculate with four decimals and type two or more" by hand; an integer field does not ask for four decimals', `"${T.wrongHand}" | "${T.wrongInteger}"`);
+  report(/Calculate with four decimals\. By hand, type two or more\./.test(T.wrongHand) && /From your code type four decimals\./.test(T.wrongCode) && !/[Tt]wo decimals are enough/.test(allNumbers) && !/four decimals/i.test(T.wrongInteger),
+    'the general hints say the rounding rule in its words: "Calculate with four decimals. By hand, type two or more" and "From your code type four decimals"; an integer field does not ask for four decimals', `"${T.wrongHand}" | "${T.wrongCode}" | "${T.wrongInteger}"`);
 
   // (f) students who go on with rounded numbers. Every number that is carried on is the student's own value rounded to d
   //     decimals (d = 2, 3 or 4 for all numbers of one student), 1/sqrt2 is taken as 0.7071 or as 0.71, u_B·u_B as 0.5 or
-  //     as the square, u_A comes from |h| or from phi. Each typed value must be right. One exception that is no typed number:
-  //     with 1/sqrt2 = 0.71 the product of B4 at t = 0 comes out as 1.03 or 1.04; this is answered as a rounding error.
+  //     as the square, u_A comes from |h| or from phi. Each typed value must be right. This includes the product of B4 at
+  //     t = 0: with 1/sqrt2 = 0.71 it comes out as 1.03 or 1.04 for the exact 1, and the field has its own tolerance for it.
   const set1 = S.A.set1, set2 = S.A.set2, b6 = S.B.B6, deg = (x) => (x * 180) / PI, rad = (x) => (x * PI) / 180, mul = (zs) => zs.reduce((p, z) => cx.mul(p, z), cx.of(1));
   function student(q, c, bb, viaPhi, opt, note) {
     const qz = (z) => ({ re: q(z.re), im: q(z.im) }), type = (id, v) => note(id, typeof v === 'number' ? [v] : [v.re, v.im]);
@@ -720,13 +733,12 @@ console.log('\n8. the fields of the page (content.js, fields.js)');
       const r = F.judge(id, parts.map((x) => dec(x, d))), f = F.get(id), ref = F.referenceOf(f);
       const dev = f.kind === 'complex' ? Math.max(Math.abs(parts[0] - ref.re), Math.abs(parts[1] - ref.im)) : Math.abs(parts[0] - ref), key = id.replace(/\d+$/, '');
       if (!(worst.get(key) >= dev)) worst.set(key, dev);
-      if (r.state === 'ok') seen.ok++;
-      else if (id === 'B4-prod0' && c === 0.71 && r.reason === 'near' && r.message === T.near) seen.near++;
+      if (r.state === 'ok') { seen.ok++; if (id === 'B4-prod0' && Math.abs(parts[0] - 1) > 0.012) seen.near++; }
       else { if (r.state === 'other-phase') seen.other++; rejected.push(`${id} ${parts.map((x) => dec(x, d)).join(' | ')} (${d} decimals, 1/sqrt2 = ${c}): ${r.state}${r.reason ? ', ' + r.reason : ''}`); }
     });
   }
   report(rejected.length === 0 && seen.other === 0, `${nStudents} students who go on with numbers rounded to 2, 3 or 4 decimals (1/sqrt2 = 0.7071 or 0.71): every typed hand value is right`,
-    rejected.length ? `${rejected.length} rejected, for example: ${rejected.slice(0, 6).join('; ')}` : `${seen.ok} typed values right; B4-prod0 with 1/sqrt2 = 0.71 (1.03 or 1.04 for the exact 1): ${seen.near} times answered as a rounding error`);
+    rejected.length ? `${rejected.length} rejected, for example: ${rejected.slice(0, 6).join('; ')}` : `${seen.ok} typed values right; among them B4-prod0 with 1/sqrt2 = 0.71 (1.03 or 1.04 for the exact 1): ${seen.near} times`);
   console.log(`  note  largest distance from the reference in these runs (tolerance of the field): ${[...worst].map(([key, dev]) => `${key} ${dev.toFixed(4)} (${F.get(F.fields().find((f) => f.id.startsWith(key)).id).tol ?? 0.006})`).join(', ')}`);
   // students who mix: every carried number is rounded to 2 or to 4 decimals at random, or cut after 2 decimals.
   // Not every value is inside the tolerance then, but a value that is not right is called a rounding error, never another phase.
@@ -742,9 +754,10 @@ console.log('\n8. the fields of the page (content.js, fields.js)');
   report(mixed.other.length === 0 && mixed.plain.length === 0, '4000 students who mix 2 and 4 decimals or cut after 2 decimals: a value outside the tolerance is called a rounding error, never "another phase"', mixed.plain.length + mixed.other.length ? `${mixed.other.length} times "another phase", ${mixed.plain.length} other: ${mixed.plain.slice(0, 5).join('; ')}` : `${mixed.ok} values right, ${mixed.near} answered as a rounding error`);
   // single values that follow from two typed decimals, and values that are further away
   const typedCases = [['A2-ov1', ['0.73', '-0.45'], 'ok'], ['A2-ov1', ['0.72', '-0.44'], 'ok'], ['A2-ang1', ['32.01'], 'ok'], ['A2-ang1', ['31.52'], 'ok'], ['A2-ang2', ['58.11'], 'ok'], ['A5-ang1', ['13.04'], 'ok'], ['A3-sum', ['180.24'], 'ok'], ['A3-sum', ['180.28'], 'ok'],
-    ['B6-ov1', ['0.87', '-0.28'], 'ok'], ['B6-prod', ['0.51', '-0.17'], 'ok'], ['A2-ov1', ['0.76', '-0.45'], 'wrong'], ['A2-ang1', ['35'], 'wrong'], ['A3-sum', ['190'], 'wrong']];
+    ['B6-ov1', ['0.87', '-0.28'], 'ok'], ['B6-prod', ['0.51', '-0.17'], 'ok'], ['B4-prod0', ['1.04', '0'], 'ok'], ['B4-prod0', ['1.03', '0'], 'ok'], ['B4-prod0', ['1', '0'], 'ok'],
+    ['A2-ov1', ['0.76', '-0.45'], 'wrong'], ['A2-ang1', ['35'], 'wrong'], ['A3-sum', ['190'], 'wrong'], ['B4-prod0', ['0.92', '0'], 'wrong'], ['B4-prod0', ['1.1', '0'], 'wrong'], ['B4-prod0', ['-1', '0'], 'wrong'], ['B4-prod0', ['1', '0.1'], 'wrong']];
   const typedRes = typedCases.map(([id, t]) => F.judge(id, t));
-  report(typedRes.every((r, i) => r.state === typedCases[i][2]), 'single values that follow from two typed decimals (0.73 − 0.45i, 32.01°, 58.11°, 180.24°, …) are right; values further away are wrong', typedCases.map(([id, t], i) => `${id} ${t.join(' | ')}: ${typedRes[i].state}${typedRes[i].reason ? ' (' + typedRes[i].reason + ')' : ''}`).join(', '));
+  report(typedRes.every((r, i) => r.state === typedCases[i][2]), 'single values that follow from two typed decimals (0.73 − 0.45i, 32.01°, 58.11°, 180.24°, 1.04 for the product of B4 at t = 0, …) are right; values further away are wrong', typedCases.map(([id, t], i) => `${id} ${t.join(' | ')}: ${typedRes[i].state}${typedRes[i].reason ? ' (' + typedRes[i].reason + ')' : ''}`).join(', '));
 
   // (g) hints that name a cause: each one stands where its cause can occur
   const msg = (id, t) => F.judge(id, t).message;
@@ -773,12 +786,25 @@ console.log('\n8. the fields of the page (content.js, fields.js)');
   const rowSums = S.B.B7.F_over_pi.map((row) => row.reduce((a, b) => a + b, 0));
   report(/added along t/.test(msg('B7-col1', dec(rowSums[0]))) && msg('B7-col1', dec(S.B.B7.col_sums_over_pi[0] * PI)) === T.radiansInPi && msg('A1-phi2', dec(rad(set1.phi_deg[1]))) === T.radiansInDeg && msg('A2-ang1', dec(rad(set1.ov_angle_deg[0]))) === T.radiansInDeg
     && /length 1: divide by √2/.test(msg('A1-uA2', ['-0.4472', '0.8944'])) && /this is γ\/2π/.test(msg('B5-quarter', dec(S.B.B5.quarter_M400_over_pi / 2))) && /this is E/.test(msg('B1-gap', '0.5')) && msg('B6-F', '18.43') === T.unitPi && msg('B7-total', '6.2832') === T.unitPi
-    && msg('B3-norm', '0.99') === 'Σ|ψ|² is not 1: the step dt is too large, or H is not symmetric.',
+    && msg('B3-norm', '0.99') === 'the sum of |ψ|² leaves 1: the step dt is too large, or H is not symmetric.',
     'typical mistakes have their own hint: a sum along t, radians in a field in degrees or in units of pi, a vector of length sqrt2, gamma/2pi, E for the gap, degrees or radians outside the range', `row sums ${rowSums.map((x) => dec(x)).join(' ')}; B7-col1 in radians ${dec(S.B.B7.col_sums_over_pi[0] * PI)}`);
   const intHints = ['B5-C', 'B7-C', 'B7-C24', 'B8-c1', 'B8-c2', 'B8-c3', 'B8-c4'].map((id) => msg(id, '7'));
   const coarse = msg('B8-c4', '0'), c24 = msg('B7-C24', '0');
   report(intHints.every((m) => m === T.wrongInteger) && /8 × 8/.test(coarse) && !/too coarse/.test(coarse) && /add them all/.test(c24) && !/16/.test(c24) && M.pumpChern(0.5, 0.2, 3) < 0.5 && Math.round(M.pumpChern(0.5, 0.2, 8)) === 1,
-    'integer fields: a wrong integer is not asked for four decimals; 0 for the sheet numbers names the 8 x 8 grid; 0 on the 24 x 24 grid does not speak of 16 angles', `"${coarse}" | "${c24}"`);
+    'integer fields: a wrong integer is not asked for four decimals; 0 for the numbers of the task sheet names the 8 x 8 grid; 0 on the 24 x 24 grid does not speak of 16 angles', `"${coarse}" | "${c24}"`);
+  // the rule about a grid that is too coarse, in the words of all forms, and what it claims
+  const c3 = { sheet: M.pumpChern(M.SHEET.dJ, M.SHEET.D0, 3), hand: M.pumpChern(M.HAND.dJ, M.HAND.D0, 3) }, zero3 = M.minOverlap(M.bandStates(1, 2, 0, 3)), least = [4, 6, 8].map((Mk) => M.minOverlap(M.bandStates(1, 2, 0, Mk)));
+  report(coarse.startsWith('The numbers of the task sheet on a 3 × 3 grid give C = 0; three k points give a zero overlap for J₁ = 1, J₂ = 2 → use 4 points or more, an even number.')
+    && Math.abs(c3.sheet) < 1e-9 && Math.abs(c3.hand - 1) < 1e-9 && zero3 < 1e-12 && least.every((x) => x > 0.5) && [4, 6, 8].every((N) => Math.abs(M.pumpChern(M.SHEET.dJ, M.SHEET.D0, N) - 1) < 1e-9),
+    'too coarse a grid: the numbers of the task sheet on a 3 x 3 grid give C = 0 (the numbers of the workbook give 1 there); three k points give a zero overlap for J1 = 1, J2 = 2; 4, 6 and 8 points are right',
+    `C on 3 x 3: ${f6(c3.sheet)} (task sheet), ${f6(c3.hand)} (workbook); smallest |overlap| with 3 k points: ${sci(zero3)}, with 4, 6, 8: ${least.map((x) => x.toFixed(4)).join(', ')}`);
+  // B6: the complex conjugate of the product is what the square walked the other way round gives, and what the star on the right vector gives
+  const sq = [b6.u_t0, b6.u_kpi2_tq, b6.u_kpi_tq, b6.u_t0], back = mul([M.overlap(sq[0], sq[3]), M.overlap(sq[3], sq[2]), M.overlap(sq[2], sq[1]), M.overlap(sq[1], sq[0])]);
+  const starRight = mul([0, 1, 2, 3].map((i) => { const u = sq[i], v = sq[(i + 1) % 4]; return cx.add(cx.mul(u[0], cx.conj(v[0])), cx.mul(u[1], cx.conj(v[1]))); }));
+  const conjHint = msg('B6-prod', [dec(b6.prod.re), dec(-b6.prod.im)]);
+  report(far(back, cx.conj(b6.prod)) < 1e-12 && far(starRight, cx.conj(b6.prod)) < 1e-12 && /complex conjugate of the product/.test(conjHint) && /walked the other way round/.test(conjHint) && /star stands on the right vector/.test(conjHint) && !/\+arg/.test(conjHint)
+    && /\+arg in place of −arg/.test(msg('B6-F', dec(-b6.F_over_pi))),
+    'B6: the complex conjugate of the product gets its own hint (the square walked the other way round, or the star on the right vector: both give this value); "+arg" is named only for F', `"${conjHint}"`);
 
   // (h) B6: a and c are typed with either sign; the overlaps are checked for the vectors as typed; the length is asked
   const b6rows = [];
@@ -810,6 +836,36 @@ console.log('\n8. the fields of the page (content.js, fields.js)');
   report(follow[0] > 0.1 && follow[2] < 0.02, 'B5: X(t) and gamma(t)/2pi lie on each other for T = 100, not for T = 20 (the note of B5 says so)', `largest |X - gamma/2pi| for T = 20, 50, 100: ${follow.map((x) => x.toFixed(3)).join(', ')}`);
   const guide40 = M.propagate(1, 0.5, 50, 40, 0.05, { input: 'guide' }).shiftStart;
   report(F.judge('B3-guide', dec(guide40)).state === 'wrong' && F.judge('B3-guide', dec(S.B.B3.start.one_guide.T50)).state === 'ok', 'B3: one guide alone, T = 50: the value depends on the number of cells (the label names 60 cells)', `40 cells ${dec(guide40)}, 60 cells ${dec(S.B.B3.start.one_guide.T50)}`);
+
+  // (k) the field for the slow cycle T = 100 on 120 cells (the code prints its number with LONG set to true)
+  const st3 = S.B.B3.start, t100 = [['0.9989', 'ok'], ['0.999', 'ok'], [dec(J.B.B3.shift.T100), 'ok'], [dec(st3.one_guide.T100), 'wrong'], [dec(st3.upper_band.T100), 'wrong'], [dec(st3.shift.T50), 'wrong'], ['1.0000', 'wrong'], ['1', 'wrong']];
+  const r100 = t100.map(([t]) => F.judge('B3-T100', t)), f100 = F.get('B3-T100');
+  report(r100.every((r, i) => r.state === t100[i][1]) && f100.code && f100.tab === 'pump' && /one guide alone/.test(r100[3].message) && /lower cell numbers/.test(r100[4].message) && r100[5].message === T.wrongCode && r100[6].message === T.wrongCode
+    && F.progress('pump').total === 21 && texts.length === 89 && hand.length === 55 && texts.length - hand.length === 34,
+    'B3 has a field for the shift at T = 100 on 120 cells: 0.9989 is right, one guide alone and the upper band get their hints; the page has 89 typed fields (55 by hand, 34 from the code), and the counter of tab 3 counts 21', t100.map(([t], i) => `"${t}" ${r100[i].state}`).join(', '));
+
+  // (l) a number from the code typed with one, two or three decimals: the right number rounded is not "not this value"
+  const few = [['B2-Elow', ['-0.354'], true], ['B2-Elow', ['-0.35'], true], ['B2-Elow', ['-0,35'], true], ['B2-Elow', ['−0.4'], true], ['B3-T20', ['0.89'], true], ['B3-T100', ['1.00'], true], ['A7-s1-M4', ['0.61'], true], ['B5-quarter', ['0.28'], true],
+    ['A6-prod100', ['-0.94', '0'], true], ['A6-prod100', ['-0.94', '0.0000'], true], ['B7-col2', ['0.83'], true],
+    ['B2-Elow', ['-0.36'], false], ['B2-Elow', ['-0.3500'], false], ['B2-Elow', ['0.35'], false], ['B3-T100', ['1.0000'], false], ['B3-T100', ['1'], false], ['B3-T20', ['0.88'], false], ['A6-prod100', ['-0.94', '0.01'], false], ['B7-col2', ['0.82'], false]];
+  const fewRes = few.map(([id, t]) => F.judge(id, t));
+  const fewOk = fewRes.every((r, i) => r.state === 'wrong' && (r.message === T.fewDecimals) === few[i][2] && (few[i][2] ? r.reason === 'decimals' : r.message !== ''));
+  const fewHand = [F.judge('A1-E2', '-2.2'), F.judge('A3-len', '0.2')], fewInt = F.judge('B5-C', '1.0');
+  report(fewOk && fewHand[0].message !== T.fewDecimals && fewHand[1].state === 'ok' && fewInt.state === 'ok' && F.judge('B2-Elow', '-0.3536').state === 'ok' && /right number with too few decimals/.test(T.fewDecimals) && /four decimals/.test(T.fewDecimals),
+    'a code value that is the reference rounded to one, two or three decimals (-0.354, -0.35, 0.89, 1.00 for 0.9989) is answered "the right number with too few decimals"; a value that is not the rounded reference (-0.36, 1.0000, 0.88) is not',
+    few.map(([id, t], i) => `${id} ${t.join(' | ')}: ${fewRes[i].message === T.fewDecimals ? 'too few decimals' : 'other hint'}${(fewRes[i].message === T.fewDecimals) === few[i][2] ? '' : ' !'}`).join(', '));
+
+  // (m) the words that all forms share, in every message and hint of the page (the texts of the steps: tools/check_workbook.cjs)
+  const allHints = [...new Set([...Object.values(T), ...F.fields().flatMap((f) => [f.hint, f.lengthHint, ...(f.type === 'text' ? F.wrongOf(f).map((w) => w.hint) : [])])].filter((x) => typeof x === 'string'))];
+  const loneSheet = allHints.filter((m) => /(?<!task )\bsheet\b/i.test(m)), gapWords = allHints.filter((m) => /gap (closes|closed|is closed)|closes the gap/i.test(m));
+  // "angle" is arg, the angle of a complex number: allowed are "other angle" (of an overlap), "minus the angle of the product"
+  const ANGLE_OK = [/right length, other angle/, /minus the angle of the product/, /the angle φ/];
+  const angleWords = allHints.filter((m) => /angle/i.test(m)), badAngle = angleWords.filter((m) => !ANGLE_OK.some((re) => re.test(m)) || /type the angle|[Tt]he angle is −arg|angle in radians/.test(m));
+  const minusArg = [msg('A2-ang1', dec(-set1.ov_angle_deg[0], 2)), msg('A3-gamma', '0.5'), msg('B4-gh', '0.5'), msg('B6-F', '0.5')];
+  report(loneSheet.length === 0 && gapWords.length === 0 && badAngle.length === 0 && allHints.length > 40 && /The field asks for −arg/.test(minusArg[0]) && /sum of the four −arg/.test(minusArg[1]) && /γ = −arg\(product\): minus the angle of the product/.test(minusArg[2]) && /F = −arg\(product\): minus the angle of the product/.test(minusArg[3])
+    && /type the number divided by π, between −2 and 2/.test(T.unitPi) && !/angle/.test(T.unitPi + T.radiansInPi + T.radiansInDeg),
+    'messages and hints: "sheet" only as "task sheet"; no hint says that the gap closes; "angle" only for arg (the quantity of a field is "−arg", gamma is "minus the angle of the product")',
+    `${allHints.length} different texts; with "angle": ${angleWords.length}${loneSheet.length ? '; "sheet" alone: ' + loneSheet.join(' | ') : ''}${badAngle.length ? '; "angle": ' + badAngle.join(' | ') : ''}${gapWords.length ? '; gap: ' + gapWords.join(' | ') : ''}`);
 }
 
 // =====================================================================================================

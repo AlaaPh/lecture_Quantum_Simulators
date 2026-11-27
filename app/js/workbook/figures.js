@@ -1,7 +1,7 @@
 // The figures of the workbook. Each one draws what is known so far: a point, a turn of the dial, a cell of the map
 // appears when the field that asks for it is right. Nothing here shows a number before the student has typed it:
 // the turn of the dial that closes the loop waits for the sum of the four −arg, the last dot of γ(t) for the sum of
-// all plaquettes, the curve γ(t) for C.
+// all plaquette phases, the curve γ(t) for C, the dots of γ at Δ = 0 on tab 2 for γ of A6 (c).
 import { Canvas2D, arrow } from '../lecture1/panels.js';
 import { Plot } from '../plots.js';
 import { colors } from '../theme.js';
@@ -27,7 +27,7 @@ const DIALS = [
   { name: `J₁ = ${set2.J1}, J₂ = ${set2.J2} (A5)`, angles: set2.ov_angle_deg, ids: [1, 2, 3, 4].map((s) => `A5-ang${s}`), sumId: 'A5-sum', gammaId: 'A5-gamma', gamma: set2.gamma_over_pi },
 ];
 export const turnsShown = (n) => Math.min(leading(DIALS[n].ids), isOk(DIALS[n].sumId) ? 4 : 3);
-// The dots of γ(t) on tab 4, one per column sum. The last one shows the sum of all plaquettes and waits for its field.
+// The dots of γ(t) on tab 4, one per column sum. The last one shows the sum of all plaquette phases and waits for its field.
 const COLS = [1, 2, 3, 4].map((j) => `B7-col${j}`);
 export const dotsShown = () => Math.min(leading(COLS), isOk('B7-total') ? 4 : 3);
 // a short title where the figure is narrow (two figures side by side on a phone)
@@ -193,7 +193,8 @@ function curveOf(J1, J2, D) {
 function drawConv() {
   const c = colors(), lx = Math.log10, A7 = S.A.A7;
   const series = [
-    { name: `J₁ = ${set1.J1}, J₂ = ${set1.J2}, Δ = 0`, col: c['fg-2'], J: [set1.J1, set1.J2, 0], curveId: 'A6-gamma100', marks: [[4, 'A6-prod4', set1.gamma_over_pi], [100, 'A6-gamma100', set1.gamma_M100_over_pi]] },
+    // Δ = 0: the dot at M = 4 shows γ, which the page asks for only in A6 (c). It waits for that field, not for the product of A6 (a).
+    { name: `J₁ = ${set1.J1}, J₂ = ${set1.J2}, Δ = 0`, col: c['fg-2'], J: [set1.J1, set1.J2, 0], curveId: 'A6-gamma100', marks: [[4, 'A6-gamma100', set1.gamma_over_pi], [100, 'A6-gamma100', set1.gamma_M100_over_pi]] },
     { name: `J₁ = ${set1.J1}, J₂ = ${set1.J2}, Δ = ${A7.set1.D}`, col: c.psi, J: [set1.J1, set1.J2, A7.set1.D], curveId: 'A7-s1-M400', marks: [[4, 'A7-s1-M4', A7.set1.M4_over_pi], [100, 'A7-s1-M100', A7.set1.M100_over_pi], [400, 'A7-s1-M400', A7.set1.M400_over_pi]] },
     { name: `J₁ = ${A7.exact.J1}, J₂ = ${A7.exact.J2}, Δ = ${A7.exact.D}`, col: c.v1, J: [A7.exact.J1, A7.exact.J2, A7.exact.D], curveId: 'A7-exact', marks: [[400, 'A7-exact', A7.exact.gamma_over_pi_M400]] },
     { name: `J₁ = ${set2.J1}, J₂ = ${set2.J2}, Δ = ${A7.set2.D}`, col: c.hpsi, J: [set2.J1, set2.J2, A7.set2.D], curveId: 'A7-s2-M400', marks: [[400, 'A7-s2-M400', A7.set2.M400_over_pi]] },
@@ -206,8 +207,9 @@ function drawConv() {
     shown++;
     if (isOk(s.curveId)) { const cu = curveOf(...s.J); convPlot.line(cu.Ms, cu.g, { color: s.col, width: 1.8, alpha: 0.75 }); }
     convPlot.dots(marks.map(([M]) => lx(M)), marks.map(([, , g]) => g), { color: s.col, r: 5, ring: true });
-    const last = marks[marks.length - 1];
-    convPlot.text(lx(last[0]), last[2], s.name, { color: s.col, align: 'right', dx: -9, dy: last[2] > 0.9 ? 12 : -11, font: uiFont(11, 500) });
+    // the name stands to the left of the last dot; at the left edge of the plot (only the dot at M = 4) to its right
+    const last = marks[marks.length - 1], atLeft = last[0] < 10;
+    convPlot.text(lx(last[0]), last[2], s.name, { color: s.col, align: atLeft ? 'left' : 'right', dx: atLeft ? 9 : -9, dy: last[2] > 0.9 ? 12 : -11, font: uiFont(11, 500) });
   }
   if (!shown) convPlot.text((lx(3.2) + lx(520)) / 2, 0.5, 'Your values appear here as dots when they are right.', { color: c['fg-2'], align: 'center', font: uiFont(12) });
   convPlot.end();
@@ -224,9 +226,12 @@ function drawCycle(pump) {
   const [ax, ay] = P(0.14), [bx, by] = P(0.18);
   arrow(ctx, ax, ay, bx, by, c.psi, 2, 9);
   ctx.font = uiFont(11); ctx.fillStyle = c['fg-2']; ctx.textBaseline = 'middle';
-  // "t = 0" stands outside the cycle, to the right of its point, where there is room for it; else inside, above the axis
-  const [x0, y0] = P(0), outside = x0 + 10 + ctx.measureText('t = 0').width < cyclePlot.w - cyclePlot.opts.pad.r;
-  for (const [s, label, align, dx, dy] of [[0, 't = 0', outside ? 'left' : 'right', outside ? 10 : -8, outside ? 0 : -11], [0.25, 'T/4', 'left', 8, -8], [0.5, 'T/2', 'left', 8, 12], [0.75, '3T/4', 'left', 8, 9]]) {
+  // "t = 0" stands outside the cycle, to the right of its point, where there is room for it; else inside, on the level of
+  // its point and to the left of it. The cycle leaves this point straight upward and comes back from below, so the moving
+  // dot never passes over the label. Inside, the label lies on the axis Δ = 0: the line is cleared behind it.
+  const [x0, y0] = P(0), t0Width = ctx.measureText('t = 0').width, outside = x0 + 10 + t0Width < cyclePlot.w - cyclePlot.opts.pad.r;
+  if (!outside) { ctx.fillStyle = c.surface; ctx.fillRect(x0 - 13 - t0Width, y0 - 7, t0Width + 4, 14); }
+  for (const [s, label, align, dx, dy] of [[0, 't = 0', outside ? 'left' : 'right', outside ? 10 : -11, 0], [0.25, 'T/4', 'left', 8, -8], [0.5, 'T/2', 'left', 8, 12], [0.75, '3T/4', 'left', 8, 9]]) {
     const [x, y] = P(s);
     ctx.fillStyle = c.psi; ctx.beginPath(); ctx.arc(x, y, 3, 0, TAU); ctx.fill();
     ctx.fillStyle = c['fg-2']; ctx.textAlign = align; ctx.fillText(label, x + dx, y + dy);
@@ -331,7 +336,7 @@ function drawMap() {
 function drawGamma() {
   const c = colors(), g = gammaOverCycle(false), sums = S.B.B7.col_sums_over_pi, done = dotsShown();
   gammaPlot.begin({ xlim: [0, 1], ylim: [-0.25, 2.25], xticks: quarters, yticks: [0, 0.5, 1, 1.5, 2], ytickFmt: (v) => ({ 0: '0', 0.5: 'π/2', 1: 'π', 1.5: '3π/2', 2: '2π' })[v], xlabel: 't / T', ylabel: 'γ', title: 'γ(t): four k points (dots), M = 400 (line)' });
-  // the line ends at 2π·C: it is drawn when C of B5 or the sum of all plaquettes is right
+  // the line ends at 2π·C: it is drawn when C of B5 or the sum of all plaquette phases is right
   if (isOk('B5-C') || isOk('B7-total')) gammaPlot.line(g.s, g.overPi, { color: c.psi, width: 2 });
   if (done) {
     const xs = [0], ys = [0];
@@ -364,7 +369,7 @@ function drawLoops() {
     ctx.fillStyle = L.col; ctx.beginPath(); ctx.arc(sx, sy, 3.5, 0, TAU); ctx.fill();
     const name = ([tag, id, C]) => (isOk(id) ? `${tag} C = ${C > 0 ? '+' : ''}${String(C).replace('-', '−')}` : tag);
     const top = L.at(0.25), bottom = L.at(0.75);
-    // the cycle that lies aside is named to its right, outside the solid cycle; the others above their highest point
+    // the dotted cycle (pump_aside) is named to its right, outside the solid cycle; the others above their highest point
     if (L.at === notEnclosingParams) { const p0 = L.at(0); loopsPlot.text(p0.J1 - p0.J2, top.D, name(L.cases[0]), { color: L.col, align: 'left', dx: 8, font: uiFont(11, 600) }); }
     else loopsPlot.text(top.J1 - top.J2, top.D, name(L.cases[0]), { color: L.col, align: 'center', baseline: 'bottom', dy: -7, font: uiFont(11, 600) });
     // a second case on the same line is this cycle run backwards: its own arrow on the lower half, against the first,

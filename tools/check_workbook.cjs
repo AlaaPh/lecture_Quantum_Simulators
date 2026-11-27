@@ -7,12 +7,16 @@
 //   the right value of every field is typed key by key: the field keeps the focus while typing, the tab does not
 //   change, the verdict is "ok"; one catalogued wrong value gives its hint; "-0,2" and "−0.2" are read as −0.2;
 //   "abc" is unreadable; a single overlap with the right length and another angle is answered as such;
-//   after a reload the values are back and checked; Play on tab 3 advances the time.
+//   after a reload the values are back and checked; Play on tab 3 advances the time;
+//   with all fields right, every word of the tab (steps, formulas, notes, labels for a screen reader, figures) is read:
+//   "sheet" only as "task sheet" or "worksheet", "angle" only for arg, nothing about a closed gap.
 // Then, with a recorder on the canvas calls (the texts, the arrow heads and the number of line points of every figure):
 //   what a figure shows before its field is right (the dial, the curve gamma(t), its last dot), the two arrows of the
 //   solid cycle of B8, Enter in front of a question with buttons, the unit rule of a field in units of pi, a prediction
-//   after its result, the texts of the steps; the phone layout at 390 x 844 (each figure directly in front
-//   of the step that needs it, Play and all five figures of tab 3 on one screen), Back and Forward, the place of each tab.
+//   after its result, the texts of the steps (nothing names gamma of A3 before it is right; what the code prints and
+//   what it does not; the field for T = 100; the note for the numbers of the task sheet); the phone layout at 390 x 844
+//   (each figure directly in front of the step that needs it, Play and all five figures of tab 3 on one screen), no
+//   sideways scroll down to 320 px, Back and Forward, the place of each tab.
 // Then: the page with a storage that is blocked or holds something unreadable, and the other pages of the app.
 // The right values are taken from tools/zak_chern_numbers.json, rounded as a student would type them,
 // not from the page: the test also shows that page and stored numbers agree.
@@ -29,7 +33,11 @@ const J = JSON.parse(fs.readFileSync(path.join(__dirname, 'zak_chern_numbers.jso
 const STORE = 'qsl-workbook-v1';
 const UNREADABLE = 'this is not a number. Write for example 12.5 or 3/8. A complex number goes into the two fields Re and Im.';
 const OTHER_PHASE = 'right length, other angle. With the u of A1: check the signs and the star. With another phase factor on u this is not a mistake: go on, the closed product is the same and A3 checks it.';
-const UNIT_PI = 'this field is in units of π: type the angle divided by π, a number between −2 and 2. For the angle 3π/4 type 0.75 or 3pi/4, not 135 and not 2.36.';
+const UNIT_PI = 'this field is in units of π: type the number divided by π, between −2 and 2. For 3π/4 type 0.75 or 3pi/4, not 135 and not 2.36.';
+const FEW = 'this is the right number with too few decimals. From your code type four decimals, as the OK line prints them.';
+const COARSE = 'The numbers of the task sheet on a 3 × 3 grid give C = 0; three k points give a zero overlap for J₁ = 1, J₂ = 2 → use 4 points or more, an even number.';
+const A7_LAST = 'This step tests the sign and the band. A3 to A6 cannot: without on-site term the Zak phase is 0 or π, and each of them is the same angle with the opposite sign.';
+const ROUNDING = 'Calculate with four decimals. By hand, type two or more; from your code type four. Angles in degrees by hand: two decimals. γ and plaquette phases: in units of π.';
 const NEAR = 'close, but not close enough: this looks like a rounding error. Calculate with four decimals and round only the number that you type.';
 
 let passed = 0, failed = 0;
@@ -58,7 +66,7 @@ Object.assign(ANSWERS.code, {
 Object.assign(ANSWERS.pump, {
   'B1-E0': [f4(B.B1.E.tq[0])], 'B1-E1': [f4(B.B1.E.tq[1])], 'B1-E2': [f4(B.B1.E.tq[2])], 'B1-gap': [f4(B.B1.gap_min)], 'B1-gapsheet': [f4(B.B1.gap_min_sheet)],
   'B2-Elow': [f4(gap[0].E)], 'B2-Eup': [f4(gap[1].E)],
-  'B3-norm': [B.B3.norm_T20.toFixed(6)], 'B3-T20': [f4(B.B3.shift.T20)], 'B3-T50': [f4(B.B3.shift.T50)], 'B3-guide': [f4(B.B3.one_guide_T50)], 'B3-sheet': [f4(B.B3.sheet_T20_pair)],
+  'B3-norm': [B.B3.norm_T20.toFixed(6)], 'B3-T20': [f4(B.B3.shift.T20)], 'B3-T50': [f4(B.B3.shift.T50)], 'B3-T100': [f4(B.B3.shift.T100)], 'B3-guide': [f4(B.B3.one_guide_T50)], 'B3-sheet': [f4(B.B3.sheet_T20_pair)],
   'B4-prod0': c4(B.B4.t0.prod), 'B4-g0': [f4(B.B4.t0.gamma_over_pi)], 'B4-prodh': c4(B.B4.thalf.prod), 'B4-gh': [f4(B.B4.thalf.gamma_over_pi)],
   'B5-quarter': [f4(B.B5.quarter_M400_over_pi)], 'B5-C': [String(B.B5.C)],
 });
@@ -77,8 +85,10 @@ const i2 = [A.ov[1][1], A.ov[1][0]];                             // i·⟨u2|u3�
 const WRONG = {
   hand: [['A3-prod', c4(A.open_prod), 'the loop is not closed'], ['A1-E2', [f4(-A.E[1])], 'this is the upper band'], ['A2-ov2', c4([A.ov[1][0], -A.ov[1][1]]), 'this is the complex conjugate of the overlap'], ['A3-gamma', ['0'], '0 and π are swapped']],
   code: [['A7-s1-M400', [f4(-A7.set1.M400_over_pi)], 'right size, wrong sign. One of: +arg in place of −arg; the upper band; e^(−ik) in h; −Δ on guide A.'], ['A7-s1-M400', [f4(A7.set1.M4_over_pi)], 'this is the value for four k points'], ['A6-prod4', c4(A.open_prod), 'the loop is not closed']],
-  pump: [['B5-C', [String(B.B5.C_without_unwrap)], 'Use unwrap before you take γ(T) − γ(0)'], ['B3-T50', [f4(B.B3.one_guide_T50)], 'this is one guide alone as input']],
-  chern: [['B7-total', ['0'], 'you took arg of the total product, or you added both bands'], ['B7-C', ['0'], 'you took arg of the total product'], ['B6-F', [f4(-B.B6.F_over_pi)], 'the square is walked the other way round']],
+  pump: [['B5-C', [String(B.B5.C_without_unwrap)], 'Use unwrap before you take γ(T) − γ(0)'], ['B3-T50', [f4(B.B3.one_guide_T50)], 'this is one guide alone as input'], ['B3-T100', [f4(-B.B3.shift.T100)], 'the light moves to lower cell numbers'],
+    ['B3-norm', ['0.99'], 'the sum of |ψ|² leaves 1'], ['B2-Elow', [(Math.round(gap[0].E * 1000) / 1000).toFixed(3)], FEW]],
+  chern: [['B7-total', ['0'], 'you took arg of the total product, or you added both bands'], ['B7-C', ['0'], 'you took arg of the total product'], ['B6-F', [f4(-B.B6.F_over_pi)], 'the square is walked the other way round'],
+    ['B6-prod', c4([B.B6.prod[0], -B.B6.prod[1]]), 'this is the complex conjugate of the product. One of: the square is walked the other way round; the star stands on the right vector.'], ['B8-c4', [String(B.B7.C_sheet_3_wrong)], COARSE]],
 };
 const OTHER = { hand: ['A2-ov2', c4(i2)] };                    // only where the phase of u is free: in A4 and B6 the vectors are fixed
 const MINUS = { field: 'A3-prod', variants: ['-0,2', '−0.2'], im: '0' };       // −0.2 with a decimal comma, and with the minus sign U+2212
@@ -102,18 +112,25 @@ function waitForServer(tries = 60) {
 // canvas; heads: the arrow heads (a filled triangle: its tip and the direction it points to); lines: number of lineTo calls.
 const RECORDER = () => {
   const P = CanvasRenderingContext2D.prototype;
-  const log = (ctx) => ctx.canvas.__log || (ctx.canvas.__log = { texts: [], heads: [], lines: 0, path: [] });
+  const log = (ctx) => ctx.canvas.__log || (ctx.canvas.__log = { texts: [], heads: [], lines: 0, arcs: 0, dots: [], path: [] });
   const wrap = (name, fn) => { const orig = P[name]; P[name] = function (...a) { fn(this, a); return orig.apply(this, a); }; };
   const at = (ctx, x, y) => { const m = ctx.getTransform(), k = ctx.canvas.width / (ctx.canvas.clientWidth || ctx.canvas.width); return [(m.a * x + m.c * y + m.e) / k, (m.b * x + m.d * y + m.f) / k]; };
-  wrap('clearRect', (ctx, [x, y, w]) => { if (x === 0 && y === 0 && w >= ctx.canvas.clientWidth - 1) { const l = log(ctx); l.texts = []; l.heads = []; l.lines = 0; l.path = []; } });
-  wrap('fillText', (ctx, [t, x, y]) => { const [X, Y] = at(ctx, x, y); log(ctx).texts.push({ t: String(t), x: X, y: Y }); });
+  wrap('clearRect', (ctx, [x, y, w]) => { if (x === 0 && y === 0 && w >= ctx.canvas.clientWidth - 1) { const l = log(ctx); l.texts = []; l.heads = []; l.lines = 0; l.arcs = 0; l.dots = []; l.path = []; } });
+  // left, right: where the text begins and ends, for its alignment
+  wrap('fillText', (ctx, [t, x, y]) => {
+    const [X, Y] = at(ctx, x, y), m = ctx.getTransform(), k = ctx.canvas.width / (ctx.canvas.clientWidth || ctx.canvas.width), w = (ctx.measureText(String(t)).width * m.a) / k;
+    const left = ctx.textAlign === 'right' || ctx.textAlign === 'end' ? X - w : ctx.textAlign === 'center' ? X - w / 2 : X;
+    log(ctx).texts.push({ t: String(t), x: X, y: Y, left, right: left + w });
+  });
+  // arcs: the number of circles and arcs; dots: their centres and radii
+  wrap('arc', (ctx, [x, y, r]) => { const l = log(ctx), [X, Y] = at(ctx, x, y), k = ctx.canvas.width / (ctx.canvas.clientWidth || ctx.canvas.width); l.arcs++; l.dots.push({ x: X, y: Y, r: (r * ctx.getTransform().a) / k }); });
   wrap('beginPath', (ctx) => { log(ctx).path = []; });
   wrap('moveTo', (ctx, [x, y]) => { log(ctx).path.push(['M', ...at(ctx, x, y)]); });
   wrap('lineTo', (ctx, [x, y]) => { const l = log(ctx); l.path.push(['L', ...at(ctx, x, y)]); l.lines++; });
   wrap('closePath', (ctx) => { log(ctx).path.push(['Z']); });
   wrap('fill', (ctx) => { const l = log(ctx), q = l.path; if (q.length === 4 && q[0][0] === 'M' && q[1][0] === 'L' && q[2][0] === 'L' && q[3][0] === 'Z') l.heads.push({ x: q[0][1], y: q[0][2], dx: q[0][1] - (q[1][1] + q[2][1]) / 2, dy: q[0][2] - (q[1][2] + q[2][2]) / 2 }); });
 };
-const drawn = (page, pane) => page.evaluate((id) => { const cv = document.querySelector(`#${id} canvas`), l = cv.__log || { texts: [], heads: [], lines: 0 }; return { texts: l.texts, heads: l.heads, lines: l.lines, w: cv.clientWidth, h: cv.clientHeight }; }, pane);
+const drawn = (page, pane) => page.evaluate((id) => { const cv = document.querySelector(`#${id} canvas`), l = cv.__log || { texts: [], heads: [], lines: 0, arcs: 0, dots: [] }; return { texts: l.texts, heads: l.heads, lines: l.lines, arcs: l.arcs, dots: l.dots, w: cv.clientWidth, h: cv.clientHeight }; }, pane);
 const textsOf = async (page, pane) => (await drawn(page, pane)).texts.map((x) => x.t);
 const rectOf = (page, sel) => page.evaluate((q) => { const e = document.querySelector(q); if (!e) return null; const r = e.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, height: r.height, width: r.width }; }, sel);
 const stateOf = (page, field) => page.evaluate((id) => { const e = document.querySelector(`[data-field="${id}"]`); return e ? { state: e.dataset.state, msg: e.querySelector('.wb-msg').textContent, kind: [...e.classList].find((c) => /^wb-(real|value|angle|integer|complex|vector|choice)$/.test(c)).slice(3) } : null; }, field);
@@ -125,6 +142,25 @@ const emptyCanvases = (page) => page.evaluate(() => [...document.querySelectorAl
   for (let i = 3; i < d.length; i += 4) if (d[i]) n++;
   return n < 200;
 }).map((cv) => cv.parentElement.id));
+
+// Every word of the tab on the screen: heading, lead, caption, controls and the pane of the steps with all formulas opened
+// (textContent: also what is closed or hidden, such as the conventions), the labels for a screen reader and the titles of
+// the controls, and the texts drawn in the figures.
+const wordsOf = (page, pane) => page.evaluate((id) => {
+  const steps = document.getElementById(id), btns = [...steps.querySelectorAll('.wb-formula-btn')];
+  btns.forEach((b) => b.click());
+  const text = ['heading', 'lead', 'caption', 'controls', 'acts', id].map((k) => document.getElementById(k).textContent).join(' \n ');
+  const formulas = steps.querySelectorAll('.wb-formula code').length, notes = [...steps.querySelectorAll('.wb-done')].filter((e) => !e.hidden).length;
+  btns.forEach((b) => b.click());
+  const labels = [...document.querySelectorAll('.lect-main [aria-label], .lect-main [title]')].flatMap((e) => [e.getAttribute('aria-label'), e.getAttribute('title')]).filter(Boolean).join(' \n ');
+  const figures = [...document.querySelectorAll('.pane:not([hidden]) canvas')].flatMap((cv) => (cv.__log || { texts: [] }).texts.map((x) => x.t)).join(' \n ');
+  return { text, labels, figures, formulas, notes };
+}, pane);
+// Words that all forms of the workbook share. "sheet" stands only in "task sheet" (the sheet of the course with the tasks)
+// and in "worksheet"; "angle" is arg, so the quantity of a table is "−arg" and never "the angle"; nothing says that the gap
+// closes or is closed (the page asks what is special about the point (0, 0)).
+const LONE_SHEET = /(?<!task )\bsheet\b/gi, CLOSED_GAP = /where the gap closes|gap (is )?closed|closes the gap|gap closes (at|for|when|if)/gi;
+const ANGLE_FOR_MINUS_ARG = /[Tt]he angle is −arg|angle −arg|[Tt]ype the angle|this angle in degrees|\(angle in degrees\)|angle in radians|Add the four angles|sum of the angles/g;
 
 async function typeField(page, tab, field, strings, { perKey }) {
   const st = await stateOf(page, field);
@@ -159,6 +195,7 @@ async function pass(browser, theme, width, height, { first, shots }) {
   const name = `${theme}, ${width} x ${height}`;
   console.log(`\n${name}`);
   const context = await browser.newContext({ viewport: { width, height }, colorScheme: theme });
+  if (first) await context.addInitScript(RECORDER);            // the texts of the figures are read in the first pass
   const page = await context.newPage();
   const errors = [];
   page.on('console', (m) => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
@@ -217,6 +254,13 @@ async function pass(browser, theme, width, height, { first, shots }) {
     report(sw2 <= iw2, `${name}, tab ${tab}: no horizontal overflow with all fields filled`, `scrollWidth ${sw2}, innerWidth ${iw2}`);
     const blank2 = await emptyCanvases(page);
     report(blank2.length === 0, `${name}, tab ${tab}: every figure has something drawn with all fields right`, blank2.length ? `empty: ${blank2.join(', ')}` : '');
+    if (first) {
+      const w = await wordsOf(page, `pane-${PANE[tab]}`), all = `${w.text} \n ${w.labels} \n ${w.figures}`;
+      const found = [...(all.match(LONE_SHEET) || []).map((x) => `"${x}" without "task"`), ...(all.match(CLOSED_GAP) || []), ...(all.match(ANGLE_FOR_MINUS_ARG) || [])];
+      report(found.length === 0 && w.text.length > 3000 && w.formulas >= 8 && w.figures.length > 100,
+        `${name}, tab ${tab}: every word with all fields right (steps, conventions, formulas, notes, labels, figures): "sheet" only as "task sheet" or "worksheet", "angle" only for arg, no closed gap`,
+        found.length ? found.join(' | ') : `${all.length} characters, ${w.formulas} formula lines, ${w.notes} notes shown`);
+    }
     if (shots.includes(tab)) {
       await page.evaluate(() => { document.activeElement && document.activeElement.blur(); window.scrollTo(0, 0); document.querySelectorAll('.wb-steps').forEach((e) => { e.scrollTop = 0; }); });
       await page.waitForTimeout(150);
@@ -383,6 +427,9 @@ async function behaviour(browser) {
   report(dial1.includes('3 of 4 turns') && !dial1.some((t) => /180\.00|4 of 4|γ =/.test(t)) && /3 of 4 turns for J₁ = 1/.test(cap1) && /it appears when your sum of the four −arg is right/.test(cap1),
     'dial with all four angles of A2 right and no sum typed: three turns, no sum of the angles, no gamma', `below the dials: ${under(dial1)}`);
   await choose(page, 'A3-pred', '0');
+  // the prediction is made and the four fields of A3 are open and empty: no sentence of the tab names −π or π for γ
+  const a3open = (await page.locator('#step-A3').innerText()).replace(/\s+/g, ' '), seenOpen = `${await paneText('hand')} ${await page.locator('#lead').innerText()} ${await caption()}`;
+  const a3fields = await page.evaluate(() => ['f-A3-len', 'f-A3-sum', 'f-A3-prod-re', 'f-A3-gamma'].map((id) => { const e = document.getElementById(id); return e.offsetParent !== null && e.value === ''; }));
   await page.keyboard.press('ArrowRight');
   const hashKey = await page.evaluate(() => location.hash);
   report(hashKey === '#hand', 'an arrow key after a click on a prediction does not change the tab', `address ${hashKey}`);
@@ -394,8 +441,15 @@ async function behaviour(browser) {
   report(r1.state === 'ok' && r2.state === 'ok' && r3.state === 'wrong' && r3.msg === NEAR, 'A2 with numbers from two typed decimals: 0.73 − 0.45i and 32.01° are right; 0.76 − 0.45i is called a rounding error, not another phase', `${r1.state}, ${r2.state}, ${r3.state}: "${r3.msg}"`);
   await type('hand', 'A2-ov1'); await type('hand', 'A2-ang1');
   await type('hand', 'A3-len');
-  const u1 = await type('hand', 'A3-gamma', ['180']), u2 = await type('hand', 'A3-gamma', ['3.14']), u3 = await type('hand', 'A3-gamma', ['-1']);
+  const u1 = await type('hand', 'A3-gamma', ['180']), u2 = await type('hand', 'A3-gamma', ['3.14']);
+  const a3wrong = (await page.locator('#step-A3').innerText()).replace(/\s+/g, ' ');
+  const u3 = await type('hand', 'A3-gamma', ['-1']);
+  const a3right = (await page.locator('#step-A3').innerText()).replace(/\s+/g, ' ');
   report(u1.state === 'wrong' && u1.msg === UNIT_PI && u2.state === 'wrong' && u2.msg === UNIT_PI && u3.state === 'ok', 'gamma of A3 in units of pi: 180 and 3.14 are wrong with the message about the unit, −1 is right', `180: ${u1.state}, 3.14: ${u2.state}, −1: ${u3.state}; "${u1.msg}"`);
+  const names = (t) => /−π|same angle|are the same|Both are accepted|γ = π\b/.test(t.replace('I predict γ = 0 π/2 π', ''));
+  report(a3fields.every(Boolean) && !names(a3open) && !/−π and π|same angle|Both are accepted/.test(seenOpen) && !names(a3wrong) && /γ = −arg\(product\) = π ✓ A calculator may give −π: the same angle\./.test(a3right),
+    'A3: with the prediction made and the fields empty, and after a wrong value of gamma, no sentence names −π or π; "A calculator may give −π: the same angle." appears when gamma is right',
+    `open: "… ${a3open.slice(-118)}" | right: "… ${a3right.slice(a3right.indexOf('γ = −arg(product) ='), a3right.indexOf('γ = −arg(product) =') + 66)} …"`);
   const dial2 = await textsOf(page, 'pane-wturn');
   await type('hand', 'A3-sum');
   const dial3 = await textsOf(page, 'pane-wturn');
@@ -413,17 +467,43 @@ async function behaviour(browser) {
   const dial7 = await textsOf(page, 'pane-wturn');
   report(dial5.filter((t) => t === '3 of 4 turns').length === 1 && !dial6.some((t) => /^4 of 4 turns: 0\.00/.test(t)) && dial7.includes('4 of 4 turns: 0.00° → γ = 0') && g5a.state === 'wrong' && g5a.msg === UNIT_PI && g5b.state === 'ok' && g5c.state === 'ok',
     'A5: the second dial waits for its sum in the same way; 180 where gamma = 0 is wrong (unit), 2 and 0 are right', `180: ${g5a.state}, 2: ${g5b.state}, 0: ${g5c.state}; with four angles and no sum: ${under(dial6)}; with the sum: ${under(dial7)}`);
-  const t1 = await paneText('hand'), conv = await page.locator('#pane-wa .wb-conv').evaluate((e) => e.textContent), lead1 = await page.locator('#lead').innerHTML();
+  const t1 = await paneText('hand'), conv = await page.locator('#pane-wa .wb-conv').evaluate((e) => e.textContent), lead1 = await page.locator('#lead').innerHTML(), leadText1 = await page.locator('#lead').innerText();
+  await page.click('#show-A3');
+  const formulaA3 = await page.locator('#formula-A3').innerText();
+  await page.click('#show-A3');
   report(/φ₄ − φ₃, φ₁ − φ₄\. Add or subtract 360° until the step lies between −180° and 180°/.test(t1) && /Add the four values of −arg/.test(t1) && /its length √\(Re² \+ Im²\) and −arg: minus the angle/.test(t1) && !/The angle is −arg/.test(t1) && /H\(k\) = \[\[0, h\*\], \[h, 0\]\]/.test(t1) && /φ goes back and forth/.test(t1),
     'tab 1, texts: the step of phi between −180° and 180°, "−arg" in place of a second meaning of "angle", H(k) written out in the check of A1', '');
-  report(/calculate with four decimals, type two or more/.test(conv) && /a fraction such as 3\/8/.test(conv) && /a number between −2 and 2/.test(conv) && !/wo decimals are enough/.test(conv + t1) && /\(A \+ B\)\/√2 in place of \(A − B\)\/√2/.test(conv) && /<sub>A<\/sub>/.test(lead1) && !/u_A|e\^\(/.test(lead1),
-    'conventions: four decimals by hand, the rule of the fields in units of pi, 3/8 as the example of a fraction; the lead is set with real indices', '');
+  report(/arg is its angle in the complex plane/.test(leadText1) && /Berry phase = −arg\(product of the overlaps around the loop\), minus the angle of the product/.test(leadText1) && /γ = −arg\(product of the four overlaps\), minus the angle of the product/.test(t1)
+    && /arg is the angle of a complex number in the complex plane\. Zak phase: γ = −arg\(.*\), minus the angle of the product\./.test(conv) && /γ in units of π = \(−arg in degrees\)\/180/.test(formulaA3) && !/this angle/.test(formulaA3) && /Compare with Exercise 3, tabs 2 and 3\./.test(t1),
+    'tab 1: "angle" is arg, the angle of a complex number; the Zak phase is −arg of the product, minus the angle of the product (lead, conventions, A3 and its formula)', '');
+  report(conv.includes(ROUNDING) && /a fraction such as 3\/8/.test(conv) && /type the number divided by π, between −2 and 2/.test(conv) && !/wo decimals are enough/.test(conv + t1) && /\(A \+ B\)\/√2 in place of \(A − B\)\/√2/.test(conv) && /\(k, t\) → \(k, next t\) → \(next k, next t\) → \(next k, t\) → back/.test(conv) && !/t\+dt|k\+dk/.test(conv) && /<sub>A<\/sub>/.test(lead1) && !/u_A|e\^\(/.test(lead1),
+    'conventions: the rounding rule in its words (four decimals; by hand two or more; from the code four), the rule of the fields in units of pi, 3/8 as the example of a fraction, the walk around a plaquette without dt; the lead is set with real indices', `"${ROUNDING}"`);
   titles.push(...await cutTitles(page));
 
   // ----- tab 2 -----
   await open('code');
   const t2 = await paneText('code');
   report(/\(a\) test, M = 400/.test(t2) && /\(c\) Δ = 0\.5/.test(t2) && (t2.match(/\(b\) Δ = 0\.5/g) || []).length === 1 && !/Use M = 400/.test(t2), 'A7: the rows are (a), (b), (c), and M stands where it is used', '');
+  const intro2 = (await page.locator('#pane-wb .wb-intro').innerText()).replace(/\s+/g, ' '), a7last = await page.evaluate(() => { const ps = [...document.querySelectorAll('#step-A7 > *')].filter((e) => e.tagName === 'P' || e.classList.contains('wb-row')); return ps[ps.length - 1].textContent; });
+  report(/For the hand steps A1 to A5 the code prints no numbers: it says that your function is right and reproduces the hand step\. Check your own numbers on tab 1\. The first numbers that the code prints are those of A6: type them here with four decimals\./.test(intro2) && !/Every OK line prints numbers/.test(intro2)
+    && /TODO A1 h, TODO A2 overlap, TODO A3 loop_product and zak, TODO A6 eigenvector, TODO A7 zak_ssh\./.test(intro2) && /TODO A6 eigenvector in the file/.test(t2) && /In the file: TODO A7 zak_ssh\./.test(t2) && a7last === A7_LAST && !/there −π and π are the same/.test(t2),
+    'tab 2: the code prints no numbers for A1 to A5, the first numbers are those of A6; the steps are named as in the code file; A7 closes with the sentence about the sign and the band', `last line of A7: "${a7last}"`);
+  // the figure: the product of A6 (a) alone draws no dot (the dot at M = 4 shows γ, which A6 (c) asks for); a name next to a dot at M = 4 is not cut
+  const name0 = 'J₁ = 1, J₂ = 2, Δ = 0', name05 = 'J₁ = 1, J₂ = 2, Δ = 0.5', hasName = (d, t) => d.texts.find((x) => x.t === t), empty = (d) => d.texts.some((x) => /appear here as dots/.test(x.t));
+  const c0 = await drawn(page, 'pane-wconv');
+  await type('code', 'A6-E'); await type('code', 'A6-prod4');
+  const c1 = await drawn(page, 'pane-wconv');
+  await type('code', 'A7-s1-M4');
+  const c2 = await drawn(page, 'pane-wconv'), at4 = hasName(c2, name05);
+  await type('code', 'A6-prod100'); await type('code', 'A6-gamma100');
+  const c3 = await drawn(page, 'pane-wconv'), at100 = hasName(c3, name0);
+  report(empty(c0) && empty(c1) && !hasName(c1, name0) && c1.arcs === c0.arcs && !!at4 && !hasName(c2, name0) && at4.left >= 52 && at4.right <= c2.w && !!at100 && at100.left >= 52 && at100.right <= c3.w && c3.arcs > c2.arcs + 1,
+    'figure of tab 2: no dot for Δ = 0 after the product of A6 (a) alone; both dots after γ of A6 (c); the name of a curve with only its dot at M = 4 stands inside the plot',
+    `circles drawn: ${c0.arcs}, ${c1.arcs}, ${c2.arcs}, ${c3.arcs}; "${name05}" from ${at4 ? Math.round(at4.left) : '?'} to ${at4 ? Math.round(at4.right) : '?'} px of ${c2.w}`);
+  const few2 = await type('code', 'A7-s1-M4', ['0.61']), far2 = await type('code', 'A7-s1-M4', ['0.62']);
+  await type('code', 'A7-s1-M4');
+  report(few2.state === 'wrong' && few2.msg === FEW && far2.state === 'wrong' && /^not this value\. Compare with the OK line that your code prints for this step\. From your code type four decimals\./.test(far2.msg),
+    'a number from the code typed with two decimals (0.61 for 0.6067) is "the right number with too few decimals"; 0.62 is "not this value"', `"${few2.msg}" | "${far2.msg}"`);
   titles.push(...await cutTitles(page));
 
   // ----- tab 3 -----
@@ -431,7 +511,16 @@ async function behaviour(browser) {
   const t3 = await paneText('pump'), lead3 = await page.locator('#lead').innerText();
   report(/Guide 1 \(an A\) is the left end, guide 80 \(a B\) the right end/.test(t3) && /one guide A alone as input, T = 50 on 60 cells/.test(t3) && /task sheet has J₁ = 1 \+ 0\.5·cos\(2πt\/T\), J₂ = 1 − 0\.5·cos\(2πt\/T\), Δ = 0\.2·sin\(2πt\/T\)/.test(t3.replace(/\s+/g, ' '))
     && /Calculate E by hand at t = T\/4 for k = 0, π\/2 and π/.test(t3) && /At t = 0 and at t = T\/2 the on-site term is zero/.test(t3) && /guides\) A, B, A, B, … from left to right/.test(t3) && /how many times γ grows by 2π/.test(lead3),
-    'tab 3, texts: the ends of the chain, the number of cells of every propagation, the cycle of the sheet with its argument', '');
+    'tab 3, texts: the ends of the chain, the number of cells of every propagation, the cycle of the task sheet with its argument', '');
+  const all3 = (await page.locator('#pane-wc').evaluate((e) => e.textContent)).replace(/\s+/g, ' '), sheetBtn = await page.locator('#sheet').innerText();
+  const rowT100 = await page.evaluate(() => { const f = document.querySelector('[data-field="B3-T100"]'), row = f.closest('.wb-row'), note = row.querySelector('.wb-note'); return { text: row.textContent, fields: row.querySelectorAll('[data-field]').length, noteSeen: !!note && note.offsetParent !== null }; });
+  report(sheetBtn === 'numbers of the task sheet' && /the button “numbers of the task sheet” shows them here/.test(all3) && /with the numbers of the task sheet:/.test(all3) && /numbers of the task sheet, T = 20 on 60 cells:/.test(all3)
+    && /the two states in the gap \(edge states\)/.test(all3) && /from one time to the next, take the change that lies between −π and π \(Python np\.unwrap, MATLAB unwrap\)/.test(all3),
+    'tab 3: the button and the labels say "numbers of the task sheet"; the two states in the gap are also called edge states; the rule to follow gamma without jumps in its words', `button "${sheetBtn}"`);
+  report(/TODO B1 band_energy/.test(all3) && /TODO B2, the on-site line of H_chain/.test(all3) && /at TODO B3 you write the three H\(t\)/.test(all3) && /TODO B4 zak_pump: the code says that your function is right and prints no number of this step/.test(all3) && /TODO B5: unwrap and C/.test(all3) && /The code prints the smallest gap, not the numbers of your table/.test(all3),
+    'tab 3: the steps are named as in the code file (TODO B1 band_energy … TODO B5 unwrap and C); for the hand steps (table of B1, B4) the code prints no number', '');
+  report(rowT100.fields === 1 && rowT100.noteSeen && /^T = 100 on 120 cells:/.test(rowT100.text) && /Your code prints this number with LONG set to true: LONG = True in zak_chern\.py, LONG = true in zak_chern\.m\./.test(rowT100.text) && !/0\.5526|0\.9521|0\.95 cell/.test(all3),
+    'B3: the field for T = 100 on 120 cells, with the switch LONG of the code file next to it; no note about the numbers of the task sheet before their field is right', `"${rowT100.text}"`);
   await page.evaluate(() => { const e = document.getElementById('ts'); e.value = 0.375; e.dispatchEvent(new Event('input', { bubbles: true })); });
   const out = await page.locator('output[for="ts"]').innerText(), cap3 = await caption();
   report(out === '0.375' && cap3.startsWith('t/T = 0.375:'), 'the time 3T/8 of B2 is shown as 0.375 by the slider and in the caption', `slider "${out}", caption "${cap3.slice(0, 40)} …"`);
@@ -443,17 +532,21 @@ async function behaviour(browser) {
   report(focus3 === 'f-B2-Eup' && seen3.every(Boolean) && focus4 === 'f-B3-norm', 'Enter on the upper eigenvalue of B2: the focus stays in front of the two questions with buttons; with both answered it goes on to B3', `focus in ${focus3}, questions in view: ${seen3.join(', ')}; afterwards focus in ${focus4}`);
   const lev1 = await drawn(page, 'pane-wlevels');
   await page.click('#sheet'); await page.waitForTimeout(150);
-  const lev2 = await drawn(page, 'pane-wlevels'), cyc2 = await textsOf(page, 'pane-wcycle');
+  const lev2 = await drawn(page, 'pane-wlevels'), cyc2 = await textsOf(page, 'pane-wcycle'), capSheet = await caption();
   await page.click('#sheet'); await page.waitForTimeout(150);
   const cyc1 = await textsOf(page, 'pane-wcycle');
   const between = (d) => { const a = d.texts.find((x) => x.t === 'left end'), b = d.texts.find((x) => x.t === 'right end'); return a && b ? b.y - a.y : NaN; };
-  report(between(lev1) > 40 && between(lev2) > 15 && between(lev2) < 0.62 * between(lev1) && cyc1.includes('(0, 0)') && !cyc2.includes('(0, 0)') && cyc2.includes('t = 0'),
-    'figure c: the names of the two ends follow the gap of the numbers of the sheet; figure a: "(0, 0)" is written only where the cycle leaves room', `distance of the two names ${Math.round(between(lev1))} px, with the numbers of the sheet ${Math.round(between(lev2))} px`);
+  report(between(lev1) > 40 && between(lev2) > 15 && between(lev2) < 0.62 * between(lev1) && cyc1.includes('(0, 0)') && !cyc2.includes('(0, 0)') && cyc2.includes('t = 0') && /· numbers of the task sheet, T = 20 on 60 unit cells/.test(capSheet),
+    'figure c: the names of the two ends follow the gap of the numbers of the task sheet; figure a: "(0, 0)" is written only where the cycle leaves room; the caption names the numbers of the task sheet', `distance of the two names ${Math.round(between(lev1))} px, with the numbers of the task sheet ${Math.round(between(lev2))} px`);
   await type('pump', 'B3-guide'); await type('pump', 'B3-sheet');
   const n1 = await paneText('pump');
   await type('pump', 'B1-gap'); await type('pump', 'B1-gapsheet');
   const n2 = await paneText('pump');
-  report(/One guide alone excites both bands/.test(n1) && /With the numbers of the sheet the gap is smaller\. The cycle must then be slower/.test(n1) && /the gap is smaller \(0\.4 in place of 1\)/.test(n2), 'B3: the shift for one guide alone and for the numbers of the sheet each get their sentence; the two gaps are printed only when they are typed', '');
+  const flat = (t) => t.replace(/\s+/g, ' ');
+  report(/One guide alone excites both bands/.test(n1)
+    && /The shift with the numbers of the task sheet \(0\.5526 at T = 20\) is well below one unit cell\. It has two reasons: the cycle is too fast, and \(A − B\)\/√2 is not exactly the lower band at t = 0, because J₂ = 0\.5 there and not 0\. A slow cycle ends near 0\.95 cell \(0\.9521 at T = 400 on 800 cells\), not at 1\./.test(flat(n1))
+    && /the cycle is too fast \(the smallest gap is 0\.4 in place of 1\), and \(A − B\)\/√2 is not exactly the lower band/.test(flat(n2)) && !/The cycle must then be slower/.test(n1 + n2),
+    'B3: the shift for one guide alone gets its sentence; the shift with the numbers of the task sheet gets its two reasons and the end of a slow cycle (0.9521 at T = 400 on 800 cells); the two gaps are printed only when they are typed', '');
   await choose(page, 'B5-pred', '0'); await type('pump', 'B5-quarter');
   const e1 = await textsOf(page, 'pane-wshift');
   report(e1.includes('e · position X(t) of the light') && !e1.some((t) => /γ/.test(t)), 'figure e with gamma(T/4) right and C empty: no curve gamma(t)/2pi', `title "${e1.find((t) => /^e · /.test(t))}"`);
@@ -487,6 +580,16 @@ async function behaviour(browser) {
   await choose(page, 'B8-p1', '1');
   const c8 = await type('chern', 'B8-c1', ['1']);
   const t4 = (await paneText('chern')).replace(/\s+/g, ' ');
+  await page.click('#show-B7'); await page.click('#show-B8');
+  const formula7 = await page.locator('#formula-B7').innerText(), formula8 = await page.locator('#formula-B8').innerText();
+  await page.click('#show-B7'); await page.click('#show-B8');
+  const loopWords = (await textsOf(page, 'pane-wloops')).join(' | ');
+  report(/\(a\) upper band of pump \(solid cycle\)/.test(t4) && /\(b\) pump_back \(solid cycle backwards, Δ → −Δ\), lower band/.test(t4) && /\(c\) pump_aside \(dotted cycle\), lower band\. One more cycle: J₁ = 2\.5 \+ 0\.5·cos\(2πt\/T\)/.test(t4) && /\(d\) pump_sheet with the numbers of the task sheet \(dashed cycle\), lower band/.test(t4)
+    && !/lies aside|does not go around|not enclos/i.test(t4 + loopWords) && !/gap/i.test(loopWords) && /does the cycle go around the point \(0, 0\), and which way round\?/.test(t4) && /pump_back: {1,2}J₁ and J₂ as in pump/.test(formula8),
+    'B8: the four cases are named as in the code file (pump, pump_back, pump_aside, pump_sheet) with their lines in the picture; the dotted cycle is "one more cycle"; nothing says what is special about the point (0, 0)', `figure: ${loopWords}`);
+  report(/TODO B6 plaquette: the code says that your function is right and prints no number of this step/.test(t4) && /In the file: TODO B7 chern\./.test(t4) && /In the file: TODO B8, your four predictions\. The code prints the four C after them\./.test(t4) && /Sum of all 16 plaquette phases:/.test(t4) && /the two states in the gap \(edge states\)/.test(t4)
+    && /k_s = 2π\(s − 1\)\/4 and t_j = \(j − 1\)·T\/4; {1,2}s, j = 1 … 4, point 5 is point 1 again/.test(formula7) && /C = \(sum of all plaquette phases\)\/2π/.test(formula7) && !/U\[i\]|imaginary unit/.test(formula7) && /k_s = 2π\(s − 1\)\/8 and t_j = \(j − 1\)·T\/8/.test(formula8),
+    'tab 4: the steps are named as in the code file (TODO B6 plaquette, TODO B7 chern, TODO B8 four predictions); "sum of all plaquette phases"; the grid is counted as k_s in Part A, s and j from 1', '');
   report(e6.state === 'wrong' && /row by row/.test(e6.msg) && !/eigh|\|h\|/.test(e6.msg) && c8.state === 'wrong' && /C is an integer/.test(c8.msg) && !/four decimals/.test(c8.msg) && /Δ = 0\.2·sin\(2πt\/T\)/.test(t4) && /Grid: k = 0, π\/2, π, 3π\/2 and t = 0, T\/4, T\/2, 3T\/4/.test(t4) && !/2πi\/4/.test(t4) && /with length 1/.test(t4),
     'tab 4: +1.5 for H·b = …·b is answered for this step; a wrong integer is not asked for decimals; the dotted cycle is printed with its argument', `"${e6.msg}" | "${c8.msg}"`);
   titles.push(...await cutTitles(page));
@@ -561,7 +664,7 @@ async function phone(browser, theme) {
     if (tab === 'hand') { await toTop('#pane-wcircle'); await shot(`workbook_hand_390_${theme}_view.png`); }
     if (tab === 'chern') { await toTop('#pane-wloops'); await shot(`workbook_chern_390_${theme}_view.png`); }
   }
-  report(titles.length === 0 && wide.every((x) => { const [a, b] = x.split(' ')[1].split('/').map(Number); return a <= b; }), `${theme}: no title of a figure is cut, and no tab is wider than the screen`, titles.join('; ') || wide.join(', '));
+  report(titles.length === 0 && wide.every((x) => { const [a, b] = x.split(' ')[1].split('/').map(Number); return a <= 390 && b === 390; }), `${theme}: no title of a figure is cut, and no tab is wider than the screen`, titles.join('; ') || wide.join(', '));
 
   // coming back to a tab: the page shows the field that was used last there, not the top
   await open('hand');
@@ -574,6 +677,56 @@ async function phone(browser, theme) {
   report(yWork > 300 && yOther < 50 && fieldSeen && yBack > 300, `${theme}: back on a tab, the page shows the field that was used last`, `field ${used}: the page was at ${Math.round(yWork)} px, on tab 2 at ${Math.round(yOther)} px, back on tab 1 at ${Math.round(yBack)} px, the field is on the screen: ${fieldSeen}`);
   report(errors.length === 0, `${theme}, phone: no console error, no page error`, errors.slice(0, 5).join(' | '));
   await context.close();
+}
+
+// ---------- figure a of tab 3: the moving dot never covers the label "t = 0" ----------
+// The label stands inside the cycle of the workbook (there is no room to its right) and outside the smaller cycle of the
+// task sheet. The moving dot is the largest circle of the figure, the point t = 0 a circle of radius 3.
+async function cycleLabel(browser) {
+  console.log('\nfigure a of tab 3: the label "t = 0" and the moving dot');
+  for (const [width, height] of [[390, 844], [768, 900], [1280, 800]]) {
+    const context = await browser.newContext({ viewport: { width, height }, colorScheme: 'light' });
+    await context.addInitScript(RECORDER);
+    const page = await context.newPage();
+    await page.goto(`${BASE}workbook.html#pump`); await page.waitForSelector('#pane-wc .wb-step'); await page.waitForTimeout(300);
+    const covered = [];
+    const place = [];
+    let gap = Infinity;
+    for (const sheet of [false, true]) {
+      if (sheet) { await page.click('#sheet'); await page.waitForTimeout(100); }
+      for (const sv of [0, 0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14, 0.2, 0.8, 0.86, 0.9, 0.94, 0.98, 1]) {
+        await page.evaluate((v) => { const e = document.getElementById('ts'); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); }, sv);
+        const d = await drawn(page, 'pane-wcycle'), lab = d.texts.find((x) => x.t === 't = 0'), dot = d.dots.filter((a) => a.r > 5).pop(), start = d.dots.find((a) => Math.abs(a.r - 3) < 0.5);
+        if (!lab || !dot || !start) { covered.push(`t/T = ${sv}: label or dot not drawn`); continue; }
+        if (sv === 0) place.push(lab.right < start.x ? 'inside' : lab.left > start.x ? 'outside' : 'on the point');
+        const dx = Math.max(lab.left - (dot.x + dot.r), dot.x - dot.r - lab.right, 0), dy = Math.max(lab.y - 6 - (dot.y + dot.r), dot.y - dot.r - (lab.y + 6), 0);
+        gap = Math.min(gap, Math.hypot(dx, dy));
+        if (dx === 0 && dy === 0) covered.push(`t/T = ${sv}${sheet ? ' (numbers of the task sheet)' : ''}`);
+      }
+    }
+    report(covered.length === 0 && place.join() === 'inside,outside', `${width} px wide, figure a: the moving dot never covers the label "t = 0" (inside the cycle of the workbook, outside the cycle of the task sheet; 15 times each)`, `label ${place.join(', then ')}; ${covered.length ? `covered at ${covered.join(', ')}` : `smallest distance between dot and label ${gap.toFixed(1)} px`}`);
+    await context.close();
+  }
+}
+
+// ---------- narrow screens: no sideways scroll down to 320 px ----------
+async function narrow(browser) {
+  console.log('\nnarrow screens');
+  for (const width of [320, 340, 360]) {
+    const context = await browser.newContext({ viewport: { width, height: 700 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, colorScheme: 'light' });
+    const page = await context.newPage();
+    const seen = [];
+    for (const tab of TABS) {
+      await page.goto(`${BASE}workbook.html#${tab}`); await page.waitForSelector(`#pane-${PANE[tab]} .wb-step`); await page.waitForTimeout(200);
+      const [sw, iw] = await overflow(page);
+      const wide = await page.evaluate(() => [...document.querySelectorAll('.top *, .lect-main *')].filter((e) => e.offsetParent !== null && e.getBoundingClientRect().right > window.innerWidth + 1 && !e.closest('.wb-formula')).length);
+      seen.push({ tab, sw, iw, wide });
+    }
+    const title = await page.evaluate(() => { const h = document.querySelector('.top h1'), long = h.querySelector('.wb-long'); return `${h.innerText}${long.offsetParent === null ? ' (short)' : ''}`; });
+    // (a phone browser widens its layout to a page that is too wide, so both numbers are compared with the width of the screen)
+    report(seen.every((x) => x.sw <= width && x.iw === width && x.wide === 0), `${width} px wide: no tab scrolls sideways, and no element is wider than the screen`, `${seen.map((x) => `${x.tab} ${x.sw}/${x.iw}`).join(', ')}; title "${title}"`);
+    await context.close();
+  }
 }
 
 // ---------- the storage of the browser is off, or holds something else ----------
@@ -651,6 +804,8 @@ async function otherPages(browser) {
     await behaviour(browser);
     await phone(browser, 'light');
     await phone(browser, 'dark');
+    await narrow(browser);
+    await cycleLabel(browser);
     await storageCases(browser);
     await otherPages(browser);
   } catch (e) {

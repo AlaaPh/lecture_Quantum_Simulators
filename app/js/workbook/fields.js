@@ -7,19 +7,21 @@ import { parse, check } from './answers.js';
 
 export const STORE_KEY = 'qsl-workbook-v1';
 // The example numbers in these texts (12.5, 3/8, 0.75, 135, 2.36) are not the result of any step: the node test checks it.
+// "angle" is only used for arg, the angle of a complex number: a field in units of π holds a number, not "the angle".
 export const TEXT = {
   unreadable: 'this is not a number. Write for example 12.5 or 3/8. A complex number goes into the two fields Re and Im.',
   otherPhase: 'right length, other angle. With the u of A1: check the signs and the star. With another phase factor on u this is not a mistake: go on, the closed product is the same and A3 checks it.',
   partial: 'both numbers are needed: write 0 for a part that is zero',
-  wrongHand: 'not this value. Calculate with four decimals and type two or more. The button “show the formula” gives the formula with the numbers.',
-  wrongCode: 'not this value. Compare with the OK line that your code prints for this step. Type four decimals.',
+  wrongHand: 'not this value. Calculate with four decimals. By hand, type two or more. The button “show the formula” gives the formula with the numbers.',
+  wrongCode: 'not this value. Compare with the OK line that your code prints for this step. From your code type four decimals.',
   wrongInteger: 'not this number. C is an integer. Compare with the OK line that your code prints for this step.',
   wrongChoice: 'not this one. Look at the figure again.',
   near: 'close, but not close enough: this looks like a rounding error. Calculate with four decimals and round only the number that you type.',
-  unitPi: 'this field is in units of π: type the angle divided by π, a number between −2 and 2. For the angle 3π/4 type 0.75 or 3pi/4, not 135 and not 2.36.',
+  fewDecimals: 'this is the right number with too few decimals. From your code type four decimals, as the OK line prints them.',
+  unitPi: 'this field is in units of π: type the number divided by π, between −2 and 2. For 3π/4 type 0.75 or 3pi/4, not 135 and not 2.36.',
   unitDeg: 'this field is in degrees: type a number between −360 and 360.',
-  radiansInPi: 'this is the angle in radians. Type the angle divided by π.',
-  radiansInDeg: 'this is the angle in radians. This field is in degrees.',
+  radiansInPi: 'this is the number in radians. Type it divided by π.',
+  radiansInDeg: 'this is the number in radians. This field is in degrees.',
   length: 'right direction, wrong length. An eigenvector on this page has length 1.',
   locked: 'The result is calculated: the prediction stays as it was.',
 };
@@ -54,8 +56,10 @@ const keyOf = (f, part) => (part ? `${f.id}.${part}` : f.id);
 // ---------- definitions ----------
 // A typed field. kind, unit, tol, otherPhase, length as in answers.js. ref is the reference value in the unit of the field.
 // wrong: [{ value, hint, tol }] known wrong values with the text shown for them. hint: the text for any other wrong value.
-// code: the number comes from the student's code (four decimals, no talk of rounding); without it the field is a hand field:
+// code: the number comes from the student's code (four decimals); without it the field is a hand field:
 //   a wrong value within NEAR tolerances of the reference is answered as a rounding error (TEXT.near).
+//   In a code field the reference rounded to one, two or three decimals (−0.354 for −0.3536) is still wrong, but it is
+//   answered with TEXT.fewDecimals and not with "not this value" (see fewDecimals).
 // ref and wrong may be functions: then they are read when the field is checked, and may use what stands in the fields
 //   named in after. The field is checked again whenever one of those changes.
 // aria: the field in plain words, for a screen reader. tab: the id of the tab that holds the field.
@@ -95,6 +99,24 @@ function radians(f, ref) {
 }
 export const wrongOf = (f) => { const ref = referenceOf(f); return [...valueOf(f.wrong), ...radians(f, ref)]; };
 const locked = (f) => !!f.lock && f.value !== null && isOk(f.lock);
+// A code value that is the reference rounded to one, two or three decimals: every part is a plain decimal number, each
+// part is the reference rounded to the decimals that were typed (or right within the tolerance), and at least one part
+// has fewer than four decimals. 0.89 for 0.8891 is such a value; 1.0000 for 0.9989 is not.
+const PLAIN_DECIMAL = /^[+\-\u2212\u2013]?\d*(?:[.,](\d+))?$/;
+function fewDecimals(f, text, ref) {
+  if (!f.code || !['real', 'value', 'angle', 'complex'].includes(f.kind)) return false;
+  const refs = f.kind === 'complex' ? (Array.isArray(ref) ? ref : [ref.re, ref.im]) : [ref];
+  let fewer = false;
+  for (let i = 0; i < f.parts.length; i++) {
+    const t = (text[f.parts[i]] ?? '').trim(), m = PLAIN_DECIMAL.exec(t);
+    if (!m || t === '') return false;
+    const d = m[1] ? m[1].length : 0, x = Number(t.replace(',', '.').replace(/[\u2212\u2013]/, '-'));
+    const few = d >= 1 && d <= 3;
+    if (!Number.isFinite(x) || Math.abs(x - refs[i]) > (few ? 0.5 * 10 ** -d + 1e-9 : f.tol ?? HAND_TOL)) return false;
+    if (few) fewer = true;
+  }
+  return fewer;
+}
 
 // The verdict for the texts of a field (one string per part), without changing the field.
 function verdict(f, text) {
@@ -108,6 +130,7 @@ function verdict(f, text) {
   else if (res.state === 'wrong') {
     message = res.reason === 'range' ? (f.unit === 'pi' ? TEXT.unitPi : TEXT.unitDeg) : res.reason === 'length' ? f.lengthHint
       : res.hintId !== null ? wrong[res.hintId].hint : res.reason === 'near' ? TEXT.near : f.hint;
+    if (res.hintId === null && res.reason === null && fewDecimals(f, text, referenceOf(f))) { message = TEXT.fewDecimals; res.reason = 'decimals'; }
   }
   return { state: res.state, typed: res.value, reason: res.reason, message, partial: res.state === 'empty' && f.parts.some((p) => (text[p] ?? '').trim() !== '') };
 }
@@ -121,6 +144,7 @@ function evaluate(f) {
 }
 const textOf = (f, strings) => Object.fromEntries(f.parts.map((p, i) => [p, strings[i] ?? '']));
 // What the page answers to these strings in this field: { state, message, reason, typed }. Nothing is stored. For the tests.
+// reason is the reason of answers.js ('range', 'near', 'length') or 'decimals' for a code value with too few decimals.
 export function judge(id, strings) { const f = get(id); return verdict(f, textOf(f, [].concat(strings))); }
 // Type these strings into a field from code and check it, as Enter does. For the tests, and for a page without its DOM.
 export function enter(id, strings) {

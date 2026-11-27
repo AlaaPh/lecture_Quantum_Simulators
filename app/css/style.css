@@ -317,8 +317,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
 .workbook .controls-bar .ctl-slider.wb-short { min-width: 130px; flex: 0 1 160px; }
 .workbook .controls-bar .ctl-slider.wb-time { grid-template-columns: auto minmax(0, 1fr) 3.2em; }
 .workbook .controls-bar .time { min-width: 7ch; }
-/* the header: the long title only where it fits beside the tabs, the tabs in their own row where they do not fit */
-@media (min-width: 1251px) and (max-width: 1520px) { .workbook .wb-long { display: none; } }
+/* the header: the long title only where it fits beside the tabs (and not on a screen below 360 px, where it is wider
+   than the screen), the tabs in their own row where they do not fit */
+@media (min-width: 1251px) and (max-width: 1520px), (max-width: 359px) { .workbook .wb-long { display: none; } }
 @media (max-width: 1250px) { .workbook .top { flex-wrap: wrap; row-gap: 6px; } .workbook .acts { order: 3; flex-basis: 100%; margin-left: 0; } }
 .wb-steps { overflow: auto; padding: 10px 14px 18px; font-size: 13.5px; line-height: 1.5; }
 .wb-steps .m { font-family: var(--font-math); font-size: 14.5px; white-space: nowrap; }
@@ -343,6 +344,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
 .wb-k small { display: block; font: 11px var(--font-ui); color: var(--fg-2); }
 .wb-given { font-family: var(--font-math); font-size: 14px; padding-top: 5px; max-width: 60ch; }
 .wb-row.worked .wb-given { padding-top: 0; font-variant-numeric: tabular-nums; }
+.wb-note { padding-top: 6px; max-width: 52ch; }
+.wb-note code, .wb-steps .nb { white-space: nowrap; }
 .wb-case { padding: 4px 0 2px; border-top: 1px dashed var(--line); }
 .wb-f { display: inline-flex; flex-direction: column; gap: 2px; min-width: 0; max-width: 100%; }
 .wb-line { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 5px; }
@@ -390,6 +393,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
   /* Tab 3: Play and the sliders directly above the five figures, the figures in one block, two beside each other:
      on a phone the controls and all five figures fit on one screen. The steps follow. */
   .workbook .lect-main[data-act="pump"] > .controls-bar { order: -1; }
+  /* the two sliders share one row, so that the controls keep their height with the button "numbers of the task sheet" */
+  .workbook .controls-bar .ctl-slider.wb-time { flex: 3 1 170px; }
+  .workbook .controls-bar .ctl-slider.wb-short { flex: 1 1 110px; min-width: 110px; }
   .workbook .stage-grid[data-act="pump"] { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .workbook .stage-grid[data-act="pump"] > *, .workbook .stage-grid[data-act="pump"] .wb-steps > * { grid-column: 1 / -1; }
   .workbook .stage-grid[data-act="pump"] > .pane:not(.wb-steps) { min-height: 168px; }
@@ -402,7 +408,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
   .wb-in.wide { width: 7.6em; }
   .wb-row { flex-direction: column; gap: 6px; }
   .wb-k { min-width: 0; padding-top: 2px; font-weight: 600; }
-  .wb-given { padding-top: 0; }
+  .wb-given, .wb-note { padding-top: 0; }
   .wb-msg { max-width: none; }
   .wb-steps .m { white-space: normal; }
   .workbook .acts { flex-wrap: wrap; overflow-x: visible; }

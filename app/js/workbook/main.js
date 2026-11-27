@@ -2,7 +2,9 @@
 // themselves, in small steps that are checked at once. Four tabs. Each has a lead text, the step blocks with their
 // fields, and the figures that fill in with the right answers.
 // Conventions: H(k) = [[Δ, h*], [h, −Δ]], h(k) = J₁ + J₂e^{ik}, basis (A, B), +Δ on A, lower band = smallest eigenvalue,
-// k_s = 2π(s − 1)/M, γ = −arg of the closed product of overlaps, C = (sum of the plaquette phases)/2π.
+// k_s = 2π(s − 1)/M, γ = −arg of the closed product of overlaps, C = (sum of all plaquette phases)/2π.
+// Words: "angle" is arg, the angle of a complex number; the quantity of the hand tables is −arg. "task sheet" is the sheet
+// of the course with the tasks, "worksheet" the printed sheet of this workbook.
 // Files: model.js (physics), answers.js (reading a typed value), fields.js (the fields and their storage),
 // content.js (the steps), pump.js (data of the pump), figures.js (the drawings), this file (the page shell).
 import { el, button, row, slider } from '../ui.js';
@@ -28,7 +30,7 @@ let tsSlider = null;
 const acts = [
   {
     id: 'hand', tab: '1 · Zak phase by hand', heading: 'Zak phase by hand: four values of k (task 8)',
-    lead: 'The overlap ⟨u|v⟩ = u<sub>A</sub>*·v<sub>A</sub> + u<sub>B</sub>*·v<sub>B</sub> of two eigenvectors is one complex number; arg is its angle. u and e<sup>iχ</sup>·u are the same eigenvector, so the angle of one overlap is arbitrary. In a closed loop every e<sup>iχ</sup> cancels: Berry phase = −arg(product of the overlaps around the loop). The loop through all k from 0 to 2π gives the Zak phase γ.',
+    lead: 'The overlap ⟨u|v⟩ = u<sub>A</sub>*·v<sub>A</sub> + u<sub>B</sub>*·v<sub>B</sub> of two eigenvectors is one complex number; arg is its angle in the complex plane. u and e<sup>iχ</sup>·u are the same eigenvector, so the angle of one overlap is arbitrary. In a closed loop every e<sup>iχ</sup> cancels: Berry phase = −arg(product of the overlaps around the loop), minus the angle of the product. The loop through all k from 0 to 2π gives the Zak phase γ.',
     panes: ['wa', 'wcircle', 'wturn'], canPlay: false,
     enter(ctl) { ctl.append(el('a', { class: 'btn', href: 'pdf/zak_chern_worksheet.pdf', download: '', text: 'worksheet (PDF)' })); },
     caption() {
@@ -53,7 +55,7 @@ const acts = [
       tsSlider = slider({ id: 'ts', label: '<i>t</i> / <i>T</i>', min: 0, max: 1, step: 0.005, value: pump.s, format: (v) => v.toFixed(3), onInput: (v) => { pump.s = v; setPlaying(false); render(); } });
       tsSlider.root.classList.add('wb-time');
       const pair = button('pair (A − B)/√2', () => setInput('pair'), { id: 'in-pair', title: 'amplitude 1/√2 on guide A and −1/√2 on guide B of the middle cell: the lower band at t = 0' }), guide = button('one guide', () => setInput('guide'), { id: 'in-guide', title: 'all light on guide A of the middle cell' });
-      const sheet = button('numbers of the sheet', () => { pump.sheet = !pump.sheet; pressed(sheet, pump.sheet); render(); }, { id: 'sheet', title: 'δJ = 0.5, Δ₀ = 0.2 as on the task sheet, in place of δJ = 1, Δ₀ = 0.5' });
+      const sheet = button('numbers of the task sheet', () => { pump.sheet = !pump.sheet; pressed(sheet, pump.sheet); render(); }, { id: 'sheet', title: 'δJ = 0.5, Δ₀ = 0.2 as on the task sheet, in place of δJ = 1, Δ₀ = 0.5' });
       const setInput = (v) => { pump.input = v; pressed(pair, v === 'pair'); pressed(guide, v === 'guide'); render(); };
       pressed(pair, pump.input === 'pair'); pressed(guide, pump.input === 'guide'); pressed(sheet, pump.sheet);
       const period = slider({ id: 'T', label: '<i>T</i>', min: 0, max: T_VALUES.length - 1, step: 1, value: T_VALUES.indexOf(pump.T), format: (v) => String(T_VALUES[v]), onInput: (v) => { pump.T = T_VALUES[v]; render(); } });
@@ -63,7 +65,7 @@ const acts = [
     },
     caption() {
       const p = paramsAt(pump.sheet, pump.s), sim = simulation(pump.sheet, pump.T, pump.input);
-      return `t/T = ${pump.s.toFixed(3)}: J₁ = ${num(p.J1)}, J₂ = ${num(p.J2)}, Δ = ${num(p.D)} · ${pump.sheet ? 'numbers of the sheet, ' : ''}T = ${pump.T} on ${CELLS[pump.sheet ? 'sheet' : 'hand'][pump.T]} unit cells, dt = ${DT}, input ${pump.input === 'pair' ? '(A − B)/√2 on one cell' : 'one guide A alone'} · d shows the cells −${sim.W} … ${sim.W}: the light spreads, because the band is not flat during the cycle. X is its mean position, the orange line in d and the blue curve in e.`;
+      return `t/T = ${pump.s.toFixed(3)}: J₁ = ${num(p.J1)}, J₂ = ${num(p.J2)}, Δ = ${num(p.D)} · ${pump.sheet ? 'numbers of the task sheet, ' : ''}T = ${pump.T} on ${CELLS[pump.sheet ? 'sheet' : 'hand'][pump.T]} unit cells, dt = ${DT}, input ${pump.input === 'pair' ? '(A − B)/√2 on one cell' : 'one guide A alone'} · d shows the cells −${sim.W} … ${sim.W}: the light spreads, because the band is not flat during the cycle. X is its mean position, the orange line in d and the blue curve in e.`;
     },
     render() { draw.pump(pump); },
   },
@@ -74,7 +76,7 @@ const acts = [
     enter() {},
     caption() {
       const cols = count([1, 2, 3, 4].map((j) => `B7-col${j}`));
-      return `Map: one cell per plaquette, k upward and t to the right; the row “sum” holds the four column sums. The cell with the thick frame is the plaquette of B6 and fills in when F is right. A column fills in when its sum is right: ${cols} of 4 so far. Each right column sum adds a dot to γ(t); the last dot appears when your sum of all 16 is right (${dotsShown()} of 4 dots). Lower right: the cycles of B8 with a dot at t = 0 and an arrow in the direction of the time. On the solid cycle the upper arrow is (a), the lower one (b).`;
+      return `Map: one cell per plaquette, k upward and t to the right; the row “sum” holds the four column sums. The cell with the thick frame is the plaquette of B6 and fills in when F is right. A column fills in when its sum is right: ${cols} of 4 so far. Each right column sum adds a dot to γ(t); the last dot appears when your sum of all 16 plaquette phases is right (${dotsShown()} of 4 dots). Lower right: the cycles of B8 with a dot at t = 0 and an arrow in the direction of the time. On the solid cycle the upper arrow is (a), the lower one (b).`;
     },
     render() { draw.chern(); },
   },

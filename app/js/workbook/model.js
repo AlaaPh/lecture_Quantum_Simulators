@@ -494,6 +494,8 @@ export function stepsB() {
       out.start.one_guide.T50 = guide50.shiftStart; out.start.upper_band.T50 = upper50.shiftStart; out.start.sheet_T20_pair = sheet20.shiftStart;
       out.start.one_guide.T20 = propagate(dJ, D0, 20, 40, dt, { input: 'guide' }).shiftStart;      // the mistake "one guide alone as input"
       out.start.upper_band.T20 = propagate(dJ, D0, 20, 40, dt, { input: 'upper' }).shiftStart;
+      out.start.one_guide.T100 = propagate(dJ, D0, 100, 120, dt, { input: 'guide' }).shiftStart;   // the same two mistakes in the slow cycle
+      out.start.upper_band.T100 = propagate(dJ, D0, 100, 120, dt, { input: 'upper' }).shiftStart;
       return out;
     },
     B4: () => {
