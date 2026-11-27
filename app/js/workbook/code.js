@@ -5,7 +5,62 @@
 // because in MATLAB they are the function for arg and the imaginary unit.
 // No line is longer than 46 characters, so that a phone shows every line whole.
 // Tested by tools/test_code_hints.sh: Python 3 with numpy; the MATLAB lines in GNU Octave 8, not in MATLAB itself.
+// PROGRAMS (at the end) lists which blocks make one program, in the order of the questions.
 export const CODE = {
+  // ---------- Exercise 1: the chain of 20 waveguides (task 0) ----------
+  chainE: {
+    py: `import numpy as np
+
+N = 20
+one = np.ones(N - 1)     # 19 times the 1
+# 1 above and below the diagonal
+H = np.diag(one, 1) + np.diag(one, -1)
+# E: eigenvalues, lowest first
+# V: eigenvectors, one in each column
+E, V = np.linalg.eigh(H)
+print(E[0])              # the lowest`,
+    m: `N = 20;
+one = ones(1, N - 1);    % 19 times the 1
+% 1 above and below the diagonal
+H = diag(one, 1) + diag(one, -1);
+% V: eigenvectors, one in each column
+[V, D] = eig(H);
+% sort: lowest eigenvalue first
+[E, idx] = sort(diag(D));
+V = V(:, idx);
+disp(E(1))               % the lowest`,
+  },
+  chainV: {
+    py: `# uses E, V from question 2
+top = V[:, -1]           # the last column
+# waveguide 10 is the index 9
+print(abs(top[9]))`,
+    m: `% uses E, V from question 2
+top = V(:, end);         % the last column
+% waveguide 10 is the index 10
+disp(abs(top(10)))`,
+  },
+  chainProp: {
+    py: `# uses N, E, V from question 2
+psi0 = np.zeros(N)
+psi0[9] = 1              # waveguide 10
+z = 1
+# the 20 overlaps <v_n|psi(0)>
+c = V.T @ psi0
+# every eigenvector gets its factor
+psi = V @ (np.exp(-1j*E*z)*c)
+print(abs(psi[9])**2)`,
+    m: `% uses N, E, V from question 2
+psi0 = zeros(N, 1);
+psi0(10) = 1;            % waveguide 10
+z = 1;
+% the 20 overlaps <v_n|psi(0)>
+c = V'*psi0;
+% every eigenvector gets its factor
+psi = V*(exp(-1i*E*z).*c);
+disp(abs(psi(10))^2)`,
+  },
+  // ---------- Exercise 4: the lattice of five waveguides ----------
   couplings: {
     py: `import numpy as np
 
@@ -192,3 +247,10 @@ end
 disp(total/(2*pi))`,
   },
 };
+
+// One program is the blocks of one part, in the order of its questions. numbers: what the program prints, as keys of
+// tools/workbook_numbers.json (a key of "exercises" for the parts of Exercises 1 to 3).
+export const PROGRAMS = [
+  { id: 'chain', blocks: ['chainE', 'chainV', 'chainProp'] },
+  { id: 'aah', blocks: ['couplings', 'matrix', 'overlap', 'zak', 'zak2', 'plaquette', 'sum', 'band2'] },
+];

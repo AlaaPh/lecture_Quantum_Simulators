@@ -1,13 +1,15 @@
 // Tests of the workbook without a browser. Run from the repository root:  node tools/test_workbook.mjs
 // Exit code 1 if any check fails.
-//   1. the model of the page (app/js/workbook/aah.js) against tools/workbook_numbers.json. These numbers were computed
-//      with numpy in two independent ways (see the note in the file) and are not produced by the page.
-//   2. every question of the three parts: the right answer in the spellings a student uses, a rounded value, every
+//   1. the models of the page (app/js/workbook/aah.js and lattice.js) against tools/workbook_numbers.json. These
+//      numbers were computed with numpy (the lattice of Exercise 4 in two independent ways, see the note in the file;
+//      Exercises 1 to 3 by tools/workbook_reference.py) and are not produced by the page.
+//   2. every question of every part: the right answer in the spellings a student uses, a rounded value, every
 //      known wrong value with its own hint, an empty and an unreadable field
 //   3. the numbers that the texts of the page state
 //   4. the reader of typed numbers (app/js/workbook/answers.js): a table of strings and 200000 random strings
 import { readFileSync } from 'node:fs';
 import * as A from '../app/js/workbook/aah.js';
+import * as L from '../app/js/workbook/lattice.js';
 import { parse } from '../app/js/workbook/answers.js';
 import { judge, val } from '../app/js/workbook/judge.js';
 import { zak } from '../app/js/workbook/zak.js';
@@ -54,6 +56,84 @@ report([1, 2, 3, 4, 5].every((b) => close(A.chernGrid(b, 10).C, [2, -3, 2, -3, 2
   report(close(nrm, 1, 1e-6), 'the norm after the period is 1', nrm.toFixed(9));
   const edge = Math.max(...rec.map((r) => r.I[0] + r.I[1] + r.I[r.I.length - 1] + r.I[r.I.length - 2]));
   report(edge < 1e-6, 'no light reaches the ends of the chain of 21 cells', edge.toExponential(1));
+}
+
+console.log('1b. the models of Exercises 1 to 3 (app/js/workbook/lattice.js) against the independent numbers');
+{
+  const X = R.exercises, abs = (c) => Math.hypot(c[0], c[1]);
+  // three waveguides
+  list('three waveguides: E of the three supermodes', L.MODES3.map((m) => m.E), X.three_E, 1e-12);
+  report(L.MODES3.every((m) => L.apply3(m.v).every((v, i) => close(v, m.E * m.v[i], 1e-12))), 'three waveguides: H·v = E·v for the three supermodes');
+  list('three waveguides: weights of the supermodes in ψ = (1, 0, 0)', L.MODES3.map((m) => m.v[0] ** 2), X.three_weights_guide1, 1e-12);
+  num('three waveguides: z at which all light is in waveguide 3', L.Z_CROSS, X.three_z_cross, 1e-12);
+  list('three waveguides: the light at z = 1', L.coupler3(1), X.three_I_z1, 1e-12);
+  list('three waveguides: the light at the crossing', L.coupler3(L.Z_CROSS), X.three_I_at_z_cross, 1e-12);
+  // the chain
+  const e20 = L.chainEig(20);
+  num('chain of 20: lowest eigenvalue', e20.values[0], X.chain20_lowest, 1e-10);
+  num('chain of 20: highest eigenvalue', e20.values[19], X.chain20_highest, 1e-10);
+  num('chain of 19: lowest eigenvalue', L.chainEig(19).values[0], X.chain19_lowest, 1e-10);
+  num('chain of 21: lowest eigenvalue', L.chainEig(21).values[0], X.chain21_lowest, 1e-10);
+  num('ring of 20: lowest eigenvalue', L.ringLowest(20), X.ring20_lowest, 1e-10);
+  list('chain of 20: the formula 2J·cos(nπ/21)', Array.from({ length: 20 }, (_, i) => L.chainExact(i + 1, 20)), X.chain20_formula, 1e-12);
+  list('chain of 20: the eigenvalues are the formula', [...e20.values].reverse(), X.chain20_formula, 1e-10);
+  list('chain of 20: |components| of the highest eigenvector', e20.vectors[19].map(Math.abs), X.chain20_top_abs, 1e-9);
+  report(e20.vectors[19].every((v) => v * e20.vectors[19][0] > 0) && e20.vectors[0].every((v, i, a) => i === 0 || v * a[i - 1] < 0), 'chain of 20: highest eigenvector one sign, lowest eigenvector alternating signs');
+  num('chain of 20: light in waveguide 10 at z = 1', L.spread(e20, 10, 1)[9], X.chain20_I10_z1, 1e-10);
+  list('chain of 20: the light at z = 4', L.spread(e20, 10, 4), X.chain20_I_z4, 1e-9);
+  num('two waveguides: the higher eigenvalue', L.chainEig(2).values[1], X.chain2_E[1], 1e-12);
+  // one Runge–Kutta step
+  const rk = L.rkStep();
+  for (const k of ['k1', 'k2', 'k3', 'k4', 'sum', 'psi1', 'euler', 'exact']) list(`Runge–Kutta step: ${k}`, rk[k], X[`rk_${k}`], 1e-12);
+  num('Runge–Kutta step: |ψ₁|', abs(rk.psi1), X.rk_abs_psi1, 1e-12);
+  num('Runge–Kutta step: |ψ| after one Euler step', abs(rk.euler), X.rk_abs_euler, 1e-12);
+  num('Runge–Kutta step with E·dz = 0.1: |ψ₁|', abs(L.rkStep(1, 0.1).psi1), X.rk_abs_step_x01, 1e-12);
+  report(abs(L.rkStep(1, L.RK_LIMIT - 1e-3).psi1) < 1 && abs(L.rkStep(1, L.RK_LIMIT + 1e-3).psi1) > 1 && close(L.RK_LIMIT, X.rk_stability_limit, 1e-4), 'Runge–Kutta step: |ψ₁| ≤ 1 up to E·dz = 2√2', String(X.rk_stability_limit));
+  const run = L.rkChain();
+  num('41 waveguides, 20 steps of 0.1: light in waveguide 21', run.I[20], X.rk41_I21, 1e-9);
+  num('41 waveguides, 20 steps of 0.1: sum of the light', run.norm, X.rk41_norm, 1e-9);
+  num('the same with Euler steps: light in waveguide 21', run.euler[20], X.euler41_I21, 1e-9);
+  num('the same with Euler steps: sum of the light', run.eulerNorm, X.euler41_norm, 1e-9);
+  num('the exact value at z = 2', run.exact[20], X.exact41_I21_z2, 1e-9);
+  num('the exact value at z = 1', L.spread(L.chainEig(41), 21, 1)[20], X.exact41_I21_z1, 1e-9);
+  // a beam
+  num('band: E(π/3)', L.band(Math.PI / 3), X.band_k_pi3, 1e-12);
+  num('velocity at k = π/2', L.velocity(Math.PI / 2), X.velocity_k_pi2, 1e-12);
+  const beam = L.beamRun(L.BEAM);
+  num('beam: centre at z = 0', beam[0].x, X.beam_centre_z0, 1e-8);
+  num('beam: centre at z = 5', beam[beam.length - 1].x, X.beam_centre_z5, 1e-7);
+  const period = (2 * Math.PI) / L.BLOCH.F;
+  num('Bloch oscillation: period 2π/F', period, X.bloch_period, 1e-12);
+  num('Bloch oscillation: centre after half a period', L.beamRun({ ...L.BLOCH, zmax: period / 2, rows: 1 })[1].x, X.bloch_centre_half, 1e-7);
+  num('Bloch oscillation: centre after one period', L.beamRun({ ...L.BLOCH, zmax: period, rows: 1 })[1].x, X.bloch_centre_full, 1e-7);
+  { const b = L.beamRun(L.BLOCH); num('Bloch oscillation: centre at z = 25', b[b.length - 1].x, X.bloch_centre_z25, 1e-7); }
+  // the SSH chain
+  list('SSH chain, 20 waveguides, J₁ = 2, J₂ = 1: eigenvalues', L.sshEig(20, 2, 1).values, X.ssh20_21_E, 1e-9);
+  num('the smallest positive one', L.smallestPositive(L.sshEig(20, 2, 1).values), X.ssh20_21_smallest_positive, 1e-9);
+  list('SSH chain, 21 waveguides, J₁ = 2, J₂ = 1: eigenvalues', L.sshEig(21, 2, 1).values, X.ssh21_21_E, 1e-9);
+  { const v = L.sshEig(21, 2, 1).vectors[10]; num('its eigenvector number 11: ψ₃/ψ₁', v[2] / v[0], X.ssh21_21_ratio_3_1, 1e-8); list('its absolute values', v.map(Math.abs), X.ssh21_21_zero_vector_abs, 1e-9); num('its part on waveguide 21', v[20] ** 2, X.ssh21_21_weight_guide21, 1e-9); }
+  { const v = L.sshEig(21, 1, 2).vectors[10]; num('21 waveguides, J₁ = 1, J₂ = 2: ψ₃/ψ₁ of eigenvector 11', v[2] / v[0], X.ssh21_12_ratio_3_1, 1e-8); num('its part on waveguide 1', v[0] ** 2, X.ssh21_12_weight_guide1, 1e-9); }
+  list('SSH chain, 20 waveguides, J₁ = 1, J₂ = 2: eigenvalues', L.sshEig(20, 1, 2).values, X.ssh20_12_E, 1e-9);
+  num('the smallest positive one', L.smallestPositive(L.sshEig(20, 1, 2).values), X.ssh20_12_smallest_positive, 1e-9);
+  // k-space
+  list('|h(k)| at k = 0, π/2, π for J₁ = 2, J₂ = 1', [0, Math.PI / 2, Math.PI].map((k) => Math.hypot(...L.hSSH(k, 2, 1))), X.kspace_abs_h_21, 1e-12);
+  num('lower eigenvalue of H(k) at k = 2π/3', -L.bandSSH((2 * Math.PI) / 3, 2, 1), X.kspace_lower_2pi3, 1e-12);
+  list('edges of the upper band', [L.bandSSH(Math.PI, 2, 1), L.bandSSH(0, 2, 1)], X.kspace_band_21, 1e-12);
+  // the Zak phase
+  num('|⟨u(0)|u(π/2)⟩| for J₁ = 1, J₂ = 2', abs(L.overlap2(L.uLower(0, 1, 2), L.uLower(Math.PI / 2, 1, 2))), X.zak_overlap_abs_0_pi2, 1e-12);
+  list('product of the four overlaps', L.zakSSH(1, 2, 0, 4).product, X.zak_product_M4, 1e-12);
+  num('|γ|/π for J₁ = 1, J₂ = 2, M = 50', Math.abs(L.zakSSH(1, 2, 0, 50).gamma) / Math.PI, X.zak_gamma_over_pi_M50_12, 1e-9);
+  num('γ/π for J₁ = 2, J₂ = 1, M = 50', L.zakSSH(2, 1, 0, 50).gamma / Math.PI, X.zak_gamma_over_pi_M50_21, 1e-9);
+  num('three points: the product is 0', abs(L.zakSSH(1, 2, 0, 3).product), X.zak_product_M3_abs, 1e-12);
+  // the on-site term
+  list('21 waveguides, J₁ = 2, J₂ = 1, Δ = 0.5: eigenvalues', L.sshEig(21, 2, 1, 0.5).values, X.onsite21_E, 1e-9);
+  num('its eigenvalue number 11', L.sshEig(21, 2, 1, 0.5).values[10], X.onsite21_mid, 1e-9);
+  num('overlap of this eigenvector with the one at Δ = 0', L.dotAbs(L.sshEig(21, 2, 1, 0.5).vectors[10], L.sshEig(21, 2, 1).vectors[10]), X.onsite21_overlap_with_zero_state, 1e-9);
+  num('upper band at k = π with Δ = 0.5', L.bandSSH(Math.PI, 2, 1, 0.5), X.onsite_band_pi, 1e-12);
+  num('20 waveguides, J₁ = 1, J₂ = 2, Δ = 0.5: positive eigenvalue closest to 0', L.smallestPositive(L.sshEig(20, 1, 2, 0.5).values), X.onsite20_12_closest[1], 1e-9);
+  num('γ/π with Δ = 0.5, J₁ = 1, J₂ = 2, M = 400', L.zakSSH(1, 2, 0.5, 400).gamma / Math.PI, X.onsite_gamma_over_pi_M400, 1e-9);
+  num('the same with M = 50', L.zakSSH(1, 2, 0.5, 50).gamma / Math.PI, X.onsite_gamma_over_pi_M50, 1e-9);
+  num('γ/π with Δ = 0.5, J₁ = 2, J₂ = 1, M = 400', L.zakSSH(2, 1, 0.5, 400).gamma / Math.PI, X.onsite_gamma_over_pi_M400_21, 1e-9);
 }
 
 console.log('2. every question');

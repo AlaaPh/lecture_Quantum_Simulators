@@ -336,6 +336,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
 .step-text code, .step-msg code { font: 500 0.88em var(--font-mono); background: var(--surface-2); padding: 1px 5px; border-radius: 5px; white-space: nowrap; }
 .step-matrix { border-collapse: separate; border-spacing: 0; margin: 6px 0 14px 4px; font: 400 18px var(--font-math); border-left: 2px solid var(--fg-2); border-right: 2px solid var(--fg-2); border-radius: 12px; }
 .step-matrix td { padding: 4px 12px; text-align: center; white-space: nowrap; }
+.step-eq { display: flex; align-items: center; gap: 10px; font: 400 20px var(--font-math); margin: 6px 0 14px; }
+.step-eq .step-matrix { margin: 0; }
 .step-how.code { border-left: 0; padding: 0; color: var(--fg); }
 .step-how.code pre { margin: 6px 0 0; padding: 12px 14px; background: var(--surface-2); border-radius: 10px; overflow-x: auto; font: 400 13px/1.55 var(--font-mono); }
 .step-lang { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
