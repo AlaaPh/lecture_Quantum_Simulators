@@ -14,6 +14,7 @@ import { zak } from '../app/js/workbook/zak.js';
 import { pump } from '../app/js/workbook/pump.js';
 import { chern } from '../app/js/workbook/chern.js';
 import { CODE } from '../app/js/workbook/code.js';
+import { PARTS as ALL_PARTS, GROUPS, questions, WORDS } from '../app/js/workbook/parts.js';
 
 const R = JSON.parse(readFileSync(new URL('./workbook_numbers.json', import.meta.url), 'utf8'));
 const PI = Math.PI, TAU = 2 * PI;
@@ -56,7 +57,7 @@ report([1, 2, 3, 4, 5].every((b) => close(A.chernGrid(b, 10).C, [2, -3, 2, -3, 2
 }
 
 console.log('2. every question');
-const PARTS = [zak, pump, chern];
+const PARTS = ALL_PARTS;
 const spell = (v, d) => { const s = v.toFixed(d); return [s, s.replace('-', '−'), s.replace('.', ','), ` ${s} `]; };
 for (const p of PARTS) {
   let q = 0;
@@ -96,8 +97,9 @@ for (const p of PARTS) {
       }
     }
   }
-  report(q === (p.id === 'zak' ? 10 : 8), `${p.id}: ${q} questions`);
-  report(p.steps[0].title.includes(p.id === 'zak' ? 'ten small questions' : 'eight small questions'), `${p.id}: the first card names the number of questions`);
+  report(q === questions(p) && q >= 4 && q <= 10, `${p.id}: ${q} questions`);
+  report(p.steps[0].title.includes(`${WORDS[q]} small questions`), `${p.id}: the first card names the number of questions (${WORDS[q]})`, p.steps[0].title);
+  report(typeof p.title === 'string' && p.title.length > 2 && typeof p.draw === 'function' && /^[a-z0-9]+$/.test(p.id), `${p.id}: has a title, an address and pictures`);
   report(p.steps[0].type === 'info' && p.steps[p.steps.length - 1].type === 'info' && p.steps[p.steps.length - 1].end === true, `${p.id}: starts and ends with a card`);
 }
 // what the usual mistakes of the code give, and that the page tells them apart
@@ -140,6 +142,8 @@ for (const p of PARTS) {
   report(judge(q(chern, 7), ['-3']).state === 'right' && judge(q(chern, 7), ['-3.0000000000000004']).state === 'right' && judge(q(chern, 7), ['−3']).state === 'right', 'chern 7: −3 is right, also as the computer prints it');
   report(judge(q(chern, 8), ['0']).state === 'right' && judge(q(chern, 8), ['1']).state === 'wrong', 'chern 8: 0 is right');
 }
+
+report(new Set(ALL_PARTS.map((p) => p.id)).size === ALL_PARTS.length && GROUPS.every((g) => g.parts.length > 0 && g.title && g.about), 'every part has its own address and every exercise has parts');
 
 console.log('3. the numbers in the texts');
 {

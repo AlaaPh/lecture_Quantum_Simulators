@@ -1,4 +1,4 @@
-// Part 2: a Thouless pump. The lattice of Jürgensen, Mukherjee, Jörg and Rechtsman, Nature Physics 19, 420 (2023):
+// A Thouless pump. The lattice of Jürgensen, Mukherjee, Jörg and Rechtsman, Nature Physics 19, 420 (2023):
 // five waveguides per unit cell, the couplings change along z because the waveguides are not straight.
 import { cmapSeq, rgbToCss } from '../theme.js';
 import { TAU, font, tag, axes, minus, PERIOD_TICKS } from './draw.js';
@@ -57,7 +57,7 @@ const steps = [
       <p class="step-text">For each k the five waveguides of one unit cell give a 5 × 5 matrix H(k):</p>${MATRIX}
       <p class="step-text">J₁ … J₄ couple neighbours inside the unit cell. J₅ couples waveguide 5 with waveguide 1 of the next unit cell. It carries the phase e<sup>±ik</sup> and stands in the two corners.</p>`,
     pic: pic({ kind: 'chain', J: 3, cells: true, names: true }) },
-  { type: 'number', text: 'Write this matrix in your program, as a function of k and Ωz. You need it again in part 3.', extra: MATRIX,
+  { type: 'number', text: 'Write this matrix in your program, as a function of k and Ωz. You need it again for the Chern number.', extra: MATRIX,
     ask: 'Take z = 0 and k = 0 and calculate the five eigenvalues.', label: 'lowest =', unit: 'mm⁻¹', ph: '−0.000',
     ref: () => E00()[0], tol: 0.0008,
     hint: 'For k = 0 both corners are just J₅. The lowest eigenvalue is the most negative one.',
@@ -79,7 +79,7 @@ const steps = [
     hint: 'Read the line at the bottom (z = 0) and at the top (z = L). One step of the scale is one unit cell.',
     after: () => `2 unit cells (${pumpRun().shift.toFixed(2)} here, because the period is not infinitely long). The light also spreads. Why 2? The next part gives the answer: the Chern number.`,
     pic: (ok) => ({ kind: 'pump', answer: ok }) },
-  { type: 'info', title: 'Part 2 is done', end: true,
+  { type: 'info', title: 'This part is done', end: true,
     html: '<p class="step-text">In one period the light of band 3 moved by 2 unit cells. A lattice that changes slowly and periodically along z and moves the light in this way is called a Thouless pump.</p><p class="step-text">Next: why exactly 2? You calculate the Chern number of band 3.</p>',
     pic: pic({ kind: 'pump', answer: true }) },
 ];
@@ -180,4 +180,4 @@ function draw(panel, st, c) {
   return drawPump(ctx, w, h, c, st);
 }
 
-export const pump = { id: 'pump', chip: '2 · Thouless pump', next: 'the Chern number', steps, draw };
+export const pump = { id: 'pump', title: 'Thouless pump', steps, draw };

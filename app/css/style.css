@@ -343,7 +343,19 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
 .step-lang button.on { background: var(--surface-2); color: var(--fg); }
 .step-lang button:disabled { opacity: 0.4; cursor: default; }
 .steps-page .acts { overflow-x: visible; }
-.steps-page .only-phone { display: none; }
+.steps-page .acts .acts-group { align-self: center; font-size: 13px; color: var(--fg-2); padding: 0 4px 0 10px; white-space: nowrap; }
+/* the contents: all parts, grouped by exercise */
+.steps-main.home { grid-template-columns: minmax(0, 720px); }
+.steps-main.home .step-pic { display: none; }
+.toc-group { margin: 18px 0 0; }
+.toc-group h3 { font: 400 15.5px/1.4 var(--font-ui); color: var(--fg-2); margin: 0 0 6px; }
+.toc-group h3 b { color: var(--fg); font-weight: 600; }
+.toc-demo { font-size: 13px; margin-left: 8px; white-space: nowrap; }
+.toc-part { display: flex; align-items: baseline; gap: 12px; padding: 10px 14px; margin: 6px 0; border: 1px solid var(--line); border-radius: 10px; text-decoration: none; color: var(--fg); background: var(--surface); }
+.toc-part:hover { border-color: var(--fg-2); }
+.toc-part .toc-title { font: 500 17px var(--font-ui); flex: 1; }
+.toc-part .toc-meta { font-size: 13.5px; color: var(--fg-2); white-space: nowrap; }
+.toc-part.done .toc-meta { color: var(--v1); font-weight: 600; }
 .nb { white-space: nowrap; }
 .step-card:focus, #howbox:focus { outline: none; }
 /* the picture inside the card: on a narrow screen, for a question that is answered from the picture */
@@ -363,8 +375,6 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
   .step-how.code pre { font-size: 12px; }
 }
 @media (max-width: 700px) {
-  .steps-page .top a.theme-btn { display: none; }
-  .steps-page .top a.theme-btn.only-phone { display: inline-flex; }
   .steps-page .acts { gap: 2px; }
   .steps-page .acts a { font-size: 12.5px; padding: 5px 6px; }
   .step-how.code pre { margin: 6px -8px 0; padding: 12px 10px; font-size: 11.5px; }

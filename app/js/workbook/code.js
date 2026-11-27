@@ -65,7 +65,7 @@ end
 disp(sort(real(eig(Hk(0, 0)))))`,
   },
   overlap: {
-    py: `# uses Hk(k, phase) from part 2
+    py: `# uses Hk(k, phase) from the part before
 
 # the eigenvector of one band
 def u_band(band, k, phase):

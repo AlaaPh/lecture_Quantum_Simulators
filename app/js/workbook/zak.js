@@ -1,4 +1,4 @@
-// Part 1: the Zak phase of the SSH chain from h(k) = J₁ + J₂e^{ik} at four values of k.
+// The Zak phase of the SSH chain from h(k) = J₁ + J₂e^{ik} at four values of k.
 import { arrow } from '../lecture1/panels.js';
 import { TAU, font } from './draw.js';
 
@@ -58,9 +58,9 @@ const steps = [
     hint: 'The total turn of φ is 0°.',
     after: 'γ = 0. The rule: if h goes around the origin once, γ = π (J₂ &gt; J₁). If it does not, γ = 0 (J₁ &gt; J₂).',
     pic: pic({ set: 'B', n: 4, circle: true, rays: [0, 1, 2, 3] }) },
-  { type: 'info', title: 'Part 1 is done', end: true,
+  { type: 'info', title: 'This part is done', end: true,
     html: `<p class="step-text">You have calculated both Zak phases of the SSH chain: π for J₁ = 1, J₂ = 2 and 0 for J₁ = 2, J₂ = 1.</p>
-      <p class="step-text">Next: a lattice in which the light moves, a Thouless pump.</p>`,
+`,
     pic: pic({ set: 'A', n: 4, circle: true, both: true }) },
 ];
 
@@ -109,4 +109,4 @@ function draw(panel, st, c) {
     : `h(k) in the complex plane for J₁ = ${SETS[st.set].J1}, J₂ = ${SETS[st.set].J2}. The ring is the origin.${st.n ? ' The numbers count the points in the order of k.' : ''}`;
 }
 
-export const zak = { id: 'zak', chip: '1 · Zak phase', next: 'the Thouless pump', steps, draw };
+export const zak = { id: 'zak', title: 'Zak phase', steps, draw };

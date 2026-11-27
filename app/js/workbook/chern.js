@@ -1,4 +1,4 @@
-// Part 3: the Chern number of the bands of the pump of part 2, first from the Zak phase along z, then from the plaquettes.
+// The Chern number of the bands of the Thouless pump (pump.js), first from the Zak phase along z, then from the plaquettes.
 import { arrow } from '../lecture1/panels.js';
 import { cmapDiv, rgbToCss } from '../theme.js';
 import { TAU, font, tag, axes, minus, PERIOD_TICKS } from './draw.js';
@@ -18,7 +18,7 @@ const AROUND = 'The sign is reversed: you went around the square the other way, 
 
 const steps = [
   { type: 'info', title: 'The Chern number in eight small questions', button: 'Start',
-    html: `<p class="step-text">The Chern number of a band is the number of times its Zak phase γ grows by 2π in one period. In part 1, γ followed from one complex number h. Now the Hamiltonian is a 5 × 5 matrix, so take the formula of the lecture:</p>
+    html: `<p class="step-text">The Chern number of a band is the number of times its Zak phase γ grows by 2π in one period. For the SSH chain, γ followed from one complex number h. Now the Hamiltonian is a 5 × 5 matrix, so take the formula of the lecture:</p>
       <div class="step-formula"><span class="nb">γ = −arg(</span> <span class="nb">⟨u<sub>1</sub>|u<sub>2</sub>⟩ ⟨u<sub>2</sub>|u<sub>3</sub>⟩</span> <span class="nb">… ⟨u<sub>M</sub>|u<sub>1</sub>⟩ )</span></div>
       <p class="step-text">M is the number of values of k. u<sub>s</sub> is the eigenvector of H(k) for one band at <span class="nb">k<sub>s</sub> = 2π(s − 1)/M</span>. arg is the angle of a complex number, between −π and π (Python: <code>np.angle</code>, MATLAB: <code>angle</code>).</p>
       <p class="step-text">You build this formula in two steps: first one overlap, then the whole product.</p>`,
@@ -49,7 +49,7 @@ const steps = [
   { type: 'choice', text: 'The picture shows γ/2π of band 3 for the whole period. Your two values are the dots. Your program gives γ only between −π and π; in the picture 2π is added after each jump, so the curve has no jumps.',
     ask: 'By how many unit cells does γ/2π grow in one period?', look: true, options: ['1', '2', '3'], ref: '2',
     hint: 'Read the curve at z = 0 and at z = L and take the difference.',
-    after: 'γ/2π grows by 2. This number is the Chern number of band 3: C = 2. It is the number of unit cells the light moved in part 2.',
+    after: 'γ/2π grows by 2. This number is the Chern number of band 3: C = 2. It is the number of unit cells the light moved in the part on the Thouless pump.',
     pic: (ok) => ({ kind: 'gamma', dots: 2, curve: true, rise: ok }) },
   { type: 'info', title: 'A second way: 10 × 10 small squares',
     html: `<p class="step-text">Divide k and Ωz, both from 0 to 2π, into 10 steps of 2π/10. This gives 10 × 10 small squares.</p>
@@ -79,7 +79,7 @@ const steps = [
   { type: 'number', text: 'The five bands of this lattice have the Chern numbers 2, −3, 2, −3, 2.', ask: 'Add the five Chern numbers.', label: 'sum =', unit: '', ref: 0, tol: 0.001, ph: '0',
     hint: '2 − 3 + 2 − 3 + 2.', how: '2 − 3 + 2 − 3 + 2 = 0.',
     after: '0, always: the Chern numbers of all bands of such a matrix H(k) add up to zero.', pic: pic({ kind: 'bands', chern: [1, 2, 3, 4, 5], hiAll: true }) },
-  { type: 'info', title: 'Part 3 is done', end: true,
+  { type: 'info', title: 'This part is done', end: true,
     html: `<p class="step-text">You have calculated the Chern numbers of bands 3 and 2. All five bands of the lattice of the experiment: 2, −3, 2, −3, 2.</p>
       <p class="step-text">In the paper the light is a soliton. At low power it comes from the lowest band, C = 2; the calculation gives 2 unit cells per period. At high power the measurement gives one unit cell in two periods, in the other direction. There bands 1 and 2 act together: (2 − 3)/2 = −1/2.</p>
       <p class="step-text step-end">Jürgensen, Mukherjee, Jörg, Rechtsman, <a href="https://doi.org/10.1038/s41567-022-01871-x" target="_blank" rel="noopener">Nature Physics 19, 420 (2023)</a></p>`,
@@ -166,4 +166,4 @@ function draw(panel, st, c) {
 }
 void font;
 
-export const chern = { id: 'chern', chip: '3 · Chern number', next: null, steps, draw };
+export const chern = { id: 'chern', title: 'Chern number', steps, draw };

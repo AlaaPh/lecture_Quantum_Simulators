@@ -16,7 +16,7 @@ function read(text, unit) {
 export function judge(step, texts) {
   if (step.type === 'choice') return texts[0] === step.ref ? { state: 'right', text: null, values: [step.ref] } : { state: 'wrong', text: null };
   if (step.type === 'complex') {
-    const a = read(texts[0]), b = read(texts[1]), tol = 0.011, r = step.ref;
+    const a = read(texts[0]), b = read(texts[1]), tol = step.tol ?? 0.011, r = val(step.ref);
     if (a.state === 'empty' || b.state === 'empty') return { state: 'empty', text: 'Fill in both fields: the real part and the imaginary part. A part can be 0.' };
     if (a.state !== 'ok' || b.state !== 'ok') return { state: 'unreadable', text: 'Type plain numbers, for example 2 or −1.' };
     if (Math.abs(a.value - r.re) <= tol && Math.abs(b.value - r.im) <= tol) return { state: 'right', text: null, values: texts.slice(0, 2) };

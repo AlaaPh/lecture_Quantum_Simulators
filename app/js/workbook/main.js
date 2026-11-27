@@ -1,8 +1,8 @@
-// Workbook: one small question on the screen at a time, one picture next to it. Three parts:
-// the Zak phase (zak.js), a Thouless pump (pump.js), the Chern number (chern.js).
-// A part is { id, chip, next, steps, draw(panel, spec, colors) → caption }. A step is
+// Workbook: one small question on the screen at a time, one picture next to it. The parts and their order are
+// listed in parts.js, grouped by exercise; the first card (address #contents or no address) lists them all.
+// A part is { id, title, steps, draw(panel, spec, colors) → caption }. A step is
 //   { type: 'info', title, html, button, end }                     a card to read
-//   { type: 'complex', text, formula, ref: { re, im } }            two fields: real and imaginary part
+//   { type: 'complex', text, formula, label, ref: { re, im }, tol }   two fields: real and imaginary part
 //   { type: 'number', text, formula, extra, ask, label, unit, ref, tol, mod, wrongs, ph }   one field (ph: its form)
 //   { type: 'choice', text, ask, options, ref }                    buttons
 // with hint (shown after a wrong answer), how (text, or { py, m } code; offered after two wrong tries), after (shown
@@ -13,24 +13,21 @@
 import { Canvas2D } from '../lecture1/panels.js';
 import { colors, invalidateTheme } from '../theme.js';
 import { judge, val } from './judge.js';
-import { zak } from './zak.js';
-import { pump } from './pump.js';
-import { chern } from './chern.js';
+import { GROUPS, PARTS, groupOf, questions } from './parts.js';
 
-const PARTS = [zak, pump, chern];
+const HOME = 'contents';
 const $ = (id) => document.getElementById(id);
 const STORE = 'qsl-workbook-v2';
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 // ---------- state ----------
-const st = { part: 'zak', pos: {}, solved: {}, lang: 'py' };
+const st = { part: HOME, pos: {}, solved: {}, lang: 'py' };
 for (const p of PARTS) { st.pos[p.id] = 0; st.solved[p.id] = {}; }
 let tries = 0, howShown = false, shownAt = '';
 function load() {
   try {
     const o = JSON.parse(localStorage.getItem(STORE) || '{}');
     if (!o || typeof o !== 'object') return;
-    if (PARTS.some((p) => p.id === o.part)) st.part = o.part;
     if (o.lang === 'py' || o.lang === 'm') st.lang = o.lang;
     for (const p of PARTS) {
       // a stored answer counts only if it is the right answer of the question that stands at this place now
@@ -43,13 +40,14 @@ function save() { try { localStorage.setItem(STORE, JSON.stringify(st)); } catch
 const part = () => PARTS.find((p) => p.id === st.part);
 const isSolved = (p, n) => p.steps[n].type === 'info' || Object.prototype.hasOwnProperty.call(st.solved[p.id], n);
 const allSolved = (p) => p.steps.every((s, n) => isSolved(p, n));
-const questions = (p) => p.steps.filter((s) => s.type !== 'info').length;
+const solvedCount = (p) => p.steps.filter((s, n) => s.type !== 'info' && isSolved(p, n)).length;
 
 // ---------- the picture ----------
 const panel = new Canvas2D($('pic')), figure = document.querySelector('.step-pic'), frame = document.querySelector('.steps-main');
 const narrow = window.matchMedia('(max-width: 1080px)');       // one column, as in the stylesheet
 function drawPic() {
-  const p = part(), i = st.pos[p.id], s = p.steps[i];
+  const p = part(); if (!p) return;
+  const i = st.pos[p.id], s = p.steps[i];
   panel.ctx.clearRect(0, 0, panel.w, panel.h);
   if (panel.w < 80 || panel.h < 80) return;
   $('pic-cap').textContent = p.draw(panel, s.pic(s.type !== 'info' && isSolved(p, i)), colors()) || '';
@@ -58,6 +56,7 @@ panel.onRedraw = drawPic;
 // On a narrow screen the picture of a question that is answered from it stands inside the card, between the text and
 // the buttons. Everywhere else it stands beside or below the card.
 function placePicture() {
+  if (!part()) return;
   const s = part().steps[st.pos[st.part]], answer = card.querySelector('.step-choice, .step-ask');
   if (narrow.matches && s.look && answer) { if (figure.parentElement !== card || figure.nextElementSibling !== answer) card.insertBefore(figure, answer); } else if (figure.parentElement !== frame) frame.appendChild(figure);
 }
@@ -86,7 +85,8 @@ function show(n) {
   let html = '';
   if (s.type === 'info') {
     html += `<h2>${s.title}</h2>${s.html}<div class="step-nav">${i > 0 ? '<button class="btn link" id="back" type="button">← Back</button>' : ''}<span class="grow"></span>`;
-    if (s.end) html += `<button class="btn" id="again" type="button">Start this part again</button>${p.next ? `<button class="btn primary" id="nextpart" type="button">Next part: ${p.next} →</button>` : ''}`;
+    const after = PARTS[PARTS.indexOf(p) + 1];
+    if (s.end) html += `<button class="btn" id="again" type="button">Start this part again</button><button class="btn primary" id="nextpart" type="button">${after ? `Next part: ${after.title}` : 'All parts'} →</button>`;
     else html += `<button class="btn primary" id="next" type="button">${s.button || 'Next'} →</button>`;
     html += '</div>';
   } else {
@@ -95,7 +95,7 @@ function show(n) {
     if (s.formula) html += `<div class="step-formula">${s.formula}</div>`;
     if (s.extra) html += s.extra;
     if (s.ask) html += `<p class="step-text"><b>${s.ask}</b></p>`;
-    if (s.type === 'complex') html += `<div class="step-ask"><span>h =</span>${input('f0', 'real part of h', vals[0])}<span>+</span>${input('f1', 'imaginary part of h', vals[1])}<span>· i</span></div>`;
+    if (s.type === 'complex') html += `<div class="step-ask"><span>${s.label || 'h ='}</span>${input('f0', 'real part', vals[0])}<span>+</span>${input('f1', 'imaginary part', vals[1])}<span>· i</span></div>`;
     if (s.type === 'number') html += `<div class="step-ask"><span>${s.label}</span>${input('f0', s.label, vals[0])}<span>${s.unit || ''}</span></div>`;
     if (s.type === 'choice') html += `<div class="step-choice">${s.options.map((o) => `<button type="button" data-v="${o}" class="${done && o === s.ref ? 'ok' : ''}">${o}</button>`).join('')}</div>`;
     html += `<p class="step-msg${done ? ' ok' : ''}" id="msg">${done ? `<b>Right.</b> ${val(s.after)}` : ''}</p><div id="how"></div>`;
@@ -110,7 +110,7 @@ function show(n) {
   const on = (id, fn) => { const e = $(id); if (e) e.addEventListener('click', fn); };
   on('back', () => show(i - 1)); on('next', () => show(i + 1)); on('check', check);
   on('again', () => { st.solved[p.id] = {}; show(0); chips(); });
-  on('nextpart', () => setPart(PARTS[PARTS.indexOf(p) + 1].id));
+  on('nextpart', () => { const after = PARTS[PARTS.indexOf(p) + 1]; setPart(after ? after.id : HOME); });
   card.querySelectorAll('.step-ask input').forEach((inp) => {
     if (done) { inp.classList.add('ok'); inp.readOnly = true; }
     inp.addEventListener('input', () => inp.classList.remove('no'));
@@ -145,16 +145,31 @@ function choose(btn) {
   btn.classList.add('no'); wrong();
 }
 
-// ---------- the parts, the address and the theme ----------
-// a finished part shows a tick in place of its number
-function chips() { $('parts').innerHTML = PARTS.map((p) => `<a href="#${p.id}" class="${p.id === st.part ? 'active' : ''}"${p.id === st.part ? ' aria-current="page"' : ''}>${allSolved(p) ? p.chip.replace(/^\d ·/, '✓') : p.chip}</a>`).join(''); }
+// ---------- the contents, the parts, the address and the theme ----------
+// The first card: every part of the workbook, grouped by exercise, with what is done.
+function showContents() {
+  st.part = HOME; save(); shownAt = HOME;
+  if (figure.parentElement !== frame) frame.appendChild(figure);
+  frame.classList.add('home');
+  const row = (p) => { const n = questions(p), k = solvedCount(p); return `<a class="toc-part${k === n ? ' done' : ''}" href="#${p.id}"><span class="toc-title">${p.title}</span><span class="toc-meta">${k === n ? '✓ done' : k ? `${k} of ${n}` : `${n} questions`}</span></a>`; };
+  card.innerHTML = `<h2>Workbook</h2><p class="step-text">Small questions, one on the screen at a time. Every answer is checked at once. Choose a part.</p>${GROUPS.map((g) => `<section class="toc-group"><h3><b>${g.title}</b> · ${g.about}${g.demo ? ` <a class="toc-demo" href="${g.demo}">interactive page</a>` : ''}</h3>${g.parts.map(row).join('')}</section>`).join('')}`;
+  chips(); document.title = 'Quantum Simulators Workbook';
+  if (location.hash && location.hash !== `#${HOME}`) history.replaceState(null, '', `#${HOME}`);
+  window.scrollTo(0, 0);
+}
+// The header: the contents and the parts of the exercise that is open. A finished part has a tick.
+function chips() {
+  const p = part(), g = p ? groupOf(p) : null;
+  $('parts').innerHTML = `<a href="#${HOME}" class="${p ? '' : 'active'}">Contents</a>${g ? `<span class="acts-group">${g.title}</span>` : ''}${(g ? g.parts : []).map((q) => `<a href="#${q.id}" class="${q === p ? 'active' : ''}"${q === p ? ' aria-current="page"' : ''}>${allSolved(q) ? '✓ ' : ''}${q.title}</a>`).join('')}`;
+}
 function setPart(id) {
-  if (!PARTS.some((p) => p.id === id)) return;
-  st.part = id; const p = part();
+  if (id === HOME || id === '') return showContents();
+  if (!PARTS.some((p) => p.id === id)) return showContents();
+  st.part = id; const p = part(); frame.classList.remove('home');
   const open = p.steps.findIndex((x, k) => !isSolved(p, k)), i = open >= 0 ? Math.min(st.pos[id], open) : st.pos[id];      // never land behind an open question
   if (location.hash !== `#${id}`) history.replaceState(null, '', `#${id}`);
   chips(); show(i);
-  document.title = `Quantum Simulators Workbook: ${p.chip.replace(/^\d · /, '')}`;
+  document.title = `Quantum Simulators Workbook: ${p.title}`;
 }
 window.addEventListener('hashchange', () => { const id = location.hash.slice(1); if (id !== st.part) setPart(id); });
 
@@ -169,4 +184,4 @@ $('theme-btn').addEventListener('click', () => {
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (!root.dataset.theme) { invalidateTheme(); drawPic(); } });
 
 load();
-setPart(PARTS.some((p) => `#${p.id}` === location.hash) ? location.hash.slice(1) : st.part);
+setPart(location.hash.slice(1));
