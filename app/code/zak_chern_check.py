@@ -900,8 +900,8 @@ def _B7(label, g, *values):
             _stop(label, "Your chern uses %s( ): it cuts the result to an integer." % _cut_in(values[0], first), CUT)
         if _cut_values(shaken + [C, C_back], [numbers["C"]] * 3 + [-numbers["C"]]):
             _stop(label, seen + " With random phase factors on the vectors it gives %s and %s, with k and t exchanged "
-                  "%s. These are whole numbers, and not all are right." % (_fmt(shaken[0]), _fmt(shaken[1]), _fmt(C_back)),
-                  CUT)
+                  "%s. These are whole numbers, and not all are right."
+                  % (_fmt(shaken[0]), _fmt(shaken[1]), _fmt(C_back)), CUT)
         if not _close(shaken, C, 1e-9):
             _stop(label, seen + " With random phase factors on the vectors it gives %s and %s."
                   % (_fmt(shaken[0]), _fmt(shaken[1])), HINT[5])
