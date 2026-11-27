@@ -19,7 +19,11 @@ const sims = new Map(), spectra = new Map(), gammas = new Map();
 export function simulation(sheet, T, input) {
   const key = `${sheet ? 'sheet' : 'hand'}|${T}|${input}`;
   if (sims.has(key)) return sims.get(key);
-  const { dJ, D0 } = setOf(sheet), Nc = CELLS[sheet ? 'sheet' : 'hand'][T], n = Math.round(T / DT), stride = Math.max(1, Math.round(n / 400));
+  const { dJ, D0 } = setOf(sheet), Nc = CELLS[sheet ? 'sheet' : 'hand'][T], n = Math.round(T / DT);
+  // about 400 frames, and a stride that divides the number of steps: the frames are equally spaced in time, so that
+  // frameAt finds the frame of a time by its index (T = 50: 1000 steps, stride 2, 501 frames)
+  let stride = Math.max(1, Math.round(n / 400));
+  while (n % stride) stride--;
   const frames = [], X = [], s = [], peak = [];
   let W = 3, ends = 0;
   const m0 = Math.floor(Nc / 2);
@@ -44,7 +48,7 @@ export function simulation(sheet, T, input) {
   sims.set(key, sim);
   return sim;
 }
-// The frame that belongs to the time s = t/T.
+// The frame that belongs to the time s = t/T: the frames are equally spaced, frame i is the time i/(number of frames − 1).
 export const frameAt = (sim, s) => Math.max(0, Math.min(sim.frames.length - 1, Math.round(s * (sim.frames.length - 1))));
 
 // Eigenvalues of the open chain of CHAIN_CELLS cells at nt + 1 times of the cycle. states[j]: the eigenvalues inside

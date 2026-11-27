@@ -1,4 +1,4 @@
-// Tests of the workbook logic (app/js/workbook/model.js and answers.js).
+// Tests of the workbook logic (app/js/workbook/model.js, answers.js, pump.js and the fields of content.js).
 // Run from the repository root:  node tools/test_zak_chern.mjs      Exit code 1 if any check fails.
 //   1. every number of tools/zak_chern_numbers.json is computed again by model.js and compared
 //   2. random phases on all eigenvectors change neither a Zak phase nor a Chern number
@@ -7,10 +7,14 @@
 //   5. the functions of model.js against a second, independent way
 //   6. the position counted from the cell where the light starts (the counting of the page and of the code skeletons)
 //   7. the data of the pump figures (app/js/workbook/pump.js)
+//   8. the fields of the page (app/js/workbook/content.js and fields.js, which run without a browser): the unit rule,
+//      every reference and every known wrong value, the hints, students who go on with rounded numbers
 import { readFileSync } from 'node:fs';
 import * as M from '../app/js/workbook/model.js';
 import { parse, check } from '../app/js/workbook/answers.js';
 import * as P from '../app/js/workbook/pump.js';
+import * as F from '../app/js/workbook/fields.js';
+import '../app/js/workbook/content.js';               // defines every field of the page
 import { symEig, hermEig, matvec, rk4Step } from '../app/js/linalg.js';
 
 const J = JSON.parse(readFileSync(new URL('./zak_chern_numbers.json', import.meta.url), 'utf8'));
@@ -148,8 +152,9 @@ console.log('\n3. answers.js: typed strings');
   const gPi = { kind: 'angle', unit: 'pi', tol: 2e-4, wrong: [{ value: A7up, hintId: 6 }] };
   const aPi = { kind: 'angle', unit: 'pi' }, aDeg = { kind: 'angle', unit: 'deg' }, vPi = { kind: 'value', unit: 'pi' };
   const int = { kind: 'integer', wrong: [{ value: 0, hintId: 7 }] };
+  const sum180 = { kind: 'value', unit: 'deg' }, gUn = J.B.B5.gamma_unwrapped_over_pi[12];        // γ(3T/4)/π followed without jumps: 1.7185
   const rows = [
-    // text, field, reference, expected state, expected hint
+    // text, field, reference, expected state, expected hint, expected reason
     ['-0,2', real, J.A.set1.prod[0], 'ok'],
     ['\u22120.2', real, J.A.set1.prod[0], 'ok'],
     ['\u20130.2', real, J.A.set1.prod[0], 'ok'],
@@ -160,7 +165,8 @@ console.log('\n3. answers.js: typed strings');
     ['0.7079 pi', gPi, A7, 'ok'],
     ['0.7079π', gPi, A7, 'ok'],
     ['0,7079*Pi', gPi, A7, 'ok'],
-    ['2.7079', gPi, A7, 'ok'],
+    ['2.7079', gPi, A7, 'wrong', null, 'range'],          // outside −2 … 2: never accepted as "the same angle"
+    ['-1.2921', gPi, A7, 'ok'],                           // the same angle, inside the range
     ['-0.7079', gPi, A7, 'wrong', 6],
     ['1.2921', gPi, A7, 'wrong', 6],
     ['0.61', gPi, A7, 'wrong'],
@@ -174,6 +180,30 @@ console.log('\n3. answers.js: typed strings');
     ['-1', aPi, J.A.set1.gamma_over_pi, 'ok'],
     ['-pi', aPi, J.A.set1.gamma_over_pi, 'ok'],
     ['0', aPi, J.A.set1.gamma_over_pi, 'wrong'],
+    // one rule for a field in units of π: a number from −2 to 2; an angle is compared up to a full turn inside this range
+    ['1', aPi, J.A.set1.gamma_over_pi, 'ok'],
+    ['1.0', aPi, J.A.set1.gamma_over_pi, 'ok'],
+    ['3', aPi, J.A.set1.gamma_over_pi, 'wrong', null, 'range'],
+    ['180', aPi, J.A.set1.gamma_over_pi, 'wrong', null, 'range'],
+    ['3.14', aPi, J.A.set1.gamma_over_pi, 'wrong', null, 'range'],
+    ['45', aPi, J.A.set1.gamma_over_pi, 'wrong', null, 'range'],
+    ['179', aPi, J.A.set1.gamma_over_pi, 'wrong', null, 'range'],
+    ['0', aPi, J.A.set2.gamma_over_pi, 'ok'],
+    ['2', aPi, J.A.set2.gamma_over_pi, 'ok'],
+    ['-2', aPi, J.A.set2.gamma_over_pi, 'ok'],
+    ['2pi', aPi, J.A.set2.gamma_over_pi, 'ok'],
+    ['180', aPi, J.A.set2.gamma_over_pi, 'wrong', null, 'range'],
+    ['90', aPi, J.A.set2.gamma_over_pi, 'wrong', null, 'range'],
+    ['26', aPi, J.A.set2.gamma_over_pi, 'wrong', null, 'range'],
+    ['360', aPi, J.A.set2.gamma_over_pi, 'wrong', null, 'range'],
+    ['3/4', aPi, 0.75, 'ok'],
+    ['1.7185', vPi, gUn, 'ok'],                           // a value followed without jumps is compared as the number itself
+    ['-0.2815', vPi, gUn, 'wrong'],
+    ['6.2832', vPi, J.B.B7.total_over_pi, 'wrong', null, 'range'],
+    ['360', vPi, J.B.B7.total_over_pi, 'wrong', null, 'range'],
+    ['423.43', aDeg, phi, 'wrong', null, 'range'],
+    ['180', sum180, J.A.set1.angle_sum_deg, 'ok'],
+    ['-180', sum180, J.A.set1.angle_sum_deg, 'wrong'],
     ['1/4', real, 0.25, 'ok'],
     ['-1/4', real, J.B.B4.thalf.prod[0], 'ok'],
     [' 1 / 4 ', real, 0.25, 'ok'],
@@ -210,6 +240,8 @@ console.log('\n3. answers.js: typed strings');
     ['\u22121', int, J.B.B8.upper_band, 'ok'],
     ['-1', int, J.B.B5.C, 'wrong'],
     ['0.9999', int, J.B.B5.C, 'wrong'],
+    ['1.0000000000000002', int, J.B.B5.C, 'ok'],          // the rounding noise of a computer
+    ['-2.3191544552338144e-17', int, J.B.B8.not_enclosing, 'ok'],
     ['0', int, J.B.B5.C, 'wrong', 7],
     ['', real, 0.5, 'empty'],
     [' ', real, 0.5, 'empty'],
@@ -239,13 +271,14 @@ console.log('\n3. answers.js: typed strings');
     ['1 cell', real, 1, 'unreadable'],
     ['\u22120.2\u2212', real, -0.2, 'unreadable'],
   ];
-  for (const [text, spec, ref, state, hint = null] of rows) {
+  for (const [text, spec, ref, state, hint = null, reason = null] of rows) {
     const p = parse(text, spec), r = check(p, ref, spec);
     const noNaN = p.state !== 'ok' || (Number.isFinite(p.value) && Number.isFinite(p.number));
     const field = `${spec.kind}${spec.unit ? ' in ' + spec.unit : ''}`;
     const shown = JSON.stringify(text) + [...text].filter((ch) => ch.codePointAt(0) > 127 || ch === '\t' || ch === '\n').map((ch) => ` U+${ch.codePointAt(0).toString(16).toUpperCase().padStart(4, '0')}`).join('');
-    report(r.state === state && r.hintId === hint && noNaN, `${shown.padEnd(22)} ${field.padEnd(13)} ref ${f6(ref).padEnd(10)}`,
-      `-> ${r.state}${r.hintId !== null ? ', hint ' + r.hintId : ''}${p.state === 'ok' ? ', read as ' + f6(r.value) : ''}${r.state === state && r.hintId === hint ? '' : `   (expected ${state}${hint !== null ? ', hint ' + hint : ''})`}`);
+    const good = r.state === state && r.hintId === hint && r.reason === reason;
+    report(good && noNaN, `${shown.padEnd(22)} ${field.padEnd(13)} ref ${f6(ref).padEnd(10)}`,
+      `-> ${r.state}${r.hintId !== null ? ', hint ' + r.hintId : ''}${r.reason ? ', ' + r.reason : ''}${p.state === 'ok' ? ', read as ' + f6(r.value) : ''}${good ? '' : `   (expected ${state}${hint !== null ? ', hint ' + hint : ''}${reason ? ', ' + reason : ''})`}`);
   }
   console.log(`   ${rows.length} strings`);
 
@@ -281,10 +314,21 @@ console.log('\n3. answers.js: typed strings');
     ['one part empty', vec(['-1', '1'], ['2', '']), uRef, 'empty'],
     ['one part unreadable', vec(['-1', '1+i'], ['2', '0']), uRef, 'unreadable'],
     ['u(k = pi, t = T/4) = (0, 1), components as real numbers', [parse('0'), parse('1')], J.B.B6.u_kpi_tq, 'ok'],
+    ['(0, 1) where the length 1 is asked', [parse('0'), parse('1')], J.B.B6.u_kpi_tq, 'ok', null, { kind: 'vector', length: 1 }],
+    ['(0, 5) where the length 1 is asked', [parse('0'), parse('5')], J.B.B6.u_kpi_tq, 'wrong', 'length', { kind: 'vector', length: 1 }],
+    ['(0, -1): the same eigenvector times -1', [parse('0'), parse('-1')], J.B.B6.u_kpi_tq, 'ok', null, { kind: 'vector', length: 1 }],
   ];
-  for (const [name, parsed, ref, state] of vrow) {
-    const r = check(parsed, ref, vspec);
-    report(r.state === state, `vector: ${name}`, `-> ${r.state}`);
+  for (const [name, parsed, ref, state, reason = null, spec = vspec] of vrow) {
+    const r = check(parsed, ref, spec);
+    report(r.state === state && r.reason === reason, `vector: ${name}`, `-> ${r.state}${r.reason ? ', ' + r.reason : ''}`);
+  }
+  // a value just outside the tolerance is a rounding error (reason "near"), never "other-phase"; a known wrong value keeps its hint
+  const nearSpec = { kind: 'complex', tol: 0.012, near: 0.048, wrong: [{ value: [ov[0], -ov[1]], hintId: 'conj' }] };
+  const nrow = [['0.74 - 0.45i', c2('0.74', '-0.45'), 'wrong', null, 'near'], ['0.73 - 0.45i', c2('0.73', '-0.45'), 'ok', null, null], ['0.72 + 0.45i', c2('0.72', '0.45'), 'wrong', 'conj', null],
+    ['0.45 + 0.72i (right length, another angle)', c2('0.45', '0.72'), 'other-phase', null, null]];
+  for (const [name, parsed, state, hint, reason] of nrow) {
+    const r = check(parsed, ov, nearSpec);
+    report(r.state === state && r.hintId === hint && r.reason === reason, `complex with a near zone: ${name}`, `-> ${r.state}${r.hintId ? ', hint ' + r.hintId : ''}${r.reason ? ', ' + r.reason : ''}`);
   }
   // a missing reference is a mistake of the page, not a wrong answer
   const thrown = [[undefined, real], [NaN, real], [{ re: 1 }, { kind: 'complex' }], [[], vspec], [1, { kind: 'number' }]].map(([ref, spec]) => { try { check(parse('1'), ref, spec); return false; } catch (err) { return err instanceof TypeError; } });
@@ -514,7 +558,7 @@ console.log('\n7. data of the pump figures (pump.js)');
     const sim = P.simulation(sheet, T, input), set = P.setOf(sheet), ref = M.propagate(set.dJ, set.D0, T, sim.Nc, P.DT, { input });
     let out = 0;
     for (const I of sim.frames) { let inside = 0, total = 0; for (let j = 0; j < I.length; j++) { total += I[j]; if (Math.abs((j >> 1) - sim.m0) <= sim.W) inside += I[j]; } out = Math.max(out, 1 - inside / total); }
-    const ok = sim.X[0] === 0 && sim.s[0] === 0 && sim.s[sim.s.length - 1] === 1 && Math.abs(sim.X[sim.X.length - 1] - ref.shiftStart) < 1e-12 && sim.frames.length === sim.X.length && sim.frames.length <= 402
+    const ok = sim.X[0] === 0 && sim.s[0] === 0 && sim.s[sim.s.length - 1] === 1 && Math.abs(sim.X[sim.X.length - 1] - ref.shiftStart) < 1e-12 && sim.frames.length === sim.X.length && sim.frames.length <= 502
       && sim.ends < 1e-6 && out <= 0.0101 && sim.W < sim.m0 && P.simulation(sheet, T, input) === sim;
     worstEnd = Math.max(worstEnd, sim.ends); worstOut = Math.max(worstOut, out);
     lines.push(`${sheet ? 'sheet' : 'hand'} ${T} ${input}: ${sim.Nc} cells, window ±${sim.W}, shift ${sim.shift.toFixed(4)}${ok ? '' : ' !'}`);
@@ -522,6 +566,17 @@ console.log('\n7. data of the pump figures (pump.js)');
   }
   report(lines.every((l) => !l.endsWith('!')), 'pump.js: 12 propagations (two sets of numbers, T = 20, 50, 100, two inputs): X(0) = 0, X(T) = shiftStart, no light at the ends of the chain, 99 % of the light in the window that is drawn',
     `largest |psi|^2 in the two outermost cells ${sci(worstEnd)}, largest share outside the window ${worstOut.toFixed(4)}; ${lines.join('; ')}`);
+  // the frames are equally spaced, so the frame of a time is found by its index: X of the frame at t/T = 1/4, 1/2, 3/4, 1
+  // is X at that time (numpy values of section 6), for every T
+  const QUARTERS = { 20: [0.0864090908, 0.4528968639, 0.7931916579, 0.8890859362], 50: [0.1262994563, 0.5119365685, 0.7969720703, 0.9673320699], 100: [0.1389427637, 0.4976829113, 0.8537027095, 0.9989289088] };
+  let worstSpacing = 0, worstQuarter = 0;
+  const frameLines = [];
+  for (const sheet of [false, true]) for (const T of P.T_VALUES) {
+    const sim = P.simulation(sheet, T, 'pair'), n = sim.frames.length - 1;
+    worstSpacing = Math.max(worstSpacing, ...sim.s.map((x, i) => Math.abs(x - i / n)));
+    if (!sheet) { const X = [0.25, 0.5, 0.75, 1].map((q) => sim.X[P.frameAt(sim, q)]); worstQuarter = Math.max(worstQuarter, ...X.map((x, i) => Math.abs(x - QUARTERS[T][i]))); frameLines.push(`T = ${T}: ${sim.frames.length} frames, X = ${X.map((x) => x.toFixed(4)).join(' ')}`); }
+  }
+  report(worstSpacing < 1e-12 && worstQuarter < 1e-9, 'pump.js: the frames are equally spaced in time; the frame at t/T = 1/4, 1/2, 3/4, 1 holds X of that time', `largest |s_i - i/n| = ${sci(worstSpacing)}, largest difference to numpy ${sci(worstQuarter)}; ${frameLines.join('; ')}`);
   const sp = P.spectrum(false), j38 = sp.s.indexOf(0.375), inGap = sp.states[j38], stored = J.B.B2.t0375.ingap;
   const counts = sp.states.map((x) => x.length), open = sp.s.filter((x, j) => counts[j] === 2);
   report(sp.levels.every((l) => l.length === 2 * P.CHAIN_CELLS) && inGap.length === 2 && inGap.every((x, i) => Math.abs(x.E - stored[i].E) < 1e-6 && x.end === stored[i].end) && counts.every((n) => n === 0 || n === 2) && open[0] > 0.25 && open[open.length - 1] < 0.75,

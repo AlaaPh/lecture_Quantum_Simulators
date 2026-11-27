@@ -315,6 +315,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
 .workbook a.btn { text-decoration: none; display: inline-block; }
 .workbook .controls-bar .ctl-slider { min-width: 170px; flex: 0 1 215px; grid-template-columns: auto minmax(0, 1fr) 2.4em; }
 .workbook .controls-bar .ctl-slider.wb-short { min-width: 130px; flex: 0 1 160px; }
+.workbook .controls-bar .ctl-slider.wb-time { grid-template-columns: auto minmax(0, 1fr) 3.2em; }
 .workbook .controls-bar .time { min-width: 7ch; }
 /* the header: the long title only where it fits beside the tabs, the tabs in their own row where they do not fit */
 @media (min-width: 1251px) and (max-width: 1520px) { .workbook .wb-long { display: none; } }
@@ -370,9 +371,33 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
 .wb-formula code { display: block; white-space: pre-wrap; line-height: 1.7; }
 .wb-formula .note { display: block; font-size: 12px; color: var(--fg-2); margin-top: 3px; }
 @media (max-width: 980px) {
-  .workbook .pane.wb-steps { min-height: 0; overflow: visible; }
+  /* One column. The box of the steps is dissolved: every step is a card of the grid, and each figure stands directly
+     in front of the first step that needs it. */
+  .workbook .pane.wb-steps:not([hidden]) { display: contents; }
+  .workbook .wb-steps > * { min-width: 0; margin: 0; max-width: none; }
+  .workbook .wb-steps > .wb-step, .workbook .wb-steps > p, .workbook .wb-steps > .wb-downloads { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; }
   .workbook .pane:not(.wb-steps) { min-height: 270px; }
   .workbook #pane-wmap { min-height: 340px; }
+  .workbook #pane-wcircle, .workbook #pane-wconv, .workbook #pane-wmap { order: 1; }
+  .workbook #step-A1, .workbook #step-A6, .workbook #step-B6 { order: 2; }
+  .workbook #pane-wturn, .workbook #pane-wpos, .workbook #pane-wgamma { order: 3; }
+  .workbook #step-A2, .workbook #step-A3, .workbook #step-A4, .workbook #step-A5, .workbook #step-A7, .workbook #step-B7 { order: 4; }
+  .workbook #pane-wloops { order: 5; }
+  .workbook #step-B8 { order: 6; }
+  /* the text that explains the figures comes before them, not after the last step */
+  .workbook .lect-head { order: -3; }
+  .workbook .caption { order: -2; }
+  /* Tab 3: Play and the sliders directly above the five figures, the figures in one block, two beside each other:
+     on a phone the controls and all five figures fit on one screen. The steps follow. */
+  .workbook .lect-main[data-act="pump"] > .controls-bar { order: -1; }
+  .workbook .stage-grid[data-act="pump"] { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .workbook .stage-grid[data-act="pump"] > *, .workbook .stage-grid[data-act="pump"] .wb-steps > * { grid-column: 1 / -1; }
+  .workbook .stage-grid[data-act="pump"] > .pane:not(.wb-steps) { min-height: 168px; }
+  .workbook .stage-grid[data-act="pump"] > #pane-wcycle { order: -5; grid-column: auto; }
+  .workbook .stage-grid[data-act="pump"] > #pane-wbands { order: -4; grid-column: auto; }
+  .workbook .stage-grid[data-act="pump"] > #pane-wlevels { order: -3; grid-column: auto; }
+  .workbook .stage-grid[data-act="pump"] > #pane-wshift { order: -2; grid-column: auto; }
+  .workbook .stage-grid[data-act="pump"] > #pane-wlight { order: -1; grid-column: 1 / -1; }
   .wb-in { font-size: 16px; width: 6.4em; }
   .wb-in.wide { width: 7.6em; }
   .wb-row { flex-direction: column; gap: 6px; }

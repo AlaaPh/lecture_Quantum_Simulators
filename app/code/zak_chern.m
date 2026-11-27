@@ -15,10 +15,13 @@ function zak_chern()
 % (k+dk, t) -> back. C = (sum of all plaquettes)/2pi. Position of the light: X = sum over the cells m of
 % m (I_A,m + I_B,m). I_A,m is the light on guide A of cell m. Cell 0 is the cell where the light starts.
 %
-% How to work: run this file (type zak_chern in the Command Window). It stops at the first open step and names it.
-% The function run_steps below lists all steps in their order. The functions that you complete come after it, in the
-% same order. Search for the step, for example "TODO A1", write the line marked TODO there, and run again.
-% Keep the file zak_chern_check.m in the same folder.
+% How to work: do a hand step of the worksheet (A1 to A5, B1, B4, B6) on paper before you do the same step here.
+% Then open this file in the editor and press Run (F5). Run saves the file first. If MATLAB asks, choose
+% "Change Folder". The file stops at the first open step and names it. The function run_steps below lists all steps
+% in their order. The functions that you complete come after it, in the same order. Search for the step, for example
+% "TODO A1", put your code in place of the word TODO and keep the semicolon at the end of the line. Run again.
+% Always run the whole file: the functions exist only inside it, so a single line cannot be run alone.
+% Compare the numbers after OK with your paper. Keep the file zak_chern_check.m in the same folder.
     if exist('zak_chern_check', 'file') ~= 2
         fprintf('The file zak_chern_check.m is missing. Put it into the folder of this file and run again.\n');
         return
@@ -35,7 +38,8 @@ end
 
 
 function run_steps()
-    FIGURES = usejava('desktop');                  % the figures are drawn if MATLAB runs with its desktop. false: none
+    % FIGURES: true if a figure window can open (MATLAB with its desktop, Octave with a screen). Write false for none.
+    FIGURES = usejava('desktop') || (exist('OCTAVE_VERSION', 'builtin') > 0 && have_window_system());
     LONG = false;                                  % true: step B3 also runs the slow cycle T = 100 on 120 cells
     % given: g hands the functions of this file to the check
     g = struct('file', [mfilename('fullpath'), '.m'], 'h', @h, 'H_k', @H_k, 'overlap', @overlap, ...
@@ -50,17 +54,17 @@ function run_steps()
     check('A2', @overlap);                         % A2: you write the function overlap
     check('A3', @loop_product, @zak);              % A3: you write the functions loop_product and zak
 
-    % A4 and A5: nothing to write. A4: one eigenvector is multiplied by i. The two overlaps that contain it change,
-    %     the product does not. A5: the same four k points for J1 = 2, J2 = 1.
+    % A4 and A5: nothing to write. These two steps are hand steps of the worksheet. The check repeats them with your
+    %     overlap, loop_product and zak. It prints no numbers: check your own numbers on the page workbook.html.
     k = k_points(4);
     us = zeros(2, 4);                              % the four eigenvectors are the columns of us
     for s = 1:4
         us(:, s) = u_hand(k(s), 1, 2);
     end
-    us(:, 2) = 1i * us(:, 2);
+    us(:, 2) = 1i * us(:, 2);                      % A4: the second eigenvector is multiplied by i
     check('A4', overlap(us(:, 1), us(:, 2)), overlap(us(:, 2), us(:, 3)), loop_product(us));
     for s = 1:4
-        us(:, s) = u_hand(k(s), 2, 1);
+        us(:, s) = u_hand(k(s), 2, 1);             % A5: the same four k points for J1 = 2, J2 = 1
     end
     check('A5', loop_product(us), zak(us));
 
@@ -105,7 +109,7 @@ function run_steps()
 
     % B5. gamma at 17 times of one cycle. angle gives angles between -pi and pi, so these raw values jump by 2 pi.
     %     One rule: from one time to the next, take the change that is smaller than pi. unwrap does exactly this.
-    %     Write gamma without jumps, then C = (gamma at the end - gamma at the start)/2pi.
+    %     Write gamma without jumps, then C = (gamma at the end - gamma at the start)/2pi. Do not round C.
     s_list = (0:16) / 16;
     gamma_raw = zeros(1, 17);
     for n = 1:17
@@ -127,7 +131,7 @@ function run_steps()
     %     (0, 0), where the gap closes, and which way round? Type the Chern number that you expect, an integer.
     predicted = [TODO, ...                         % TODO B8: the upper band of the cycle pump
                  TODO, ...                         % TODO B8: the lower band of pump_back (Delta -> -Delta)
-                 TODO, ...                         % TODO B8: the lower band of pump_aside (not around (0, 0))
+                 TODO, ...                         % TODO B8: the lower band of pump_aside
                  TODO];                            % TODO B8: the lower band of pump_sheet (numbers of the sheet)
     N = 8;                                         % grid points in k and in t
     grids = {grid_kt(N, @pump, 2), grid_kt(N, @pump_back, 1), grid_kt(N, @pump_aside, 1), grid_kt(N, @pump_sheet, 1)};
@@ -180,8 +184,9 @@ end
 
 
 % A2. The overlap <u|v> = conj(u_A) v_A + conj(u_B) v_B is one complex number. Its length says how alike the two
-%     vectors are, its angle is the phase between them. Write it. u and v are columns; u' is the complex conjugate
-%     transpose of u. Without the complex conjugate no later step works.
+%     vectors are, its angle is the phase between them. Write it as the sum of conj(u_j) v_j over all entries j:
+%     Part C has vectors with three entries. u and v are columns; u' is the complex conjugate transpose of u.
+%     Without the complex conjugate no later step works.
 function y = overlap(u, v)
     y = TODO;                                                      % TODO A2
 end
@@ -277,7 +282,7 @@ end
 
 % B2 (task 9b). An open chain of N unit cells. Cell m (m = 1 .. N) has its guide A at index 2m - 1 and its guide B
 %     at index 2m. The couplings are given. Write the on-site term of cell m: +Delta on A, -Delta on B.
-%     With it, states that live at the two ends of the chain appear inside the gap.
+%     Then look at the eigenvalues: the open chain can have states that live at its two ends, inside the gap.
 function H = H_chain(N, J1, J2, Delta)
     H = zeros(2 * N, 2 * N);
     for m = 1:N
@@ -293,8 +298,8 @@ end
 
 
 function psi = start(N, amplitudes)                % given: the input state. Light on the cell in the middle of N cells.
-    psi = zeros(2 * N, 1);                         % [1, -1] is (A - B)/sqrt(2): the lower band at t = 0.
-    psi(N + 1) = amplitudes(1);                    % This cell has its guide A at index N + 1
+    psi = zeros(2 * N, 1);                         % [1, -1] is (A - B)/sqrt(2): the lower band of the cycle pump
+    psi(N + 1) = amplitudes(1);                    % at t = 0. This cell has its guide A at index N + 1
     psi(N + 2) = amplitudes(2);                    % and its guide B at index N + 2.
     psi = psi / norm(psi);
 end
@@ -370,8 +375,9 @@ end
 
 
 % B7. Inner edges are walked once in each direction and drop out. So the plaquettes between two times add up to the
-%     change of gamma, and all plaquettes together to gamma(T) - gamma(0), without the rule of B5.
-%     Write the Chern number: the sum of all plaquette phases, divided by 2 pi.
+%     change of gamma, up to a multiple of 2 pi. On a fine grid every plaquette is small and nothing is left over:
+%     all plaquettes together give gamma(T) - gamma(0), without the rule of B5.
+%     Write the Chern number: the sum of all plaquette phases, divided by 2 pi. Do not round it.
 function C = chern(U)
     C = TODO;                                                      % TODO B7
 end
@@ -384,7 +390,7 @@ function [J1, J2, Delta] = pump_back(s)            % given: the cycle run backwa
 end
 
 
-function [J1, J2, Delta] = pump_aside(s)           % given: a cycle that does not go around the point (0, 0)
+function [J1, J2, Delta] = pump_aside(s)           % given: one more cycle
     J1 = 2.5 + 0.5 * cos(2 * pi * s);
     J2 = 1 - 0.5 * cos(2 * pi * s);
     Delta = 0.2 * sin(2 * pi * s);
@@ -436,6 +442,10 @@ end
 
 function draw(FIGURES, name, varargin)             % given: draws the figure of one step, if FIGURES is true
     if ~FIGURES
+        if strcmp(name, 'B1')
+            fprintf(['         No figures: no figure window can open here, or FIGURES is false. ' ...
+                     'All steps run without figures.\n']);
+        end
         return
     end
     BLUE = [37, 125, 224] / 255;
@@ -454,7 +464,7 @@ function draw(FIGURES, name, varargin)             % given: draws the figure of 
                         E(i, j) = band_energy(k_grid(i), J1, J2, Delta);
                     end
                 end
-                figure(1); clf;
+                show_figure(1);
                 mesh(k_grid / pi, s_grid, E.', 'EdgeColor', ORANGE); hold on;
                 mesh(k_grid / pi, s_grid, -E.', 'EdgeColor', BLUE); hold off;
                 xlabel('k / pi'); ylabel('t / T'); zlabel('E');
@@ -466,14 +476,14 @@ function draw(FIGURES, name, varargin)             % given: draws the figure of 
                     [J1, J2, Delta] = pump(ss(n));
                     levels(n, :) = sort(real(eig(H_chain(40, J1, J2, Delta))));
                 end
-                figure(2); clf;
+                show_figure(2);
                 plot(ss, levels, '.', 'Color', INK, 'MarkerSize', 4);
                 xlabel('t / T'); ylabel('eigenvalues'); title('B2: all eigenvalues of the open chain of 40 cells');
             case 'B3'                              % the position of the light during one cycle
                 X20 = varargin{1};
                 X50 = varargin{2};
                 X_guide = varargin{3};
-                figure(3); clf;
+                show_figure(3);
                 plot(linspace(0, 1, numel(X20)), X20, 'Color', BLUE, 'LineWidth', 2); hold on;
                 plot(linspace(0, 1, numel(X50)), X50, 'Color', ORANGE, 'LineWidth', 2);
                 plot(linspace(0, 1, numel(X_guide)), X_guide, 'Color', AQUA, 'LineWidth', 2); hold off;
@@ -483,7 +493,7 @@ function draw(FIGURES, name, varargin)             % given: draws the figure of 
                 X_slow = varargin{1};
                 s_list = varargin{2};
                 gamma = varargin{3};
-                figure(4); clf;
+                show_figure(4);
                 plot(linspace(0, 1, numel(X_slow)), X_slow, 'Color', BLUE, 'LineWidth', 2); hold on;
                 plot(s_list, gamma / (2 * pi), 'o', 'Color', ORANGE, 'MarkerFaceColor', ORANGE, 'MarkerSize', 6);
                 hold off;
@@ -491,7 +501,7 @@ function draw(FIGURES, name, varargin)             % given: draws the figure of 
                 legend('X(t) of B3, slowest cycle', 'gamma(t) / 2pi', 'Location', 'northwest'); grid on;
             case 'B7'                              % the 16 plaquette phases and the sum of each column
                 F = varargin{1};
-                figure(5); clf;
+                show_figure(5);
                 imagesc([0.125, 0.875], [0.25, 1.75], F / pi); axis xy;
                 top = max(abs(F(:))) / pi;
                 caxis([-top, top]);
@@ -506,7 +516,7 @@ function draw(FIGURES, name, varargin)             % given: draws the figure of 
                 xlabel('t / T'); ylabel('k / pi');
                 title(sprintf('B7: F / pi. Sum of each t column: %.4f  %.4f  %.4f  %.4f', sum(F, 1) / pi));
             case 'B8'                              % the cycles in the plane (J1 - J2, Delta)
-                figure(6); clf; hold on;
+                show_figure(6); hold on;
                 cycles = {@pump, @pump_sheet, @pump_aside};
                 colors = {BLUE, ORANGE, AQUA};
                 for n = 1:3
@@ -536,6 +546,16 @@ function draw(FIGURES, name, varargin)             % given: draws the figure of 
     catch err
         fprintf('         The figure of step %s could not be drawn: %s\n', name, err.message);
     end
+end
+
+
+function show_figure(n)                            % given: makes figure n the current figure and empties it.
+    if ishghandle(n) && strcmp(get(n, 'Type'), 'figure')           % A window that is open stays where it is
+        set(0, 'CurrentFigure', n);
+    else
+        figure(n);
+    end
+    clf;
 end
 
 

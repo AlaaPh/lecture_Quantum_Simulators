@@ -12,13 +12,23 @@ Lower band = smallest eigenvalue. k_s = 2 pi (s-1)/M, s = 1 .. M. gamma = -arg(<
 Plaquette (one small square of a grid in k and t): the same -arg, walked (k, t) -> (k, t+dt) -> (k+dk, t+dt) ->
 (k+dk, t) -> back. C = (sum of all plaquettes)/2pi. Position of the light: X = sum over the cells m of
 m (I_A,m + I_B,m). I_A,m is the light on guide A of cell m. Cell 0 is the cell where the light starts.
-How to work: run this file. It stops at the first open step. Write the line marked TODO there. Run again.
+
+How to work: do a hand step of the worksheet (A1 to A5, B1, B4, B6) on paper before you do the same step here.
+Then run this file. It stops at the first open step. Write the line marked TODO there. Run again.
+Compare the numbers after OK with your paper.
 """
 import os
+import sys
 
 import numpy as np
 
-from zak_chern_check import check                  # check(step, ...) tests your line and prints the result
+# the folder of this file: the file zak_chern_check.py must be there, and the figures are saved there
+FOLDER = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
+sys.path.insert(0, FOLDER)
+try:
+    from zak_chern_check import check              # check(step, ...) tests your line and prints the result
+except ImportError:
+    sys.exit("The file zak_chern_check.py is missing. Put it into the folder of this file and run again.")
 
 TODO = None        # every line that you write is marked TODO
 FIGURES = True     # each figure is saved as a PNG file next to this file; the newest one opens when the run stops
@@ -33,9 +43,8 @@ BLUE, ORANGE, AQUA, INK, PALE = "#257de0", "#f47230", "#00b894", "#191919", "#e7
 
 
 def save(name):                                    # given: stores the newest figure as zak_chern_<name>.png
-    folder = os.path.dirname(os.path.abspath(globals().get("__file__", ".")))
-    plt.savefig(os.path.join(folder, "zak_chern_" + name + ".png"), dpi=130, bbox_inches="tight")
-    print("         figure saved:", os.path.join(folder, "zak_chern_" + name + ".png"))
+    plt.savefig(os.path.join(FOLDER, "zak_chern_" + name + ".png"), dpi=130, bbox_inches="tight")
+    print("         figure saved:", os.path.join(FOLDER, "zak_chern_" + name + ".png"))
 
 
 # ====================================================================================================================
@@ -64,7 +73,8 @@ def u_hand(k, J1, J2):                             # given: the lower-band eigen
 
 
 # A2. The overlap <u|v> = conj(u_A) v_A + conj(u_B) v_B is one complex number. Its length says how alike the two
-#     vectors are, its angle is the phase between them. Write it. Without the complex conjugate no later step works.
+#     vectors are, its angle is the phase between them. Write it as the sum of conj(u_j) v_j over all entries j:
+#     Part C has vectors with three entries. Without the complex conjugate no later step works.
 def overlap(u, v):
     return TODO                                                    # TODO A2
 
@@ -88,12 +98,12 @@ def zak(us):
 
 check("A3", loop_product, zak)
 
-# A4 and A5: nothing to write. A4: one eigenvector is multiplied by i. The two overlaps that contain it change,
-#     the product does not. A5: the same four k points for J1 = 2, J2 = 1.
+# A4 and A5: nothing to write. These two steps are hand steps of the worksheet. The check repeats them with your
+#     overlap, loop_product and zak. It prints no numbers: check your own numbers on the page workbook.html.
 us = [u_hand(k, 1, 2) for k in k_points(4)]
-us[1] = 1j * us[1]
+us[1] = 1j * us[1]                                 # A4: the second eigenvector is multiplied by i
 check("A4", overlap(us[0], us[1]), overlap(us[1], us[2]), loop_product(us))
-us = [u_hand(k, 2, 1) for k in k_points(4)]
+us = [u_hand(k, 2, 1) for k in k_points(4)]        # A5: the same four k points for J1 = 2, J2 = 1
 check("A5", loop_product(us), zak(us))
 
 
@@ -151,6 +161,8 @@ def smallest_gap(cycle):                           # given: the smallest gap on 
 
 
 check("B1", smallest_gap(pump), smallest_gap(pump_sheet))
+if FIGURES and not plt:
+    print("         No figures: Python cannot load matplotlib (is it installed?). All steps run without figures.")
 if FIGURES and plt:                                # figure (given): the two bands over k and t/T
     E = np.array([[band_energy(k, *pump(s)) for s in s_grid[::5]] for k in k_grid[::5]])
     K, S = np.meshgrid(k_grid[::5] / pi, s_grid[::5], indexing="ij")
@@ -164,7 +176,7 @@ if FIGURES and plt:                                # figure (given): the two ban
 
 # B2 (task 9b). An open chain of N unit cells. Cell m (m = 0 .. N-1) has its guide A at index 2m and its guide B
 #     at index 2m + 1. The couplings are given. Write the on-site term of cell m: +Delta on A, -Delta on B.
-#     With it, states that live at the two ends of the chain appear inside the gap.
+#     Then look at the eigenvalues: the open chain can have states that live at its two ends, inside the gap.
 def H_chain(N, J1, J2, Delta):
     H = np.zeros((2 * N, 2 * N))
     for m in range(N):
@@ -188,8 +200,8 @@ if FIGURES and plt:                                # figure (given): all eigenva
 
 
 def start(N, amplitudes=(1, -1)):                  # given: the input state. Light on the cell in the middle of N cells.
-    psi = np.zeros(2 * N, dtype=complex)           # (1, -1) is (A - B)/sqrt(2): the lower band at t = 0.
-    psi[N], psi[N + 1] = amplitudes                # cell N/2 has its guide A at index N and its guide B at index N + 1
+    psi = np.zeros(2 * N, dtype=complex)           # (1, -1) is (A - B)/sqrt(2): the lower band of the cycle pump
+    psi[N], psi[N + 1] = amplitudes                # at t = 0. Cell N/2 has its guide A at index N, its guide B at N + 1
     return psi / np.linalg.norm(psi)
 
 
@@ -248,7 +260,7 @@ check("B4", zak_pump)
 
 # B5. gamma at 17 times of one cycle. np.angle gives angles between -pi and pi, so these raw values jump by 2 pi.
 #     One rule: from one time to the next, take the change that is smaller than pi. np.unwrap does exactly this.
-#     Write gamma without jumps, then C = (gamma at the end - gamma at the start)/2pi.
+#     Write gamma without jumps, then C = (gamma at the end - gamma at the start)/2pi. Do not round C.
 s_list = np.arange(17) / 16
 gamma_raw = np.array([zak_pump(s, 400) for s in s_list])
 gamma = TODO                                                       # TODO B5, first line
@@ -286,8 +298,9 @@ def plaquettes(U):                                 # given: F[i, j] = plaquette 
 
 
 # B7. Inner edges are walked once in each direction and drop out. So the plaquettes between two times add up to the
-#     change of gamma, and all plaquettes together to gamma(T) - gamma(0), without the rule of B5.
-#     Write the Chern number: the sum of all plaquette phases, divided by 2 pi.
+#     change of gamma, up to a multiple of 2 pi. On a fine grid every plaquette is small and nothing is left over:
+#     all plaquettes together give gamma(T) - gamma(0), without the rule of B5.
+#     Write the Chern number: the sum of all plaquette phases, divided by 2 pi. Do not round it.
 def chern(U):
     return TODO                                                    # TODO B7
 
@@ -314,7 +327,7 @@ def pump_back(s):                                  # given: the cycle run backwa
     return 1 + np.cos(2 * pi * s), 1 - np.cos(2 * pi * s), -0.5 * np.sin(2 * pi * s)
 
 
-def pump_aside(s):                                 # given: a cycle that does not go around the point (0, 0)
+def pump_aside(s):                                 # given: one more cycle
     return 2.5 + 0.5 * np.cos(2 * pi * s), 1 - 0.5 * np.cos(2 * pi * s), 0.2 * np.sin(2 * pi * s)
 
 
@@ -336,7 +349,7 @@ if FIGURES and plt:                                # figure (given): the cycles 
 #     (0, 0), where the gap closes, and which way round? Type the Chern number that you expect, an integer.
 predicted = [TODO,                                 # TODO B8: the upper band of the cycle pump
              TODO,                                 # TODO B8: the lower band of pump_back (Delta -> -Delta)
-             TODO,                                 # TODO B8: the lower band of pump_aside (not around (0, 0))
+             TODO,                                 # TODO B8: the lower band of pump_aside
              TODO]                                 # TODO B8: the lower band of pump_sheet (numbers of the sheet)
 N = 8                                              # grid points in k and in t
 grids = [grid(N, pump, band=1), grid(N, pump_back), grid(N, pump_aside), grid(N, pump_sheet)]
