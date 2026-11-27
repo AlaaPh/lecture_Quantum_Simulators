@@ -25,10 +25,12 @@ for (const p of PROGRAMS) {
   const d = dir + '/' + p.id; mkdirSync(d);
   writeFileSync(d + '/hints.py', p.blocks.map((k) => CODE[k].py).join('\n\n') + '\n');
   let script = '';
-  for (const k of p.blocks) {                 // a block is either lines for the script, or '% file X.m' + function + lines
-    const m = /^% file (\w+)\.m[^\n]*\n(function[\s\S]*?\nend)\n\n% then, in your script:\n([\s\S]*)$/.exec(CODE[k].m);
-    if (m) { writeFileSync(d + '/' + m[1] + '.m', m[2] + '\n'); script += m[3] + '\n'; }
-    else { if (/^function/m.test(CODE[k].m)) { console.log('a function that is not written as a file:', k); process.exit(1); } script += CODE[k].m + '\n'; }
+  for (const k of p.blocks) {                 // a block is lines for the script, after any number of '% file X.m' + function
+    let rest = CODE[k].m, m;
+    while ((m = /^% file (\w+)\.m[^\n]*\n(function[\s\S]*?\nend)\n\n/.exec(rest))) { writeFileSync(d + '/' + m[1] + '.m', m[2] + '\n'); rest = rest.slice(m[0].length); }
+    if (rest !== CODE[k].m) { if (!rest.startsWith('% then, in your script:\n')) { console.log('the lines for the script are not announced:', k); process.exit(1); } rest = rest.slice(24); }
+    if (/^function/m.test(rest)) { console.log('a function that is not written as a file:', k); process.exit(1); }
+    script += rest + '\n';
   }
   writeFileSync(d + '/hints_run.m', script);
 }
@@ -49,6 +51,10 @@ WANT = {
     'rk': [X['rk41_I21']],
     'beam': [X['beam_centre_z5']],
     'ssh': [X['ssh20_21_smallest_positive'], 0.0, round(X['ssh20_12_smallest_positive'], 4)],
+    'kspace': [X['kspace_lower_2pi3']],
+    # a Zak phase in units of pi is compared up to a full turn: (value, 2)
+    'zakcode': [X['zak_overlap_abs_0_pi2'], X['zak_product_M4'][0], (X['zak_gamma_over_pi_M50_12'], 2), (X['zak_gamma_over_pi_M50_21'], 2)],
+    'onsite': [X['onsite21_mid'], X['onsite20_12_closest'][1], (X['onsite_gamma_over_pi_M400'], 2), (X['onsite_gamma_over_pi_M400_21'], 2)],
     'aah': R['J_z0'] + R['J_quarter'] + R['eig_k0_z0'] + [R['abs_overlap3_k0_k2pi50_phi0'], R['zak3_M50_phi0_over_pi'], R['zak3_M50_phiquarter_over_pi'], R['F3_first_plaquette_N10_over_pi'], R['sumF3_N10_over_pi'], R['chern_N10'][1]],
 }
 def numbers(text):                      # every number on the lines that hold nothing but numbers
@@ -64,10 +70,13 @@ for pid in programs:
     # numpy prints an array with 8 decimals; MATLAB and Octave show 5 significant digits by default
     for name, f, tol in [('Python', 'py.out', 1e-7)] + ([('MATLAB lines in Octave', 'm.out', 1e-4)] if have else []):
         text = open(d + '/' + pid + '/' + f).read(); got = numbers(text)
-        good = len(got) == len(want) and all(abs(a - b) < tol * max(1, abs(b)) for a, b in zip(got, want))
+        def near(a, b):
+            if isinstance(b, tuple): d = a - b[0]; return abs(d - b[1] * round(d / b[1])) < tol
+            return abs(a - b) < tol * max(1, abs(b))
+        good = len(got) == len(want) and all(near(a, b) for a, b in zip(got, want))
         ok &= good
         print(('  ok   ' if good else '  FAIL ') + pid + ', ' + name + ': ' + ' '.join('%.5g' % x for x in got))
-        if not good: print(text); print('expected: ' + ' '.join('%.5g' % x for x in want))
+        if not good: print(text); print('expected: ' + ' '.join('%.5g' % (x[0] if isinstance(x, tuple) else x) for x in want))
 if not have: print('  skipped: octave is not installed, the MATLAB lines were not run')
 sys.exit(0 if ok else 1)
 PY

@@ -167,7 +167,7 @@ for (const p of PARTS) {
       if (s.mod) {
         const other = ref > 0 ? ref - s.mod : ref + s.mod;
         report(judge(s, [other.toFixed(d)]).state === 'right', `${name}: the same phase one full turn away (${other.toFixed(d)}) is right`);
-        report(/between/.test(judge(s, [(ref * 180).toFixed(1)]).text || ''), `${name}: the phase in degrees is told`);
+        report(/between/.test(judge(s, [(Math.abs(ref) > 0.02 ? ref * 180 : 180).toFixed(1)]).text || ''), `${name}: a phase typed in degrees is told`);
       }
       for (const k of s.wrongs || []) {
         const w = val(k.ref), r = judge(s, [w.toFixed(d + 1)]);
@@ -279,6 +279,21 @@ console.log('3b. the numbers in the texts of Exercises 1 to 3');
   report(X.ssh20_21_lowest_pair_product_negative && X.ssh20_21_highest_pair_product_positive && has('ssh', 'In the lower band the two waveguides of a pair are in antiphase'), 'ssh: lowest eigenvector antiphase in every pair, highest in phase');
   report(has('ssh', 'three quarters of it in waveguide 21') && close(X.ssh21_21_weight_guide21, 0.75, 1e-6) && X.ssh21_21_even_weight < 1e-20, 'ssh: the edge state has no light in the even waveguides and three quarters in waveguide 21');
   report(has('ssh', '+0.0015 and −0.0015') && close(X.ssh20_12_smallest_positive, 0.0015, 5e-5) && L.sshEig(20, 2, 1).values.every((v) => Math.abs(v) > 1), 'ssh: two eigenvalues ±0.0015 for J₁ = 1, J₂ = 2; none in the gap for J₁ = 2, J₂ = 1');
+  // k-space
+  report(has('kspace', '|h| = √(2² + 1²) = √5 = 2.236') && close(X.kspace_abs_h_21[1], 2.236, 5e-4) && has('kspace', 'E = −√3 = −1.732') && close(X.kspace_lower_2pi3, -1.732, 5e-4), 'kspace: |h(π/2)| = 2.236 and E(2π/3) = −1.732');
+  report(X.kspace_task1_inside_bands === true && X.kspace_task12_in_gap === 2 && has('kspace', 'Two: the edge states with E = ±0.0015'), 'kspace: all 20 eigenvalues of task 1 inside the bands; two in the gap for J₁ = 1, J₂ = 2');
+  report([0, 1, 2, 3].every((k) => close(L.bandSSH(k, 2, 1), L.bandSSH(k, 1, 2), 1e-12)) && has('kspace', '|h(k)| does not change'), 'kspace: the bands are the same when the couplings are exchanged');
+  // the Zak phase with the own program
+  report(has('zakcode', '0.8507 = cos 31.7°') && close(Math.cos((31.7 * PI) / 180), X.zak_overlap_abs_0_pi2, 2e-4) && close(Math.atan2(2, 1) * 90 / PI, 31.7, 0.05), 'zakcode: the overlap 0.8507 is the cosine of half the step of φ (63.43°/2)');
+  report(has('zakcode', 'The product is −0.2') && close(X.zak_product_M4[0], -0.2, 1e-12) && Math.abs(X.zak_product_M4[1]) < 1e-12, 'zakcode: the product of the four overlaps is −0.2');
+  report(has('zakcode', 'the product is −0.891') && close(L.zakSSH(1, 2, 0, 50).product[0], -0.891, 5e-4) && X.zak_product_M3_abs < 1e-12 && has('zakcode', 'with M = 3 one overlap is exactly 0'), 'zakcode: the product for M = 50 is −0.891; for M = 3 it is 0');
+  report(close(X.zak_gamma_over_pi_random_phases, 1, 1e-9), 'zakcode: random phases on the eigenvectors do not change γ (numpy)');
+  // the on-site term
+  report(has('onsite', '√(0.25 + 1) = √1.25 = 1.118') && close(X.onsite_band_pi, 1.118, 5e-4) && has('onsite', 'from −1.118 to 1.118'), 'onsite: the gap reaches to ±1.118');
+  report(close(X.onsite21_overlap_with_zero_state, 1, 1e-9) && has('onsite', 'The edge state keeps its shape'), 'onsite: the edge state keeps its shape (overlap 1 with the state at Δ = 0)');
+  report(has('onsite', 'now at +0.5 and −0.5') && close(X.onsite20_12_closest[0], -0.5, 1e-5) && close(X.onsite20_12_closest[1], 0.5, 1e-5), 'onsite: the two edge states of 20 waveguides at ±0.5');
+  { const v = L.sshEig(20, 1, 2, 0.5), up = v.vectors[v.values.findIndex((e) => close(e, 0.5, 1e-4))], dn = v.vectors[v.values.findIndex((e) => close(e, -0.5, 1e-4))]; report(up[0] ** 2 > 0.7 && dn[19] ** 2 > 0.7, 'onsite: the state at +0.5 sits on waveguide 1, the one at −0.5 on waveguide 20', `${(up[0] ** 2).toFixed(3)}, ${(dn[19] ** 2).toFixed(3)}`); }
+  report(has('onsite', 'γ = 0.708π: no longer π') && has('onsite', 'γ = 0.037π: no longer 0') && close(X.onsite_gamma_over_pi_M400, 0.708, 5e-4) && close(X.onsite_gamma_over_pi_M400_21, 0.037, 5e-4) && Math.abs(X.onsite_gamma_over_pi_M50 - X.onsite_gamma_over_pi_M400) < 0.003, 'onsite: γ = 0.708π and 0.037π; M = 50 gives the same within the tolerance of the field');
 }
 
 console.log('4. the reader of typed numbers');

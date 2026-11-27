@@ -86,7 +86,7 @@ const steps = [
 
 // ---------- pictures ----------
 // the first waveguides of the chain with their alternating couplings
-function drawBonds(ctx, w, h, c, st) {
+export function drawBonds(ctx, w, h, c, st) {
   const shown = 8, pad = 30, y = h * 0.4, step = (w - 2 * pad - 34) / (shown - 1), X = (j) => pad + (j - 1) * step, strong = Math.max(st.J1, st.J2);
   ctx.fillStyle = c['surface-2']; for (let j = 1; j < shown; j += 2) ctx.fillRect(X(j) - 15, y - 34, step + 30, 68);
   for (let j = 1; j < shown; j++) {
@@ -94,7 +94,10 @@ function drawBonds(ctx, w, h, c, st) {
     ctx.strokeStyle = c['fg-2']; ctx.lineWidth = J === strong ? 5 : 1.6; ctx.beginPath(); ctx.moveTo(X(j), y); ctx.lineTo(X(j + 1), y); ctx.stroke();
     tag(ctx, j % 2 ? 'J₁' : 'J₂', (X(j) + X(j + 1)) / 2, y - 19, { color: c.fg, px: 13 });
   }
-  for (let j = 1; j <= shown; j++) { dot(ctx, X(j), y, 8, c.psi); tag(ctx, String(j), X(j), y + 22, { color: c.fg, px: 12.5 }); }
+  for (let j = 1; j <= shown; j++) {
+    dot(ctx, X(j), y, 8, st.onsite ? c.v[j % 2 ? 0 : 1] : c.psi); tag(ctx, String(j), X(j), y + 22, { color: c.fg, px: 12.5 });
+    if (st.onsite) tag(ctx, j % 2 ? '+Δ' : '−Δ', X(j), y - 48, { color: c.v[j % 2 ? 0 : 1], px: 13 });      // the new diagonal of H
+  }
   tag(ctx, '…', X(shown) + 22, y, { color: c['fg-2'], px: 18 });
   if (st.row) {                                                            // row 2 of Hψ: waveguide 2 and its two neighbours
     const x = X(st.row), ya = y - 48;
@@ -104,12 +107,13 @@ function drawBonds(ctx, w, h, c, st) {
   }
   tag(ctx, `J₁ = ${st.J1}${st.J1 === strong ? ' (thick line)' : ' (thin line)'}     J₂ = ${st.J2}${st.J2 === strong ? ' (thick line)' : ' (thin line)'}`, w / 2, y + 78, { color: c.fg, px: 13, wt: 500 });
   tag(ctx, `${st.n} waveguides in all`, w / 2, y + 104, { color: c['fg-2'], px: 12.5, wt: 500 });
+  if (st.onsite) return `The first 8 of the ${st.n} waveguides. Above each one stands its new entry on the diagonal of H: +Δ for the A waveguides 1, 3, 5, … and −Δ for the B waveguides 2, 4, 6, …`;
   return `The first 8 of the ${st.n} waveguides. J₁ couples 1–2, 3–4, … (grey stripes); J₂ couples 2–3, 4–5, …${st.row ? ` Orange: row ${st.row} of Hψ holds the light that comes to waveguide ${st.row} from its two neighbours.` : ''}`;
 }
 
 // the eigenvalues as dots, the lowest first
-function drawLevels(ctx, w, h, c, st) {
-  const E = sshEig(st.N, st.J1, st.J2).values, g = Math.abs(st.J1 - st.J2);
+export function drawLevels(ctx, w, h, c, st) {
+  const D = st.D || 0, E = sshEig(st.N, st.J1, st.J2, D).values, g = Math.hypot(D, st.J1 - st.J2);
   const { X, Y } = axes(ctx, c, w, h, { xlim: [0, st.N + 1], ylim: [-3.5, 3.5], xticks: [1, 5, 10, 15, st.N], yticks: [-3, -2, -1, 0, 1, 2, 3], xlabel: 'number of the eigenvalue, lowest first', ylabel: 'eigenvalue E' });
   if (st.gap) {
     ctx.fillStyle = c['surface-2']; ctx.fillRect(X(0) + 1, Y(g), X(st.N + 1) - X(0) - 1, Y(-g) - Y(g));
@@ -118,7 +122,7 @@ function drawLevels(ctx, w, h, c, st) {
   }
   if (!st.shown) { tag(ctx, `your ${st.N} eigenvalues`, w / 2 + 20, Y(2.6), { color: c['fg-2'], px: 14, wt: 500 }); return `The ${st.N} eigenvalues as dots. They appear with your number.`; }
   E.forEach((v, i) => { const on = (st.mark || []).includes(i); dot(ctx, X(i + 1), Y(v), on ? 5.5 : 4.5, on ? c.hpsi : c.psi); if (on) { ctx.strokeStyle = c.hpsi; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(i + 1), Y(v), 10, 0, TAU); ctx.stroke(); } });
-  return `The ${st.N} eigenvalues for J₁ = ${st.J1}, J₂ = ${st.J2}, the lowest first.${st.gap ? ' Grey: the gap of the long chain, from −1 to 1.' : ''}${(st.mark || []).length ? ' Orange: in the gap.' : ''}`;
+  return `The ${st.N} eigenvalues for J₁ = ${st.J1}, J₂ = ${st.J2}${D ? `, Δ = ${D}` : ''}, the lowest first.${st.gap ? ` Grey: the gap of the long chain, from ${f(-g, D ? 3 : 0)} to ${f(g, D ? 3 : 0)}.` : ''}${(st.mark || []).length ? ' Orange: in the gap.' : ''}`;
 }
 
 // the eigenvectors with the lowest and with the highest eigenvalue of task 1

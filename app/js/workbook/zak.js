@@ -60,7 +60,7 @@ const steps = [
     pic: pic({ set: 'B', n: 4, circle: true, rays: [0, 1, 2, 3] }) },
   { type: 'info', title: 'This part is done', end: true,
     html: `<p class="step-text">You have calculated both Zak phases of the SSH chain: π for J₁ = 1, J₂ = 2 and 0 for J₁ = 2, J₂ = 1.</p>
-`,
+      <p class="step-text">Next: the same with your own program.</p>`,
     pic: pic({ set: 'A', n: 4, circle: true, both: true }) },
 ];
 
@@ -109,4 +109,4 @@ function draw(panel, st, c) {
     : `h(k) in the complex plane for J₁ = ${SETS[st.set].J1}, J₂ = ${SETS[st.set].J2}. The ring is the origin.${st.n ? ' The numbers count the points in the order of k.' : ''}`;
 }
 
-export const zak = { id: 'zak', title: 'Zak phase', steps, draw };
+export const zak = { id: 'zak', title: 'Zak phase by hand', steps, draw };

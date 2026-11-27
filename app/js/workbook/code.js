@@ -1,6 +1,6 @@
 // "Show me how" for the questions that are done with code: the same few lines in Python and in MATLAB.
-// Every block uses the functions of the blocks before it. In MATLAB each function is its own file
-// (couplings.m, Hk.m, u_band.m, zak.m, F_square.m). The names are long on purpose: a function H, u or F would be hidden
+// Every block uses the functions of the blocks before it. In MATLAB each function is its own file: a block names
+// them with lines "% file X.m" and ends with the lines for the script after "% then, in your script:". The names are long on purpose: a function H, u or F would be hidden
 // by a variable of the same name in the script of a student, and "angle", "i" and "j" are not used as variables,
 // because in MATLAB they are the function for arg and the imaginary unit.
 // No line is longer than 46 characters, so that a phone shows every line whole.
@@ -197,6 +197,232 @@ E = sort(diag(D));
 % with four decimals
 fprintf('%.4f\\n', min(E(E > 0)))`,
   },
+  // ---------- Exercise 3: the SSH chain in k-space (task 8a) ----------
+  kspaceE: {
+    py: `import numpy as np
+
+def Hk(k, J1, J2):
+    h = J1 + J2*np.exp(1j*k)
+    return np.array([[0, np.conj(h)],
+                     [h, 0]])
+
+k = 2*np.pi/3
+# the two eigenvalues, lowest first
+E = np.linalg.eigvalsh(Hk(k, 2, 1))
+print(E[0])              # the lower one`,
+    m: `% file Hk.m, next to your script
+function Hm = Hk(k, J1, J2)
+    h = J1 + J2*exp(1i*k);
+    Hm = [0, conj(h); h, 0];
+end
+
+% then, in your script:
+k = 2*pi/3;
+% the two eigenvalues, lowest first
+E = sort(real(eig(Hk(k, 2, 1))));
+disp(E(1))               % the lower one`,
+  },
+  // ---------- Exercise 3: the Zak phase with the own program (task 8b) ----------
+  zakOverlap: {
+    py: `import numpy as np
+
+def Hk(k, J1, J2):
+    h = J1 + J2*np.exp(1j*k)
+    return np.array([[0, np.conj(h)],
+                     [h, 0]])
+
+# the eigenvector of the lower band
+def u_lower(k, J1, J2):
+    E, V = np.linalg.eigh(Hk(k, J1, J2))
+    return V[:, 0]       # the first column
+
+u1 = u_lower(0, 1, 2)
+u2 = u_lower(np.pi/2, 1, 2)
+# vdot takes the complex conjugate of u1
+print(abs(np.vdot(u1, u2)))`,
+    m: `% file Hk.m, next to your script
+function Hm = Hk(k, J1, J2)
+    h = J1 + J2*exp(1i*k);
+    Hm = [0, conj(h); h, 0];
+end
+
+% file u_lower.m: the lower band
+function v = u_lower(k, J1, J2)
+    [V, E] = eig(Hk(k, J1, J2));
+    [~, idx] = sort(real(diag(E)));
+    v = V(:, idx(1));    % lower eigenvalue
+end
+
+% then, in your script:
+u1 = u_lower(0, 1, 2);
+u2 = u_lower(pi/2, 1, 2);
+% u1' is the conjugate transpose of u1
+disp(abs(u1'*u2))`,
+  },
+  zakFour: {
+    py: `# uses u_lower from question 1
+ks = [0, np.pi/2, np.pi, 3*np.pi/2]
+us = [u_lower(k, 1, 2) for k in ks]
+p = 1
+for s in range(4):
+    # the last overlap closes the loop
+    p = p*np.vdot(us[s], us[(s + 1) % 4])
+print(p.real)`,
+    m: `% uses u_lower.m from question 1
+ks = [0, pi/2, pi, 3*pi/2];
+U = zeros(2, 4);         % the 4 eigenvectors
+for s = 1:4
+    U(:, s) = u_lower(ks(s), 1, 2);
+end
+p = 1;
+for s = 1:4
+    t = mod(s, 4) + 1;   % after the last: 1
+    p = p*(U(:, s)'*U(:, t));
+end
+disp(real(p))`,
+  },
+  zakLoop: {
+    py: `# uses u_lower from question 1
+def zak(J1, J2, M=50):
+    ks = 2*np.pi*np.arange(M)/M
+    us = [u_lower(k, J1, J2) for k in ks]
+    p = 1
+    for s in range(M):
+        # the last overlap closes the loop
+        p = p*np.vdot(us[s], us[(s + 1) % M])
+    return -np.angle(p)
+
+print(zak(1, 2)/np.pi)`,
+    m: `% file zak.m; uses u_lower.m
+function g = zak(J1, J2, M)
+    U = zeros(2, M);     % the M eigenvectors
+    for s = 1:M
+        k = 2*pi*(s - 1)/M;
+        U(:, s) = u_lower(k, J1, J2);
+    end
+    p = 1;
+    for s = 1:M
+        t = mod(s, M) + 1; % after the last: 1
+        p = p*(U(:, s)'*U(:, t));
+    end
+    g = -angle(p);
+end
+
+% then, in your script:
+disp(zak(1, 2, 50)/pi)`,
+  },
+  zakSwap: {
+    py: `# the function zak from question 3,
+# with the two couplings exchanged
+print(zak(2, 1)/np.pi)`,
+    m: `% the function zak from question 3,
+% with the two couplings exchanged
+disp(zak(2, 1, 50)/pi)`,
+  },
+  // ---------- Exercise 3: the on-site term (task 3) ----------
+  onsiteE: {
+    py: `import numpy as np
+
+# D is the on-site term Delta
+def ssh_chain(N, J1, J2, D):
+    hop = np.ones(N - 1)
+    hop[0::2] = J1       # 1-2, 3-4, ...
+    hop[1::2] = J2       # 2-3, 4-5, ...
+    H = np.diag(hop, 1) + np.diag(hop, -1)
+    d = np.ones(N)       # the diagonal
+    d[0::2] = D          # 1, 3, 5, ...
+    d[1::2] = -D         # 2, 4, 6, ...
+    return H + np.diag(d)
+
+H = ssh_chain(21, 2, 1, 0.5)
+E, V = np.linalg.eigh(H)
+print(E[10])             # number 11`,
+    m: `% file ssh_chain.m; D is the on-site term
+function H = ssh_chain(N, J1, J2, D)
+    hop = ones(1, N - 1);
+    hop(1:2:end) = J1;    % 1-2, 3-4, ...
+    hop(2:2:end) = J2;    % 2-3, 4-5, ...
+    H = diag(hop, 1) + diag(hop, -1);
+    d = ones(1, N);       % the diagonal
+    d(1:2:end) = D;       % 1, 3, 5, ...
+    d(2:2:end) = -D;      % 2, 4, 6, ...
+    H = H + diag(d);
+end
+
+% then, in your script:
+H = ssh_chain(21, 2, 1, 0.5);
+E = sort(eig(H));        % lowest first
+disp(E(11))              % number 11`,
+  },
+  onsiteEdge: {
+    py: `# uses ssh_chain from question 2
+H = ssh_chain(20, 1, 2, 0.5)
+E, V = np.linalg.eigh(H)
+print(E[E > 0].min())    # closest to zero`,
+    m: `% uses ssh_chain.m from question 2
+H = ssh_chain(20, 1, 2, 0.5);
+E = sort(eig(H));
+disp(min(E(E > 0)))      % closest to zero`,
+  },
+  onsiteZak: {
+    py: `# H(k) with the on-site term D
+def Hk(k, J1, J2, D):
+    h = J1 + J2*np.exp(1j*k)
+    return np.array([[D, np.conj(h)],
+                     [h, -D]])
+
+def u_lower(k, J1, J2, D):
+    E, V = np.linalg.eigh(Hk(k, J1, J2, D))
+    return V[:, 0]       # lower eigenvalue
+
+def zak(J1, J2, D, M):
+    ks = 2*np.pi*np.arange(M)/M
+    us = [u_lower(k, J1, J2, D) for k in ks]
+    p = 1
+    for s in range(M):
+        p = p*np.vdot(us[s], us[(s + 1) % M])
+    return -np.angle(p)
+
+print(zak(1, 2, 0.5, 400)/np.pi)`,
+    m: `% file Hk.m: with the on-site term D
+function Hm = Hk(k, J1, J2, D)
+    h = J1 + J2*exp(1i*k);
+    Hm = [D, conj(h); h, -D];
+end
+
+% file u_lower.m: the lower band
+function v = u_lower(k, J1, J2, D)
+    [V, E] = eig(Hk(k, J1, J2, D));
+    [~, idx] = sort(real(diag(E)));
+    v = V(:, idx(1));    % lower eigenvalue
+end
+
+% file zak.m
+function g = zak(J1, J2, D, M)
+    U = zeros(2, M);     % the M eigenvectors
+    for s = 1:M
+        k = 2*pi*(s - 1)/M;
+        U(:, s) = u_lower(k, J1, J2, D);
+    end
+    p = 1;
+    for s = 1:M
+        t = mod(s, M) + 1; % after the last: 1
+        p = p*(U(:, s)'*U(:, t));
+    end
+    g = -angle(p);
+end
+
+% then, in your script:
+disp(zak(1, 2, 0.5, 400)/pi)`,
+  },
+  onsiteZak2: {
+    py: `# the function zak from question 5,
+# with the two couplings exchanged
+print(zak(2, 1, 0.5, 400)/np.pi)`,
+    m: `% the function zak from question 5,
+% with the two couplings exchanged
+disp(zak(2, 1, 0.5, 400)/pi)`,
+  },
   // ---------- Exercise 4: the lattice of five waveguides ----------
   couplings: {
     py: `import numpy as np
@@ -392,5 +618,8 @@ export const PROGRAMS = [
   { id: 'rk', blocks: ['rkChain'] },
   { id: 'beam', blocks: ['beam'] },
   { id: 'ssh', blocks: ['sshE', 'sshOdd', 'sshEdge'] },
+  { id: 'kspace', blocks: ['kspaceE'] },
+  { id: 'zakcode', blocks: ['zakOverlap', 'zakFour', 'zakLoop', 'zakSwap'] },
+  { id: 'onsite', blocks: ['onsiteE', 'onsiteEdge', 'onsiteZak', 'onsiteZak2'] },
   { id: 'aah', blocks: ['couplings', 'matrix', 'overlap', 'zak', 'zak2', 'plaquette', 'sum', 'band2'] },
 ];
