@@ -86,7 +86,7 @@ const ctl = $('controls'), captionEl = $('caption');
 let playBtn = null, timeEl = null, progressEl = null, lastNow = 0;
 const built = new Set();                  // the tabs whose fields exist
 let shown = null;                         // the id of the tab on the screen
-const scrollOf = {};                      // on a phone the page scrolls as a whole: each tab keeps its own place
+const place = {};                         // per tab: the field or button that had the focus last (where the student was working)
 function setPlaying(v) { playing = v; if (playBtn) playBtn.textContent = playing ? 'Pause' : 'Play'; }
 function advance(dts) { if (pump.s >= 1 - 1e-9) pump.s = 0; pump.s = Math.min(1, pump.s + dts / CYCLE_SECONDS); if (pump.s >= 1) setPlaying(false); }
 // A redraw: the canvases of this tab, the caption and the counters. The fields are not touched.
@@ -104,7 +104,6 @@ function frame(now) {
 }
 // push: the change comes from a click or a key, so it gets its own entry in the history and Back returns to the tab before.
 function showAct(i, { push = false } = {}) {
-  if (shown) scrollOf[shown] = window.scrollY;
   act = Math.max(0, Math.min(acts.length - 1, i));
   const a = acts[act], stepsPane = panes[a.panes[0]];
   setPlaying(false); tsSlider = null;
@@ -120,8 +119,15 @@ function showAct(i, { push = false } = {}) {
   ctl.append(el('span', { class: 'spacer' }), progressEl, button('reset', () => { if (window.confirm('Clear every value that you typed on the four tabs of this page?')) resetAll(); }, { id: 'reset', title: 'Clear every value that you typed on this page' }));
   render();
   if (location.hash !== '#' + a.id) history[push ? 'pushState' : 'replaceState'](null, '', '#' + a.id);
-  if (shown !== a.id) { shown = a.id; window.scrollTo(0, scrollOf[a.id] ?? 0); }
+  // On a phone the page scrolls as a whole, and the tabs stand at its top. Coming back to a tab, the page goes to the field
+  // that was used last there, not to the top. (On a wide screen each pane scrolls by itself and keeps its place.)
+  if (shown !== a.id) {
+    shown = a.id;
+    const last = place[a.id], pageScrolls = document.documentElement.scrollHeight > window.innerHeight + 40;
+    if (pageScrolls && last && last.isConnected && last.offsetParent !== null) last.scrollIntoView({ block: 'center' });
+  }
 }
+$('stage').addEventListener('focusin', (e) => { if (e.target.matches('input.wb-in, .wb-opt, .wb-formula-btn')) place[acts[act].id] = e.target; });
 acts.forEach((a, i) => $('acts').append(el('a', { href: '#' + a.id, text: a.tab, onclick: (e) => { e.preventDefault(); showAct(i, { push: true }); } })));
 // Keys: the arrows change the tab and the space bar plays, but never while a field, a slider, a button or a link has the
 // focus: there the keys belong to that control (after a click on a prediction the arrow keys must not change the tab).

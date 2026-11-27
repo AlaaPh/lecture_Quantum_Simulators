@@ -589,5 +589,229 @@ console.log('\n7. data of the pump figures (pump.js)');
 }
 
 // =====================================================================================================
+console.log('\n8. the fields of the page (content.js, fields.js)');
+{
+  const texts = F.fields().filter((f) => f.type === 'text'), T = F.TEXT;
+  const dec = (x, d = 4) => { const t = x.toFixed(d); return /^-0\.?0*$/.test(t) ? t.slice(1) : t; };
+  // the strings that are typed for a value of a field (a vector is typed without the factor printed behind the field)
+  const strings = (f, v, d = 4) => (f.kind === 'complex' ? [dec(v.re, d), dec(v.im, d)] : f.kind === 'vector' ? v.map((z) => dec(z.re * (f.length ?? 1), d)) : [f.kind === 'integer' ? String(v) : dec(v, d)]);
+  const same = (f, a, b, tol = 1e-6) => check(a, b, { kind: f.kind, unit: f.unit, tol, otherPhase: false }).state === 'ok';
+  const shown = (f, v) => strings(f, v).join(' | ');
+  const pis = texts.filter((f) => f.unit === 'pi'), degs = texts.filter((f) => f.unit === 'deg'), hand = texts.filter((f) => !f.code);
+  console.log(`   ${texts.length} typed fields: ${hand.length} by hand, ${texts.length - hand.length} from the code; ${pis.length} in units of pi, ${degs.length} in degrees`);
+
+  // (a) every reference is right when it is typed with four decimals; in a hand field also with two decimals
+  const notRight = [];
+  for (const f of texts) for (const d of f.code || f.kind === 'integer' ? [4] : [4, 2]) { const r = F.judge(f.id, strings(f, F.referenceOf(f), d)); if (r.state !== 'ok') notRight.push(`${f.id} (${d} decimals): ${r.state}`); }
+  report(notRight.length === 0, 'every reference value is right, typed with four decimals (hand fields: also with two)', notRight.join('; ') || `${texts.length} fields`);
+
+  // (b) every known wrong value is wrong and gets its own hint (the hint of the first entry of the list with this value)
+  const badWrong = [];
+  let nWrong = 0;
+  for (const f of texts) {
+    const list = F.wrongOf(f), ref = F.referenceOf(f);
+    list.forEach((w, i) => {
+      nWrong++;
+      const r = F.judge(f.id, strings(f, w.value, 6)), first = list.find((x, j) => j <= i && same(f, x.value, w.value));
+      if (same(f, w.value, ref, f.tol ?? 0.006)) badWrong.push(`${f.id}: the wrong value ${shown(f, w.value)} lies within the tolerance of the reference`);
+      else if (r.state !== 'wrong' || r.message !== first.hint) badWrong.push(`${f.id}: ${shown(f, w.value)} -> ${r.state}, "${r.message}"`);
+    });
+  }
+  report(badWrong.length === 0 && nWrong > 60, 'no known wrong value lies within the tolerance of its reference; each one is answered with its own hint', badWrong.join('; ') || `${nWrong} wrong values in ${texts.filter((f) => F.wrongOf(f).length).length} fields`);
+
+  // (c) the value of another field of the same step (same kind, same unit) is not accepted, and in a hand field it is not
+  //     called a rounding error either. Two fields may hold the same number (to 1e-6): those pairs are left out.
+  //     One pair is meant to agree: gamma for M = 100 and M = 400 in A7 (the value has converged).
+  const stepOf = (f) => f.id.split('-')[0], MEANT = new Set(['A7-s1-M100|A7-s1-M400', 'A7-s1-M400|A7-s1-M100']);
+  const neighbours = [];
+  let nPairs = 0, converged = '';
+  for (const f of texts) for (const g of texts) {
+    if (f === g || stepOf(f) !== stepOf(g) || f.kind !== g.kind || f.unit !== g.unit || f.kind === 'vector') continue;
+    const a = F.referenceOf(f), b = F.referenceOf(g);
+    if (same(f, b, a)) continue;
+    nPairs++;
+    const r = F.judge(f.id, strings(f, b, 6));
+    if (MEANT.has(`${f.id}|${g.id}`)) { if (r.state === 'ok') converged = `${dec(a, 6)} and ${dec(b, 6)}`; continue; }
+    if (r.state === 'ok' || r.state === 'other-phase' || r.reason === 'near') neighbours.push(`${shown(f, b)} of ${g.id} typed into ${f.id}: ${r.state}${r.reason ? ' (' + r.reason + ')' : ''}`);
+  }
+  report(neighbours.length === 0 && nPairs > 100, 'the value of a neighbouring field (same step, kind and unit) is neither right nor "a rounding error"', neighbours.join('; ') || `${nPairs} pairs with different values${converged ? `; left out as meant: A7, M = 100 and M = 400 agree within the tolerance (${converged})` : ''}`);
+
+  // (d) one rule for every field with a unit: outside one full turn the answer is wrong and the message names the unit
+  const unitBad = [];
+  for (const f of pis) {
+    const ref = F.referenceOf(f);
+    if (Math.abs(ref) > 2) unitBad.push(`${f.id}: reference ${ref} outside -2 ... 2`);
+    for (const t of ['180', '90', '45', '3.14', '6.2832', '360', '-180', ...(ref > 0.01 ? [dec(ref + 2)] : [])]) { const r = F.judge(f.id, t); if (r.state !== 'wrong' || r.message !== T.unitPi) unitBad.push(`${f.id} "${t}": ${r.state}, "${r.message}"`); }
+    const turn = ref > 0 ? ref - 2 : ref + 2, r = F.judge(f.id, dec(turn, 6));                        // one full turn away, inside the range
+    if (r.state !== (f.kind === 'angle' ? 'ok' : 'wrong')) unitBad.push(`${f.id} "${dec(turn)}" (one full turn from the reference): ${r.state}`);
+  }
+  for (const f of degs) for (const t of ['400', '-720', '1000']) { const r = F.judge(f.id, t); if (r.state !== 'wrong' || r.message !== T.unitDeg) unitBad.push(`${f.id} "${t}": ${r.state}, "${r.message}"`); }
+  report(unitBad.length === 0, 'fields in units of pi: 180, 90, 45, 3.14, 6.2832, 360, -180 and (reference + 2) are wrong with the message about the unit; one full turn inside -2 ... 2 is right for an angle, wrong for a value; degrees: outside -360 ... 360 is wrong', unitBad.join('; ') || `${pis.length} fields in units of pi: ${pis.map((f) => f.id).join(' ')}; ${degs.length} in degrees`);
+  const piTable = [['A3-gamma', '1', 'ok'], ['A3-gamma', '-1', 'ok'], ['A3-gamma', 'pi', 'ok'], ['A3-gamma', '-pi', 'ok'], ['A3-gamma', '1.0', 'ok'], ['A3-gamma', '3', 'wrong'], ['A5-gamma', '0', 'ok'], ['A5-gamma', '2', 'ok'], ['A5-gamma', '2pi', 'ok'],
+    ['B4-g0', '2', 'ok'], ['A7-s1-M400', '0.7079', 'ok'], ['A7-s1-M400', '0.7079pi', 'ok'], ['A7-s1-M400', '2.7079', 'wrong'], ['A7-exact', '2/5', 'ok'], ['B7-total', '2', 'ok'], ['B7-total', '2pi', 'ok'], ['B7-total', '0', 'wrong'], ['B7-total', '4', 'wrong'],
+    ['B7-col2', '0.8257', 'ok'], ['B7-col2', '-1.1743', 'wrong'], ['B6-F', '0.1024', 'ok'], ['B6-F', '2.1024', 'wrong']];
+  const piRes = piTable.map(([id, t]) => F.judge(id, t).state);
+  report(piRes.every((st, i) => st === piTable[i][2]), 'typed into the fields of the page: 1, -1, pi, -pi, 1.0 where pi is right; 0, 2, 2pi where 0 is right; values compared as the number itself', piTable.map(([id, t], i) => `${id} "${t}" ${piRes[i]}${piRes[i] === piTable[i][2] ? '' : ' !'}`).join(', '));
+
+  // (e) the example numbers in the messages are not the result of any step: none of them is, to two decimals, the
+  //     reference of a field or a part of it. The examples are the numbers of the message for unreadable input and those
+  //     behind "For the angle" in the message about the unit (3π/4 and 3pi/4 are read as 0.75, the number that is typed).
+  const exText = `${T.unreadable} ${T.unitPi.slice(T.unitPi.indexOf('For the angle'))}`;
+  const examples = [...new Set((exText.match(/\d+(?:\.\d+)?(?:(?:π|pi)?\/\d+)?/g) || []).map((x) => x.replace(/π|pi/, '').split('/').map(Number).reduce((a, b) => a / b)))];
+  const giveaway = [];
+  for (const f of texts) {
+    const ref = F.referenceOf(f);
+    const comps = f.kind === 'complex' ? [ref.re, ref.im] : f.kind === 'vector' ? ref.flatMap((z) => [z.re * (f.length ?? 1), z.im]) : [ref];
+    for (const ex of examples) for (const c of comps) if (Math.abs(Math.abs(c) - ex) <= 0.006) giveaway.push(`${ex} is the reference of ${f.id} or a part of it`);
+  }
+  const allNumbers = Object.values(T).join(' ');
+  report(giveaway.length === 0 && examples.slice().sort((a, b) => a - b).join() === '0.375,0.75,2.36,12.5,135' && !/0\.7236|1\/4/.test(allNumbers), 'the example numbers in the messages (unreadable input, unit) are not the result of any field', giveaway.join('; ') || `examples: ${examples.join(', ')}; "${T.unreadable}" | "${T.unitPi}"`);
+  report(/four decimals/.test(T.wrongHand) && /two or more/.test(T.wrongHand) && !/[Tt]wo decimals are enough/.test(allNumbers) && !/four decimals/i.test(T.wrongInteger), 'the general hints: "calculate with four decimals and type two or more" by hand; an integer field does not ask for four decimals', `"${T.wrongHand}" | "${T.wrongInteger}"`);
+
+  // (f) students who go on with rounded numbers. Every number that is carried on is the student's own value rounded to d
+  //     decimals (d = 2, 3 or 4 for all numbers of one student), 1/sqrt2 is taken as 0.7071 or as 0.71, u_B·u_B as 0.5 or
+  //     as the square, u_A comes from |h| or from phi. Each typed value must be right. One exception that is no typed number:
+  //     with 1/sqrt2 = 0.71 the product of B4 at t = 0 comes out as 1.03 or 1.04; this is answered as a rounding error.
+  const set1 = S.A.set1, set2 = S.A.set2, b6 = S.B.B6, deg = (x) => (x * 180) / PI, rad = (x) => (x * PI) / 180, mul = (zs) => zs.reduce((p, z) => cx.mul(p, z), cx.of(1));
+  function student(q, c, bb, viaPhi, opt, note) {
+    const qz = (z) => ({ re: q(z.re), im: q(z.im) }), type = (id, v) => note(id, typeof v === 'number' ? [v] : [v.re, v.im]);
+    for (const [set, first] of [[set1, true], [set2, false]]) {
+      const uA = set.h.map((h, i) => {
+        if (i === 0) return { re: -c, im: 0 };
+        if (viaPhi) { const p = rad(q(set.phi_deg[i])); return qz({ re: -Math.cos(p) * c, im: Math.sin(p) * c }); }
+        const a = q(cx.abs(h)); return qz({ re: (-h.re / a) * c, im: (h.im / a) * c });
+      });
+      const ov = [0, 1, 2, 3].map((s) => qz(cx.add(cx.mul(cx.conj(uA[s]), uA[(s + 1) % 4]), cx.of(bb))));
+      if (first) {
+        uA.forEach((z, i) => { if (i) type(`A1-uA${i + 1}`, z); });
+        ov.forEach((z, s) => type(`A2-ov${s + 1}`, z));
+        const len = ov.map((z) => q(cx.abs(z))), ang = ov.map((z) => q(deg(-cx.arg(z))));
+        len.forEach((x, s) => type(`A2-len${s + 1}`, x)); ang.forEach((x, s) => type(`A2-ang${s + 1}`, x));
+        const L = q(len.reduce((a, b) => a * b, 1)), sum = q(ang.reduce((a, b) => a + b, 0));
+        type('A3-len', L); type('A3-sum', sum); type('A3-gamma', q(sum / 180));
+        type('A3-prod', opt.polar ? qz({ re: L * Math.cos(rad(sum)), im: -L * Math.sin(rad(sum)) }) : qz(mul(ov)));
+        const i1 = { re: -ov[0].im, im: ov[0].re }, i2 = { re: ov[1].im, im: -ov[1].re };
+        type('A4-ov1', i1); type('A4-ov2', i2); type('A4-prod', qz(mul([i1, i2, ov[2], ov[3]])));
+      } else {
+        const ang = [0, 1, 2, 3].map((s) => {
+          if (!viaPhi) return q(deg(-cx.arg(ov[s])));
+          let d = q(set.phi_deg[(s + 1) % 4]) - q(set.phi_deg[s]); while (d > 180) d -= 360; while (d <= -180) d += 360; return q(d / 2);
+        });
+        ang.forEach((x, s) => type(`A5-ang${s + 1}`, x));
+        const sum = q(ang.reduce((a, b) => a + b, 0));
+        type('A5-sum', sum); type('A5-gamma', q(sum / 180));
+      }
+    }
+    S.B.B1.E.tq.forEach((E, i) => type(`B1-E${i}`, q(E)));
+    const p4 = (z) => mul([z, z, z, z]);
+    type('B4-prod0', qz(p4(qz(opt.one ? cx.of(1) : cx.of(2 * c * c))))); type('B4-prodh', qz(p4(qz(opt.one ? { re: 0.5, im: -0.5 } : { re: c * c, im: -c * c }))));
+    const s6 = opt.short ? q(1 / Math.sqrt(6)) : 0.4082, g = opt.polar ? (opt.short ? q(1 / Math.sqrt(12)) : 0.2887) : c * s6, bA = qz({ re: -s6, im: s6 }), bB = q(2 * s6);
+    const ovs = [qz(opt.one ? { re: 3 * g, im: -g } : { re: -c * bA.re + c * bB, im: -c * bA.im }), cx.of(bB), cx.of(q(c)), cx.of(q(opt.one ? 1 : 2 * c * c))];
+    ovs.forEach((z, i) => type(`B6-ov${i + 1}`, z));
+    const prod = qz(mul(ovs));
+    type('B6-prod', prod); type('B6-F', q(opt.polar ? q(deg(-cx.arg(prod))) / 180 : -cx.arg(prod) / PI));
+  }
+  const rounded = (d) => (x) => Math.round(x * 10 ** d) / 10 ** d;
+  const worst = new Map(), rejected = [], seen = { ok: 0, near: 0, other: 0 };
+  let nStudents = 0;
+  for (const d of [2, 3, 4]) for (const c of [0.7071, 0.71]) for (const bb of [0.5, c * c]) for (const viaPhi of [false, true]) for (const polar of [false, true]) for (const one of [false, true]) for (const short of [false, true]) {
+    nStudents++;
+    student(rounded(d), c, bb, viaPhi, { polar, one, short }, (id, parts) => {
+      const r = F.judge(id, parts.map((x) => dec(x, d))), f = F.get(id), ref = F.referenceOf(f);
+      const dev = f.kind === 'complex' ? Math.max(Math.abs(parts[0] - ref.re), Math.abs(parts[1] - ref.im)) : Math.abs(parts[0] - ref), key = id.replace(/\d+$/, '');
+      if (!(worst.get(key) >= dev)) worst.set(key, dev);
+      if (r.state === 'ok') seen.ok++;
+      else if (id === 'B4-prod0' && c === 0.71 && r.reason === 'near' && r.message === T.near) seen.near++;
+      else { if (r.state === 'other-phase') seen.other++; rejected.push(`${id} ${parts.map((x) => dec(x, d)).join(' | ')} (${d} decimals, 1/sqrt2 = ${c}): ${r.state}${r.reason ? ', ' + r.reason : ''}`); }
+    });
+  }
+  report(rejected.length === 0 && seen.other === 0, `${nStudents} students who go on with numbers rounded to 2, 3 or 4 decimals (1/sqrt2 = 0.7071 or 0.71): every typed hand value is right`,
+    rejected.length ? `${rejected.length} rejected, for example: ${rejected.slice(0, 6).join('; ')}` : `${seen.ok} typed values right; B4-prod0 with 1/sqrt2 = 0.71 (1.03 or 1.04 for the exact 1): ${seen.near} times answered as a rounding error`);
+  console.log(`  note  largest distance from the reference in these runs (tolerance of the field): ${[...worst].map(([key, dev]) => `${key} ${dev.toFixed(4)} (${F.get(F.fields().find((f) => f.id.startsWith(key)).id).tol ?? 0.006})`).join(', ')}`);
+  // students who mix: every carried number is rounded to 2 or to 4 decimals at random, or cut after 2 decimals.
+  // Not every value is inside the tolerance then, but a value that is not right is called a rounding error, never another phase.
+  const rnd = rng(31), mixed = { ok: 0, near: 0, other: [], plain: [] };
+  for (let n = 0; n < 4000; n++) {
+    const cut = n % 2 === 1, q = (x) => { const u = rnd(); return u < 0.4 || (!cut && u < 0.6) ? Math.round(x * 100) / 100 : u < 0.6 ? Math.trunc(x * 100) / 100 : Math.round(x * 1e4) / 1e4; };
+    const c = rnd() < 0.5 ? 0.7071 : 0.71;
+    student(q, c, rnd() < 0.5 ? 0.5 : c * c, rnd() < 0.5, { polar: rnd() < 0.5, one: rnd() < 0.5, short: rnd() < 0.5 }, (id, parts) => {
+      const r = F.judge(id, parts.map((x) => dec(x, 4)));
+      if (r.state === 'ok') mixed.ok++; else if (r.state === 'wrong' && r.reason === 'near') mixed.near++; else if (r.state === 'other-phase') mixed.other.push(id); else mixed.plain.push(`${id} ${parts.map((x) => dec(x, 4)).join(' | ')}: ${r.state}, "${r.message.slice(0, 40)}"`);
+    });
+  }
+  report(mixed.other.length === 0 && mixed.plain.length === 0, '4000 students who mix 2 and 4 decimals or cut after 2 decimals: a value outside the tolerance is called a rounding error, never "another phase"', mixed.plain.length + mixed.other.length ? `${mixed.other.length} times "another phase", ${mixed.plain.length} other: ${mixed.plain.slice(0, 5).join('; ')}` : `${mixed.ok} values right, ${mixed.near} answered as a rounding error`);
+  // the reviewers' cases, as they typed them
+  const typedCases = [['A2-ov1', ['0.73', '-0.45'], 'ok'], ['A2-ov1', ['0.72', '-0.44'], 'ok'], ['A2-ang1', ['32.01'], 'ok'], ['A2-ang1', ['31.52'], 'ok'], ['A2-ang2', ['58.11'], 'ok'], ['A5-ang1', ['13.04'], 'ok'], ['A3-sum', ['180.24'], 'ok'], ['A3-sum', ['180.28'], 'ok'],
+    ['B6-ov1', ['0.87', '-0.28'], 'ok'], ['B6-prod', ['0.51', '-0.17'], 'ok'], ['A2-ov1', ['0.76', '-0.45'], 'wrong'], ['A2-ang1', ['35'], 'wrong'], ['A3-sum', ['190'], 'wrong']];
+  const typedRes = typedCases.map(([id, t]) => F.judge(id, t));
+  report(typedRes.every((r, i) => r.state === typedCases[i][2]), 'the values of the two reviews that came from two-decimal numbers are right now; values further away are still wrong', typedCases.map(([id, t], i) => `${id} ${t.join(' | ')}: ${typedRes[i].state}${typedRes[i].reason ? ' (' + typedRes[i].reason + ')' : ''}`).join(', '));
+
+  // (g) hints that name a cause: each one stands where its cause can occur
+  const msg = (id, t) => F.judge(id, t).message;
+  const e6 = msg('B6-E', '1.5'), e1 = msg('A1-E2', '2.2361'), e6c = msg('A6-E', '3');
+  report(/row by row/.test(e6) && !/\|h\||eigh|Python|upper band/.test(e6) && F.judge('B6-E', '-1.4142').state === 'wrong' && /E = −\|h\|/.test(e1) && !/Python|eigh/.test(e1) && /eigh/.test(e6c),
+    'B6 check 1 (Delta = 0.5): +1.5 is answered without the formula E = -|h| and without Python; A1 (Delta = 0) names E = -|h|; the code field A6 names eigh', `B6-E: "${e6}" | A1-E2: "${e1}" | A6-E: "${e6c}"`);
+  const a4 = [msg('A4-ov1', strings(F.get('A4-ov1'), set1.ov[0])), msg('A4-ov1', strings(F.get('A4-ov1'), { re: -set1.A4.ov12.re, im: -set1.A4.ov12.im })), msg('A4-ov2', strings(F.get('A4-ov2'), set1.ov[1])), msg('A4-ov2', strings(F.get('A4-ov2'), { re: -set1.A4.ov23.re, im: -set1.A4.ov23.im }))];
+  const a4other = F.judge('A4-ov1', ['0.7236', '0.4472']);          // right length, another angle, no known mistake
+  report(a4.every((m) => /^this is/.test(m)) && a4.every((m) => !/another phase/.test(m)) && a4other.state === 'wrong' && !/phase/.test(a4other.message),
+    'A4 (the factor i is prescribed): the unchanged overlap of A2 and the overlap with the star on the wrong vector get their own hints; no answer says "another phase"', a4.map((m) => `"${m}"`).join(' | '));
+  // 0 in place of pi: the product without the complex conjugate has the opposite sign for J1 = 1, J2 = 2 and at t = T/2, but not for J1 = 2, J2 = 1 and not at t = 0
+  const noConj = (us) => us.reduce((p, u, s) => { const v = us[(s + 1) % us.length]; return cx.mul(p, cx.add(cx.mul(u[0], v[0]), cx.mul(u[1], v[1]))); }, cx.of(1));
+  const nc = { set1: noConj(M.bandStates(1, 2, 0, 4)), set2: noConj(M.bandStates(2, 1, 0, 4)), t0: noConj(M.bandStates(2, 0, 0, 4)), th: noConj(M.bandStates(0, 2, 0, 4)) };
+  const far = (a, b) => cx.abs(cx.sub(a, b));
+  report(far(nc.set1, cx.scale(set1.prod, -1)) < 1e-12 && far(nc.th, cx.scale(S.B.B4.thalf.prod, -1)) < 1e-12 && far(nc.set2, set2.prod) < 1e-12 && far(nc.t0, S.B.B4.t0.prod) < 1e-12
+    && /complex conjugate is missing/.test(msg('A3-gamma', '0')) && /complex conjugate is missing/.test(msg('B4-gh', '0')) && !/conjugate/.test(msg('A5-gamma', '1')) && !/conjugate/.test(msg('B4-g0', '1')) && !/conjugate/.test(msg('A6-gamma100', '0'))
+    && /complex conjugate of the left vector is missing/.test(msg('A3-prod', ['0.2', '0'])) && /complex conjugate of the left vector is missing/.test(msg('B4-prodh', ['0.25', '0'])) && /np\.vdot/.test(msg('A6-prod4', ['0.2', '0'])),
+    'gamma = 0 in place of pi: the hint names the missing complex conjugate where it gives this value (A3, B4 at T/2), and only the unit cell elsewhere; the products +0.2 and +0.25 have their hint', `products without the conjugate: ${f6(nc.set1.re)} (A3), ${f6(nc.th.re)} (B4, T/2), ${f6(nc.set2.re)} (A5), ${f6(nc.t0.re)} (B4, t = 0)`);
+  // the shift -0.8891 and negative column sums have several causes: the hints list them
+  const viaDelta = M.propagate(1, -0.5, 20, 40, 0.05).shiftStart, upperHint = msg('B3-T20', dec(S.B.B3.start.upper_band.T20));
+  const colsOf = (ufun) => M.chernMap(ufun, 4).colSums.map((x) => x / PI), negCols = [colsOf(M.pumpState(1, 0.5, { band: 1 })), colsOf(M.pumpState(1, 0.5, { sign: -1 })), colsOf((k, s) => M.pumpState(1, 0.5)(-k, s))];
+  const colHint = msg('B7-col1', dec(-S.B.B7.col_sums_over_pi[0]));
+  report(Math.abs(viaDelta - S.B.B3.start.upper_band.T20) < 1e-9 && /−Δ on guide A/.test(upperHint) && /\(A \+ B\)\/√2/.test(upperHint) && /with −J/.test(upperHint)
+    && negCols.every((cols) => cols.every((x, j) => Math.abs(x + S.B.B7.col_sums_over_pi[j]) < 1e-9)) && /upper band/.test(colHint) && /e\^\(−ik\)/.test(colHint) && /−Δ on guide A/.test(colHint) && colHint === msg('B7-total', '-2') && colHint === msg('B7-C', '-1'),
+    'B3: -Delta on guide A gives the same shift as the upper-band input; B7: the upper band, e^(-ik) and -Delta give the same negative column sums; both hints list these causes', `shift with -Delta on A: ${f6(viaDelta)}; "${upperHint}" | "${colHint}"`);
+  const rowSums = S.B.B7.F_over_pi.map((row) => row.reduce((a, b) => a + b, 0));
+  report(/added along t/.test(msg('B7-col1', dec(rowSums[0]))) && msg('B7-col1', dec(S.B.B7.col_sums_over_pi[0] * PI)) === T.radiansInPi && msg('A1-phi2', dec(rad(set1.phi_deg[1]))) === T.radiansInDeg && msg('A2-ang1', dec(rad(set1.ov_angle_deg[0]))) === T.radiansInDeg
+    && /length 1: divide by √2/.test(msg('A1-uA2', ['-0.4472', '0.8944'])) && /this is γ\/2π/.test(msg('B5-quarter', dec(S.B.B5.quarter_M400_over_pi / 2))) && /this is E/.test(msg('B1-gap', '0.5')) && msg('B6-F', '18.43') === T.unitPi && msg('B7-total', '6.2832') === T.unitPi
+    && msg('B3-norm', '0.99') === 'Σ|ψ|² is not 1: the step dt is too large, or H is not symmetric.',
+    'typical mistakes have their own hint: a sum along t, radians in a field in degrees or in units of pi, a vector of length sqrt2, gamma/2pi, E for the gap, degrees or radians outside the range', `row sums ${rowSums.map((x) => dec(x)).join(' ')}; B7-col1 in radians ${dec(S.B.B7.col_sums_over_pi[0] * PI)}`);
+  const intHints = ['B5-C', 'B7-C', 'B7-C24', 'B8-c1', 'B8-c2', 'B8-c3', 'B8-c4'].map((id) => msg(id, '7'));
+  const coarse = msg('B8-c4', '0'), c24 = msg('B7-C24', '0');
+  report(intHints.every((m) => m === T.wrongInteger) && /8 × 8/.test(coarse) && !/too coarse/.test(coarse) && /add all the angles/.test(c24) && !/16/.test(c24) && M.pumpChern(0.5, 0.2, 3) < 0.5 && Math.round(M.pumpChern(0.5, 0.2, 8)) === 1,
+    'integer fields: a wrong integer is not asked for four decimals; 0 for the sheet numbers names the 8 x 8 grid; 0 on the 24 x 24 grid does not speak of 16 angles', `"${coarse}" | "${c24}"`);
+
+  // (h) B6: a and c are typed with either sign; the overlaps are checked for the vectors as typed; the length is asked
+  const b6rows = [];
+  const tryB6 = (a, c, table) => { F.enter('B6-a', a); F.enter('B6-c', c); for (const [id, t, want] of table) { const r = F.judge(id, t); b6rows.push(`a = (${a}), c = (${c}): ${id} ${t.join(' | ')} ${r.state}${r.state === want ? '' : ' !'}`); } };
+  const o = b6.ov.map((z) => [dec(z.re), dec(z.im)]), on = b6.ov.map((z) => [dec(-z.re), dec(-z.im)]);
+  tryB6(['-1', '1'], ['0', '1'], [['B6-ov1', o[0], 'ok'], ['B6-ov2', o[1], 'ok'], ['B6-ov3', o[2], 'ok'], ['B6-ov4', o[3], 'ok'], ['B6-ov1', on[0], 'wrong']]);
+  tryB6(['1', '-1'], ['0', '1'], [['B6-ov1', on[0], 'ok'], ['B6-ov2', o[1], 'ok'], ['B6-ov3', on[2], 'ok'], ['B6-ov4', o[3], 'ok'], ['B6-ov1', o[0], 'wrong'], ['B6-ov3', o[2], 'wrong']]);
+  tryB6(['1', '-1'], ['0', '-1'], [['B6-ov1', on[0], 'ok'], ['B6-ov2', on[1], 'ok'], ['B6-ov3', o[2], 'ok'], ['B6-ov4', o[3], 'ok']]);
+  tryB6(['-1', '1'], ['0', '-1'], [['B6-ov2', on[1], 'ok'], ['B6-ov3', on[2], 'ok'], ['B6-prod', [dec(b6.prod.re), dec(b6.prod.im)], 'ok']]);
+  const lengths = [['B6-c', ['0', '5']], ['B6-c', ['0', '0.7071']], ['B6-a', ['-0.7071', '0.7071']], ['B6-a', ['2', '-2']]].map(([id, t]) => { const r = F.judge(id, t); return `${id} (${t}): ${r.state}, ${r.reason}`; });
+  const follows = (() => { F.enter('B6-a', ['-1', '1']); F.enter('B6-c', ['0', '1']); F.enter('B6-ov1', on[0]); const before = F.get('B6-ov1').state; F.enter('B6-a', ['1', '-1']); const after = F.get('B6-ov1').state; return [before, after]; })();
+  for (const id of ['B6-a', 'B6-c', 'B6-ov1']) F.enter(id, ['', '']);
+  report(b6rows.every((x) => !x.endsWith('!')) && lengths.every((x) => x.endsWith('wrong, length')) && F.judge('B6-a', ['-1', '1']).state === 'ok' && F.judge('B6-a', ['1', '-1']).state === 'ok' && follows.join() === 'wrong,ok' && /printed behind the field/.test(msg('B6-a', ['-0.7071', '0.7071'])),
+    'B6: a and c with either sign are right, and the four overlaps are checked for a and c as typed (a stored overlap is checked again when a changes); (0, 5) and a typed with its factor 1/sqrt2 have the wrong length', `${b6rows.length} cases; ${lengths.join('; ')}; overlap typed for a = (1, -1) before and after a is changed to it: ${follows.join(' -> ')}`);
+
+  // (i) a prediction cannot be changed once its result is right
+  F.enter('A3-pred', '0'); F.enter('A3-gamma', '1'); F.enter('A3-pred', '1');
+  const kept = F.chosen('A3-pred'); F.enter('A3-gamma', ''); F.enter('A3-pred', '1'); const free = F.chosen('A3-pred');
+  F.enter('A3-pred', null);
+  const locks = F.fields().filter((f) => f.type === 'choice' && f.prediction).map((f) => `${f.id} -> ${f.lock}`);
+  report(kept === '0' && free === '1' && F.chosen('A3-pred') === null && locks.length === 6 && locks.every((x) => !x.endsWith('undefined')), 'a prediction stays as it was once the calculated result is right; before that it can be changed', `A3-pred after the result: "${kept}", with the result cleared: "${free}"; ${locks.join(', ')}`);
+
+  // (j) what the texts of the page claim
+  const wrapHalf = (set) => set.phi_deg.map((p, s) => { let d = set.phi_deg[(s + 1) % 4] - p; while (d > 180) d -= 360; while (d <= -180) d += 360; return d / 2; });
+  const dHalf = Math.max(...[set1, set2].flatMap((set) => wrapHalf(set).map((x, s) => Math.abs(x - set.ov_angle_deg[s]))));
+  const rawThird = (set1.phi_deg[3] - set1.phi_deg[2]) / 2;
+  report(dHalf < 1e-9 && Math.abs(rawThird - set1.ov_angle_deg[2]) > 100, 'A2: -arg of each overlap is half the step of phi when the step is taken between -180 and 180 degrees (without that the third one is off)', `largest difference ${sci(dHalf)}; third step not brought into the range: ${dec(rawThird, 2)} against ${dec(set1.ov_angle_deg[2], 2)}`);
+  const g = P.gammaOverCycle(false), follow = P.T_VALUES.map((T0) => { const sim = P.simulation(false, T0, 'pair'); return Math.max(...g.s.map((s, j) => Math.abs(sim.X[P.frameAt(sim, s)] - g.cells[j]))); });
+  report(follow[0] > 0.1 && follow[2] < 0.02, 'B5: X(t) and gamma(t)/2pi lie on each other for T = 100, not for T = 20 (the note of B5 says so)', `largest |X - gamma/2pi| for T = 20, 50, 100: ${follow.map((x) => x.toFixed(3)).join(', ')}`);
+  const guide40 = M.propagate(1, 0.5, 50, 40, 0.05, { input: 'guide' }).shiftStart;
+  report(F.judge('B3-guide', dec(guide40)).state === 'wrong' && F.judge('B3-guide', dec(S.B.B3.start.one_guide.T50)).state === 'ok', 'B3: one guide alone, T = 50: the value depends on the number of cells (the label names 60 cells)', `40 cells ${dec(guide40)}, 60 cells ${dec(S.B.B3.start.one_guide.T50)}`);
+}
+
+// =====================================================================================================
 console.log(`\n${passed + failed} checks: ${passed} passed, ${failed} failed`);
 if (failed) { console.log('FAILED:'); for (const f of failures) console.log('  ' + f); process.exit(1); }

@@ -90,7 +90,7 @@ export const referenceOf = (f) => valueOf(f.ref);
 function radians(f, ref) {
   if (!f.unit || typeof ref !== 'number' || Math.abs(ref) < 1e-9) return [];
   const value = f.unit === 'pi' ? ref * Math.PI : (ref * Math.PI) / 180, tol = Math.min(f.tol ?? HAND_TOL, HAND_TOL);
-  if (Math.abs(value - ref) <= 2 * (f.tol ?? HAND_TOL) + tol) return [];
+  if (Math.abs(value) > (f.unit === 'pi' ? 2 : 360) || Math.abs(value - ref) <= 2 * (f.tol ?? HAND_TOL) + tol) return [];   // outside the range of the unit: answered there
   return [{ value, hint: f.unit === 'pi' ? TEXT.radiansInPi : TEXT.radiansInDeg, tol, exact: true }];
 }
 export const wrongOf = (f) => { const ref = referenceOf(f); return [...valueOf(f.wrong), ...radians(f, ref)]; };

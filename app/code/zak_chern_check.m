@@ -10,10 +10,14 @@ function zak_chern_check(g, label, varargin)
 % Angles count modulo 2 pi: -pi and pi are the same angle.
 %
 % g holds the functions of zak_chern.m and the name of that file. zak_chern.m passes it on in every call.
+    if nargin == 0
+        fprintf('This file only holds the checks. Run zak_chern.m.\n');
+        return
+    end
     if nargin < 2 || ~isstruct(g) || ~ischar(label)
         error('zak_chern:usage', 'Call the check as zak_chern.m does: check(''A1'', @h).');
     end
-    g.todo = scan_todo_(g);
+    [g.todo, g.cut] = scan_todo_(g);
     switch label
         case 'end'
             fprintf('All steps are done.\n');
@@ -57,198 +61,7 @@ function zak_chern_check(g, label, varargin)
 end
 
 
-% The expected numbers of all steps. This block is generated. Do not change it.
-function N = numbers_()
-    N = struct();
-    % BEGIN NUMBERS
-    N.A.set1.J1 = 1.0;
-    N.A.set1.J2 = 2.0;
-    N.A.set1.k_over_pi = [0, 0.5, 1, 1.5];
-    N.A.set1.h = [3.0, 0.0; 1.0, 2.0; -1.0, 0.0; 1.0, -2.0];
-    N.A.set1.phi_deg = [0.0, 63.434949, 180.0, -63.434949];
-    N.A.set1.E = [-3.0, -2.236068, -1.0, -2.236068];
-    N.A.set1.uA = [-0.707107, 0.0; -0.316228, 0.632456; 0.707107, 0.0; -0.316228, -0.632456];
-    N.A.set1.uB = 0.707107;
-    N.A.set1.winding = 1;
-    N.A.set1.ov = [0.723607, -0.447214; 0.276393, -0.447214; 0.276393, -0.447214; 0.723607, -0.447214];
-    N.A.set1.ov_len = [0.850651, 0.525731, 0.525731, 0.850651];
-    N.A.set1.ov_angle_deg = [31.717474, 58.282526, 58.282526, 31.717474];
-    N.A.set1.prod = [-0.2, -0.0];
-    N.A.set1.prod_len = 0.2;
-    N.A.set1.angle_sum_deg = 180.0;
-    N.A.set1.gamma_over_pi = 1.0;
-    N.A.set1.open_prod = [-0.2, -0.123607];
-    N.A.set1.A4.ov12 = [0.447214, 0.723607];
-    N.A.set1.A4.ov23 = [-0.447214, -0.276393];
-    N.A.set1.A4.prod = [-0.2, -0.0];
-    N.A.set1.prod_M100 = [-0.94404, 0.0];
-    N.A.set1.gamma_M100_over_pi = 1.0;
-    N.A.set2.J1 = 2.0;
-    N.A.set2.J2 = 1.0;
-    N.A.set2.k_over_pi = [0, 0.5, 1, 1.5];
-    N.A.set2.h = [3.0, 0.0; 2.0, 1.0; 1.0, 0.0; 2.0, -1.0];
-    N.A.set2.phi_deg = [0.0, 26.565051, 0.0, -26.565051];
-    N.A.set2.E = [-3.0, -2.236068, -1.0, -2.236068];
-    N.A.set2.uA = [-0.707107, 0.0; -0.632456, 0.316228; -0.707107, 0.0; -0.632456, -0.316228];
-    N.A.set2.uB = 0.707107;
-    N.A.set2.winding = 0;
-    N.A.set2.ov = [0.947214, -0.223607; 0.947214, 0.223607; 0.947214, 0.223607; 0.947214, -0.223607];
-    N.A.set2.ov_len = [0.973249, 0.973249, 0.973249, 0.973249];
-    N.A.set2.ov_angle_deg = [13.282526, -13.282526, -13.282526, 13.282526];
-    N.A.set2.prod = [0.897214, 0.0];
-    N.A.set2.prod_len = 0.897214;
-    N.A.set2.angle_sum_deg = 0.0;
-    N.A.set2.gamma_over_pi = 0.0;
-    N.A.set2.open_prod = [0.897214, 0.211803];
-    N.A.set2.A4.ov12 = [0.223607, 0.947214];
-    N.A.set2.A4.ov23 = [0.223607, -0.947214];
-    N.A.set2.A4.prod = [0.897214, 0.0];
-    N.A.set2.prod_M100 = [0.991814, 0.0];
-    N.A.set2.gamma_M100_over_pi = 0.0;
-    N.A.A7.exact.J1 = 0;
-    N.A.A7.exact.J2 = 4;
-    N.A.A7.exact.D = 3;
-    N.A.A7.exact.gamma_over_pi = 0.4;
-    N.A.A7.exact.gamma_over_pi_M4 = 0.311917;
-    N.A.A7.exact.weight_A = 0.2;
-    N.A.A7.exact.weight_B = 0.8;
-    N.A.A7.set1.D = 0.5;
-    N.A.A7.set1.M4_over_pi = 0.606656;
-    N.A.A7.set1.M100_over_pi = 0.707794;
-    N.A.A7.set1.M400_over_pi = 0.707911;
-    N.A.A7.set1.limit_over_pi = 0.707918;
-    N.A.A7.set1.upper_band_M400_over_pi = -0.707911;
-    N.A.A7.set2.D = 0.5;
-    N.A.A7.set2.M4_over_pi = 0.021892;
-    N.A.A7.set2.M100_over_pi = 0.03696;
-    N.A.A7.set2.M400_over_pi = 0.036989;
-    N.A.A7.set2.limit_over_pi = 0.036991;
-    N.A.A7.set2.upper_band_M400_over_pi = -0.036989;
-    N.B.hand.dJ = 1.0;
-    N.B.hand.D0 = 0.5;
-    N.B.sheet.dJ = 0.5;
-    N.B.sheet.D0 = 0.2;
-    N.B.B1.E.t0 = [2.0, 2.0, 2.0];
-    N.B.B1.E.tq = [2.061553, 1.5, 0.5];
-    N.B.B1.E.th = [2.0, 2.0, 2.0];
-    N.B.B1.gap_min = 1.0;
-    N.B.B1.gap_min_sheet = 0.4;
-    N.B.B1.gap_min_at = 'k = pi, t = T/4 and 3T/4';
-    N.B.B2.cells = 40;
-    N.B.B2.t0125.Delta = 0.353553;
-    N.B.B2.t0125.ingap = [];
-    N.B.B2.t03.Delta = 0.475528;
-    N.B.B2.t03.ingap(1).E = -0.475528;
-    N.B.B2.t03.ingap(1).side = 'right';
-    N.B.B2.t03.ingap(1).weight_A = 0.0;
-    N.B.B2.t03.ingap(2).E = 0.475528;
-    N.B.B2.t03.ingap(2).side = 'left';
-    N.B.B2.t03.ingap(2).weight_A = 1.0;
-    N.B.B2.t0375.Delta = 0.353553;
-    N.B.B2.t0375.ingap(1).E = -0.353553;
-    N.B.B2.t0375.ingap(1).side = 'right';
-    N.B.B2.t0375.ingap(1).weight_A = 0.0;
-    N.B.B2.t0375.ingap(2).E = 0.353553;
-    N.B.B2.t0375.ingap(2).side = 'left';
-    N.B.B2.t0375.ingap(2).weight_A = 1.0;
-    N.B.B2.t05.Delta = 0.0;
-    N.B.B2.t05.ingap(1).E = -0.0;
-    N.B.B2.t05.ingap(1).side = 'right';
-    N.B.B2.t05.ingap(1).weight_A = 0.0;
-    N.B.B2.t05.ingap(2).E = 0.0;
-    N.B.B2.t05.ingap(2).side = 'left';
-    N.B.B2.t05.ingap(2).weight_A = 1.0;
-    N.B.B2.t0625.Delta = -0.353553;
-    N.B.B2.t0625.ingap(1).E = -0.353553;
-    N.B.B2.t0625.ingap(1).side = 'left';
-    N.B.B2.t0625.ingap(1).weight_A = 1.0;
-    N.B.B2.t0625.ingap(2).E = 0.353553;
-    N.B.B2.t0625.ingap(2).side = 'right';
-    N.B.B2.t0625.ingap(2).weight_A = 0.0;
-    N.B.B2.sheet_t0375(1).E = -0.141421;
-    N.B.B2.sheet_t0375(1).side = 'right';
-    N.B.B2.sheet_t0375(1).weight_A = 0.0;
-    N.B.B2.sheet_t0375(2).E = 0.141421;
-    N.B.B2.sheet_t0375(2).side = 'left';
-    N.B.B2.sheet_t0375(2).weight_A = 1.0;
-    N.B.B3.input = '(A - B)/sqrt(2) on one cell in the middle';
-    N.B.B3.dt = 0.05;
-    N.B.B3.shift.T20 = 0.889112;
-    N.B.B3.shift.T50 = 0.967335;
-    N.B.B3.shift.T100 = 0.99894;
-    N.B.B3.cells.T20 = 40;
-    N.B.B3.cells.T50 = 60;
-    N.B.B3.cells.T100 = 120;
-    N.B.B3.norm_T20 = 0.999997;
-    N.B.B3.norm_T50 = 0.999991;
-    N.B.B3.norm_T100 = 0.999983;
-    N.B.B3.X_over_cycle_T100 = [0.0, -4.8e-05, 0.001163, 0.016586, 0.138684, 0.322209, 0.396974, 0.447549, ...
-            0.497165, 0.547785, 0.601089, 0.682146, 0.852926, 0.981537, 0.997066, 0.997833, 0.997893];
-    N.B.B3.one_guide_T50 = 0.080361;
-    N.B.B3.sheet_T20_pair = 0.552642;
-    N.B.B4.t0.ov = [1.0, 0.0];
-    N.B.B4.t0.prod = [1.0, 0.0];
-    N.B.B4.t0.gamma_over_pi = 0.0;
-    N.B.B4.thalf.ov = [0.5, -0.5];
-    N.B.B4.thalf.prod = [-0.25, -0.0];
-    N.B.B4.thalf.gamma_over_pi = 1.0;
-    N.B.B5.t_over_T = [0.0, 0.0625, 0.125, 0.1875, 0.25, 0.3125, 0.375, 0.4375, 0.5, 0.5625, 0.625, 0.6875, ...
-            0.75, 0.8125, 0.875, 0.9375, 1.0];
-    N.B.B5.gamma_raw_over_pi = [0.0, 7.7e-05, 0.002949, 0.03385, 0.281487, 0.639298, 0.792975, 0.900916, 1.0, ...
-            -0.900916, -0.792975, -0.639298, -0.281487, -0.03385, -0.002949, -7.7e-05, 0.0];
-    N.B.B5.gamma_unwrapped_over_pi = [0.0, 7.7e-05, 0.002949, 0.03385, 0.281487, 0.639298, 0.792975, 0.900916, ...
-            1.0, 1.099084, 1.207025, 1.360702, 1.718513, 1.96615, 1.997051, 1.999923, 2.0];
-    N.B.B5.C = 1;
-    N.B.B5.quarter_M4_over_pi = 0.174261;
-    N.B.B5.quarter_M400_over_pi = 0.281487;
-    N.B.B5.threequarter_M400_over_pi_raw = -0.281487;
-    N.B.B5.sheet_quarter_M400_over_pi = 0.382759;
-    N.B.B5.C_without_unwrap = 0.0;
-    N.B.B6.u_kpi2_tq = [-0.408248, 0.408248; 0.816497, 0.0];
-    N.B.B6.u_kpi2_tq_times_sqrt6 = [-1.0, 1.0; 2.0, 0.0];
-    N.B.B6.E_kpi2_tq = -1.5;
-    N.B.B6.u_kpi_tq = [0.0, 0.0; 1.0, 0.0];
-    N.B.B6.u_t0 = [-0.707107, 0.0; 0.707107, 0.0];
-    N.B.B6.ov = [0.866025, -0.288675; 0.816497, 0.0; 0.707107, 0.0; 1.0, 0.0];
-    N.B.B6.prod = [0.5, -0.166667];
-    N.B.B6.F_over_pi = 0.102416;
-    N.B.B7.F_over_pi = [-0.015286, 0.060453, 0.060453, -0.015286; 0.102416, 0.352416, 0.352416, ...
-            0.102416; 0.102416, 0.352416, 0.352416, 0.102416; -0.015286, 0.060453, 0.060453, -0.015286];
-    N.B.B7.rows = 'k interval [k_i, k_i+1], i = 0..3';
-    N.B.B7.cols = 't interval [t_j, t_j+1], j = 0..3';
-    N.B.B7.col_sums_over_pi = [0.174261, 0.825739, 0.825739, 0.174261];
-    N.B.B7.total_over_pi = 2.0;
-    N.B.B7.C = 1;
-    N.B.B7.C_24 = 1;
-    N.B.B7.C_sheet_4 = 1;
-    N.B.B7.C_sheet_3_wrong = 0;
-    N.B.B8.upper_band = -1;
-    N.B.B8.reversed_cycle = -1;
-    N.B.B8.not_enclosing = 0;
-    N.B.B8.sheet = 1;
-    N.B.B8.not_enclosing_params = 'J1 = 2.5 + 0.5 cos, J2 = 1 - 0.5 cos, Delta = 0.2 sin';
-    N.C.C1.flux = '1/3';
-    N.C.C1.grid = 6;
-    N.C.C1.chern_lower_to_upper = [-1, 2, -1];
-    N.C.C1.abs = [1, 2, 1];
-    N.C.C1.matrix = ['H[j][j] = 2 cos(ky + 2 pi j/3); H[0][1] = H[1][2] = 1 (and transposed); H[2][0] ', ...
-        '= exp(i kappa), H[0][2] = exp(-i kappa)'];
-    N.C.C2.t1 = 1;
-    N.C.C2.t2 = 0.1;
-    N.C.C2.phiH_over_pi = 0.5;
-    N.C.C2.boundary = 0.519615;
-    N.C.C2.onsite_at_K.m0 = 0.519615;
-    N.C.C2.onsite_at_K.m06 = 1.119615;
-    N.C.C2.onsite_at_Kprime.m0 = -0.519615;
-    N.C.C2.onsite_at_Kprime.m06 = 0.080385;
-    N.C.C2.K = [2.094395, 4.18879];
-    N.C.C2.Kprime = [4.18879, 2.094395];
-    N.C.C2.C_m0 = -1;
-    N.C.C2.C_m06 = 0;
-    N.C.C2.C_m0_phi_negative = 1;
-    N.C.C2.grid = 6;
-    % END NUMBERS
-end
+% The expected numbers of all steps are at the end of this file. That block is generated. Do not change it.
 
 
 function text = hint_(key)
@@ -283,6 +96,9 @@ function text = hint_(key)
                     '(with -J the lower band is (A + B)/sqrt(2)).'];
         case '11 still'
             text = 'B3: the light hardly moves -> one guide alone as input.';
+        case 'cut'
+            text = ['Do not cut or round the result. floor( ) and fix( ) turn a number like 0.9999999999999998 ' ...
+                    'into 0.'];
         otherwise
             text = '';
     end
@@ -428,11 +244,15 @@ function name = file_(g)
 end
 
 
-function stop_(g, label, what, hint)
+function stop_(g, label, what, hint, where)
     % The message of an open or wrong step. zak_chern.m catches this error and prints the message.
+    % where: what to correct, if it is not the step itself.
+    if nargin < 5 || isempty(where)
+        where = ['step ' label];
+    end
     text = sprintf(['%s: not yet. %s\n%sHint: %s\n%sThe run stops here. ' ...
-                    'Correct step %s in %s and run the file again.'], ...
-                   label, what, pad_(), hint, pad_(), label, file_(g));
+                    'Correct %s in %s and run the file again.'], ...
+                   label, what, pad_(), hint, pad_(), where, file_(g));
     error('zak_chern:stop', '%s', text);
 end
 
@@ -467,9 +287,11 @@ function fun = need_(g, label, name)
 end
 
 
-function found = scan_todo_(g)
+function [found, cut] = scan_todo_(g)
     % For every function of zak_chern.m: does its body still contain the word TODO? found.(name) = true or false.
+    % cut.(name) = the name of a function in its body that cuts a number to an integer (floor, fix, ceil), or ''.
     found = struct();
+    cut = struct();
     try
         all_lines = regexp(fileread(g.file), '\r?\n', 'split');
         name = '';
@@ -479,12 +301,32 @@ function found = scan_todo_(g)
             if ~isempty(head)
                 name = head{1};
                 found.(name) = false;
-            elseif ~isempty(name) && ~isempty(regexp(code, '(^|[^A-Za-z0-9_])TODO($|[^A-Za-z0-9_])', 'once'))
-                found.(name) = true;
+                cut.(name) = '';
+            elseif ~isempty(name)
+                if ~isempty(regexp(code, '(^|[^A-Za-z0-9_])TODO($|[^A-Za-z0-9_])', 'once'))
+                    found.(name) = true;
+                end
+                word = regexp(code, '(?:^|[^A-Za-z0-9_])(floor|fix|ceil)\s*\(', 'tokens', 'once');
+                if ~isempty(word)
+                    cut.(name) = word{1};
+                end
             end
         end
     catch
         found = struct();
+        cut = struct();
+    end
+end
+
+
+function word = cut_in_(g, name)
+    % The name of a function that cuts a number to an integer in the function name of zak_chern.m, or ''.
+    word = '';
+    if isa(name, 'function_handle')
+        name = regexprep(func2str(name), '^.*[>/]', '');
+    end
+    if isfield(g, 'cut') && isvarname(name) && isfield(g.cut, name)
+        word = g.cut.(name);
     end
 end
 
@@ -534,15 +376,15 @@ function out = call_(g, label, todo, fun, varargin)
         changed_(g, label);
     end
     state = todo_state_(g, fun);
-    if state == 1
-        open_(g, label, todo);
-    end
     try
         out = fun(varargin{:});
     catch err
+        if state == 1                                    % a line with TODO was run: the step is open
+            open_(g, label, todo);
+        end
         failed_(g, label, todo, err);
     end
-    if (isnumeric(out) && isempty(out)) || (state < 0 && is_nothing_(out))
+    if (isnumeric(out) && isempty(out)) || (state ~= 0 && is_nothing_(out))
         open_(g, label, todo);
     end
 end
@@ -556,15 +398,15 @@ function [first, second] = call2_(g, label, todo, fun, varargin)
         changed_(g, label);
     end
     state = todo_state_(g, fun);
-    if state == 1
-        open_(g, label, todo);
-    end
     try
         [first, second] = fun(varargin{:});
     catch err
+        if state == 1
+            open_(g, label, todo);
+        end
         failed_(g, label, todo, err);
     end
-    if (isnumeric(first) && isempty(first)) || (state < 0 && is_nothing_(first))
+    if (isnumeric(first) && isempty(first)) || (state ~= 0 && is_nothing_(first))
         open_(g, label, todo);
     end
 end
@@ -871,8 +713,7 @@ function A1_(g, label, values)
             stop_(g, label, [seen ' The imaginary part has the wrong sign.'], 'exp(-ik) in h. The exponent is +ik.');
         end
         if close_(got, [want(5:8), want(1:4)])
-            stop_(g, label, [seen ' J1 and J2 are exchanged: J1 has no factor, J2 has the factor exp(ik).'], ...
-                  hint_('10'));
+            stop_(g, label, [seen ' J1 and J2 are exchanged: J1 has no factor, J2 has the factor exp(ik).'], todo);
         end
         stop_(g, label, [seen ' Calculate this number by hand and compare.'], todo);
     end
@@ -906,7 +747,7 @@ end
 function A2_(g, label, values)
     args_(g, label, values, 1);
     overlap = values{1};
-    todo = ['Write <u|v> = conj(u_A) v_A + conj(u_B) v_B: one complex number. u and v are columns. ' ...
+    todo = ['Write <u|v> = the sum of conj(u_j) v_j over all entries j: one complex number. u and v are columns. ' ...
             'u'' is the complex conjugate transpose of u, so u'' * v does all of it.'];
     w = [1; 1i] / sqrt(2);
     self_overlap = complex_(g, label, todo, 'overlap(u, v)', call_(g, label, todo, overlap, w, w));
@@ -1020,6 +861,22 @@ function A3_(g, label, values)
                                  'This is an angle in degrees.'], fmt_(gamma)), ...
               'Keep the angle in radians, as angle gives it.');
     end
+    units = {pi, 'pi'; 2 * pi, '2 pi'};
+    for n = 1:2
+        if abs(abs(gamma) * units{n, 1} - pi) < 1e-6
+            stop_(g, label, sprintf(['For the four hand vectors (J1 = 1, J2 = 2) your zak gives %s. ' ...
+                                     'This is the angle in units of %s.'], fmt_(gamma), units{n, 2}), ...
+                  'Return the angle in radians, as angle gives it. Do not divide it.');
+        end
+    end
+    there = real_(g, label, todo2, 'zak(us)', call_(g, label, todo2, zak, hand_a7));
+    back = real_(g, label, todo2, 'zak(us)', call_(g, label, todo2, zak, hand_a7(:, end:-1:1)));
+    if same_angle_(there, back) && ~same_angle_(there, -back)
+        stop_(g, label, sprintf(['For a loop of four vectors your zak gives %s pi. For the same loop walked the ' ...
+                                 'other way round it gives %s pi again. The two must have opposite signs.'], ...
+                                fmt_(there / pi), fmt_(back / pi)), ...
+              'The sign of the angle is lost. gamma = -angle(product), without abs.');
+    end
     if ~same_angle_(shaken, gamma)
         stop_(g, label, [seen sprintf(' With random phase factors on the vectors it gives %s pi and %s pi.', ...
                                       fmt_(shaken(1) / pi), fmt_(shaken(2) / pi))], hint_('5'));
@@ -1036,6 +893,7 @@ end
 
 
 function A4_(g, label, values)
+    % Hand step A4, repeated with the functions of the student. Nothing is printed: A5_ prints one line for both.
     args_(g, label, values, 3);
     N = numbers_();
     numbers = N.A.set1.A4;
@@ -1048,12 +906,11 @@ function A4_(g, label, values)
     if ~close_(got, want, 2e-6)
         changed_(g, label);
     end
-    ok_(label, {sprintf('u2 multiplied by i: <u1|u2> = %s    <u2|u3> = %s    product = %s, as before', ...
-                        fc_(got(1)), fc_(got(2)), fc_(got(3)))});
 end
 
 
 function A5_(g, label, values)
+    % Hand step A5, repeated the same way. The numbers of A4 and A5 belong to the paper: they are not printed.
     args_(g, label, values, 2);
     N = numbers_();
     numbers = N.A.set2;
@@ -1062,23 +919,29 @@ function A5_(g, label, values)
     overlap = need_(g, label, 'overlap');
     hand2 = hand_(2, 1, 0);
     angles = zeros(1, 4);
-    text = '';
     for s = 1:4
         value = complex_(g, label, '', 'overlap(u, v)', ...
                          call_(g, label, '', overlap, hand2(:, s), hand2(:, mod(s, 4) + 1)));
         angles(s) = -angle(value);
-        if s > 1
-            text = [text ' ']; %#ok<AGROW>
-        end
-        text = [text in_degrees_(angles(s))]; %#ok<AGROW>
     end
     if abs(product - complex(numbers.prod(1), numbers.prod(2))) > 2e-6 ...
             || ~same_angle_(gamma, pi * numbers.gamma_over_pi) ...
             || ~close_(angles * 180 / pi, numbers.ov_angle_deg, 2e-5)
         changed_(g, label);
     end
-    ok_(label, {sprintf(['J1 = 2, J2 = 1: -arg of the four overlaps in degrees = %s    product = %s    ' ...
-                         'gamma/pi = %s'], text, fc_(product), in_pi_(gamma))});
+    us = hand_(1, 2, 0);                                     % A4 once more, on the fixed hand vectors
+    us(:, 2) = 1i * us(:, 2);
+    loop_product = need_(g, label, 'loop_product');
+    got = [complex_(g, label, '', 'overlap(u, v)', call_(g, label, '', overlap, us(:, 1), us(:, 2))), ...
+           complex_(g, label, '', 'overlap(u, v)', call_(g, label, '', overlap, us(:, 2), us(:, 3))), ...
+           complex_(g, label, '', 'loop_product(us)', call_(g, label, '', loop_product, us))];
+    a4 = N.A.set1.A4;
+    want = [complex(a4.ov12(1), a4.ov12(2)), complex(a4.ov23(1), a4.ov23(2)), complex(a4.prod(1), a4.prod(2))];
+    if ~close_(got, want, 2e-6)
+        changed_(g, label);
+    end
+    fprintf('%s\n', ['A4, A5 OK    your overlap, loop_product and zak reproduce the hand steps A4 and A5. ' ...
+                     'Check your own numbers on the page workbook.html.']);
 end
 
 
@@ -1111,7 +974,7 @@ function A6_(g, label, values)
                 [~, V] = sorted_eig_(H);
                 is_row = was_row || close_(u, V(1, :).') || close_(u, V(2, :).') ...
                          || close_(u, V(1, :)') || close_(u, V(2, :)');
-                seen = sprintf('H u is not E u for your vector u = (%s, %s).', fc_(u(1)), fc_(u(2)));
+                seen = sprintf('H u is not E u for your vector u = %s.', fv_(u));
                 if is_row
                     stop_(g, label, seen, hint_('3'));
                 end
@@ -1237,6 +1100,17 @@ function text = in_your_file_(found)
 end
 
 
+function text = this_line_(found)
+    % What the last line of the message names, if the cause is found in a line outside the step.
+    text = '';
+    if numel(found) == 1
+        text = 'this line';
+    elseif numel(found) > 1
+        text = 'these lines';
+    end
+end
+
+
 function A7_(g, label, values)
     args_(g, label, values, 1);
     zak_ssh = values{1};
@@ -1258,7 +1132,8 @@ function A7_(g, label, values)
                         'J1 = 1, J2 = 2, Delta = 0.5 (M = 400).'], in_pi_(got(1)), in_pi_(got(4)));
         if same_angle_(got(1:5), -want(1:5), tol(1:5))
             found = why_wrong_sign_(g);
-            stop_(g, label, [seen ' The size is right, the sign is wrong.'], [hint_('6') in_your_file_(found)]);
+            stop_(g, label, [seen ' The size is right, the sign is wrong.'], [hint_('6') in_your_file_(found)], ...
+                  this_line_(found));
         end
         if same_angle_(got(6), want(7)) && same_angle_(got(7), want(6))
             stop_(g, label, ['Without on-site term your code gives gamma = 0 for J1 = 1, J2 = 2 and pi for ' ...
@@ -1269,6 +1144,13 @@ function A7_(g, label, values)
         end
         if same_angle_(got(2), got(4))
             stop_(g, label, [seen ' Your result does not depend on the number of points M.'], 'Pass M on to states.');
+        end
+        if same_angle_(got([1, 4]), want([1, 4]), 2e-3) && ~same_angle_(got(2), want(2))
+            stop_(g, label, sprintf(['With M = 400 your code is close to the right value. With M = 4 it gives ' ...
+                                     'gamma/pi = %s: this is not the value for the four points k = 0, pi/2, pi, ' ...
+                                     '3 pi/2.'], in_pi_(got(2))), ...
+                  ['Your k points are not k_s = 2 pi (s-1)/M. The point 2 pi is the point 0 again and must not be ' ...
+                   'in the list (linspace(0, 2 * pi, M) contains it). Use states(J1, J2, Delta, M, 1).']);
         end
         stop_(g, label, seen, todo);
     end
@@ -1355,13 +1237,16 @@ function B2_(g, label, values)
         end
         H = array_(g, label, todo, 'H_chain(3, 1, 2, 0.5)', H, [6, 6], true);
         want = chain_(3, 1, 2, 0.5);
+        if ~close_(H - diag(diag(H)), want - diag(diag(want)))
+            if close_(diag(H), 0)
+                stop_(g, label, 'Your line changes the couplings of H_chain. Its diagonal is still 0.', todo);
+            end
+            changed_(g, label, 'The couplings in H_chain were changed.');
+        end
         if close_(diag(H), 0)
             open_(g, label, todo);
         end
-        seen = sprintf('The diagonal of H_chain(3, 1, 2, 0.5) is %s.', row_(diag(H), 1));
-        if ~close_(H - diag(diag(H)), want - diag(diag(want)))
-            changed_(g, label, 'The couplings in H_chain were changed.');
-        end
+        seen = sprintf('The diagonal of H_chain(3, 1, 2, 0.5) is %s.', row_(diag(H), 2));
         if ~close_(H, want)
             if close_(diag(H), -diag(want))
                 stop_(g, label, seen, ['-Delta on A. Guide A (index 2m - 1) gets +Delta, guide B (index 2m) ' ...
@@ -1530,6 +1415,7 @@ function B3_(g, label, values)
     end
     if strncmp(tag, 'sheet', 5)
         lines{end + 1} = 'numbers of the sheet (dJ = 0.5, Delta_0 = 0.2): the gap is small, this cycle is too fast';
+        lines{end + 1} = 'a slower cycle needs a longer chain: T = 200 on 1000 cells gives a shift of 0.95';
     end
     ok_(label, lines);
 end
@@ -1555,6 +1441,12 @@ function B4_(g, label, values)
                         '(M = 400).'], in_pi_(got(1)), in_pi_(got(2)), in_pi_(got(4)));
         if same_angle_(got(1), want(2)) && same_angle_(got(2), want(1))
             stop_(g, label, seen, hint_('10'));
+        end
+        late = [real_(g, label, todo, 'zak_pump(s, M, cycle)', call_(g, label, todo, zak_pump, 0.375, 400, pump)), ...
+                real_(g, label, todo, 'zak_pump(s, M, cycle)', call_(g, label, todo, zak_pump, 0.625, 400, pump))];
+        if same_angle_(late(1), late(2))
+            stop_(g, label, [seen ' At t = 3T/8 and at t = 5T/8 it gives the same value: your result does not ' ...
+                             'depend on Delta.'], 'Pass Delta on to zak_ssh.');
         end
         if same_angle_(got(3), got(4))
             stop_(g, label, [seen ' Your result does not depend on the number of points M.'], ...
@@ -1605,7 +1497,16 @@ function B5_(g, label, values)
         seen = sprintf('Your gamma/pi goes from %s at the start to %s at the end of the cycle.', ...
                        fmt_(gamma(1) / pi), fmt_(gamma(end) / pi));
         if abs(gamma(end) - gamma(1)) < 1e-5
-            stop_(g, label, seen, hint_('7'));
+            stop_(g, label, seen, [hint_('7') ' If unwrap is there: it needs the angles in radians, not divided ' ...
+                                   'by pi.']);
+        end
+        units = {pi, 'pi'; 2 * pi, '2 pi'};
+        for n = 1:2
+            if close_(gamma * units{n, 1}, want, 1e-5)
+                stop_(g, label, sprintf('Your gamma goes from %s to %s. This is gamma in units of %s.', ...
+                                        fmt_(gamma(1)), fmt_(gamma(end)), units{n, 2}), ...
+                      'Keep gamma in radians: do not divide it.');
+            end
         end
         stop_(g, label, [seen ' It must change by less than pi from one time to the next, without jumps.'], todo1);
     end
@@ -1615,11 +1516,14 @@ function B5_(g, label, values)
     C = real_(g, label, todo2, 'C', C);
     if abs(C - numbers.C) > 1e-6
         seen = sprintf('Your C is %s.', fmt_(C));
+        ends = sprintf(' gamma/pi goes from %s to %s.', fmt_(gamma(1) / pi), fmt_(gamma(end) / pi));
+        if C == round(C) && abs(abs(C - numbers.C) - 1) < 1e-6 && ~isempty(cut_in_(g, 'run_steps'))
+            stop_(g, label, [seen ends], hint_('cut'));
+        end
         if abs(C) < 1e-6
             stop_(g, label, seen, hint_('7'));
         end
-        stop_(g, label, [seen sprintf(' gamma/pi goes from %s to %s.', fmt_(gamma(1) / pi), fmt_(gamma(end) / pi))], ...
-              todo2);
+        stop_(g, label, [seen ends], todo2);
     end
     zak_pump = need_(g, label, 'zak_pump');
     quarter4 = real_(g, label, todo1, 'zak_pump(s, M, cycle)', ...
@@ -1662,10 +1566,18 @@ function B6_(g, label, values)
         shaken(seed) = real_(g, label, todo, name, ...
                              call_(g, label, todo, plaquette, vs(:, 1), vs(:, 2), vs(:, 3), vs(:, 4)));
     end
+    back = real_(g, label, todo, name, call_(g, label, todo, plaquette, a, d, c, b));
+    turned = real_(g, label, todo, name, ...
+                   call_(g, label, todo, plaquette, a, b * exp(2i), c * exp(4i), d * exp(6i)));
     seen = sprintf('For the plaquette k = pi/2 .. pi, t = 0 .. T/4 (hand vectors) your F is %s pi.', fmt_(F / pi));
     if ~same_angle_(shaken, F)
         stop_(g, label, [seen sprintf(' With random phase factors on the vectors it is %s pi and %s pi.', ...
                                       fmt_(shaken(1) / pi), fmt_(shaken(2) / pi))], hint_('5'));
+    end
+    if same_angle_(F, pi * numbers.F_over_pi) && ~same_angle_(back, -F)
+        stop_(g, label, [seen sprintf([' Walked the other way round (a -> d -> c -> b -> a) it is %s pi. ' ...
+                                       'It must be %s pi.'], fmt_(back / pi), fmt_(-F / pi))], ...
+              'The sign of the angle is lost. F = -angle(product), without abs.');
     end
     want_free = plaquette_ref_(free(:, 1), free(:, 2), free(:, 3), free(:, 4));
     if ~(same_angle_(F, pi * numbers.F_over_pi) && same_angle_(F_free, want_free))
@@ -1675,6 +1587,13 @@ function B6_(g, label, values)
                    'The order is a -> b -> c -> d -> a.']);
         end
         stop_(g, label, seen, todo);
+    end
+    if ~close_([shaken, turned], F, 1e-9) || max(abs([F, back, F_free])) > pi + 1e-9
+        stop_(g, label, [seen sprintf([' With other phase factors on the vectors it is %s pi, walked the other ' ...
+                                       'way round %s pi. These are the right angles, but not always as a number ' ...
+                                       'between -pi and pi.'], fmt_(turned / pi), fmt_(back / pi))], ...
+              ['F must lie between -pi and pi. Multiply the four overlaps first, then take angle of the product ' ...
+               'once: not the sum of four angles, and no mod. Step B7 adds the plaquette phases as numbers.']);
     end
     product = (a' * b) * (b' * c) * (c' * d) * (d' * a);
     lines = {sprintf(['plaquette k = pi/2 .. pi, t = 0 .. T/4: product of the four overlaps = %s    ' ...
@@ -1711,10 +1630,25 @@ function B7_(g, label, values)
         for seed = 1:2
             shaken(seed) = real_(g, label, todo, 'chern(U)', call_(g, label, todo, values{1}, phases_grid_(U, seed)));
         end
+        mirrored = permute(U, [1, 3, 2]);                   % k and t exchanged: every plaquette the other way round
+        C_back = real_(g, label, todo, 'chern(U)', call_(g, label, todo, values{1}, mirrored));
         seen = sprintf('For the 4 x 4 grid of the pump (hand vectors) your chern gives %s.', fmt_(C));
+        word = cut_in_(g, values{1});
+        if ~isempty(word)
+            stop_(g, label, sprintf('Your chern uses %s( ): it cuts the result to an integer.', word), hint_('cut'));
+        end
+        if isequal(unique([shaken, C]), [0, 1])
+            stop_(g, label, [seen sprintf(' With random phase factors on the vectors it gives %s and %s.', ...
+                                          fmt_(shaken(1)), fmt_(shaken(2)))], hint_('cut'));
+        end
         if ~close_(shaken, C, 1e-9)
             stop_(g, label, [seen sprintf(' With random phase factors on the vectors it gives %s and %s.', ...
                                           fmt_(shaken(1)), fmt_(shaken(2)))], hint_('5'));
+        end
+        if abs(C - numbers.C) < 1e-9 && abs(C_back + C) > 1e-9
+            stop_(g, label, [seen sprintf([' For the same grid with k and t exchanged it gives %s. ' ...
+                                           'It must be %s.'], fmt_(C_back), fmt_(-C))], ...
+                  'The sign of the sum is lost. C = sum / (2 pi), without abs.');
         end
         if abs(C - numbers.C) > 1e-9
             if abs(C) < 1e-9
@@ -1735,12 +1669,17 @@ function B7_(g, label, values)
     column_sums = sum(F, 1);
     if ~close_(F / pi, numbers.F_over_pi, 2e-6) || ~close_(column_sums / pi, numbers.col_sums_over_pi, 2e-6) ...
             || abs(C4 - numbers.C) > 1e-9 || abs(C24 - numbers.C_24) > 1e-9
+        if close_(F / pi, numbers.F_over_pi, 2e-6) && isequal([C4, C24], round([C4, C24])) ...
+                && all(abs([C4, C24] - numbers.C) < 1.5)
+            stop_(g, label, sprintf(['Your chern gives C = %s with grid_kt(4, @pump, 1) and C = %s with ' ...
+                                     'grid_kt(24, @pump, 1).'], fmt_(C4), fmt_(C24)), hint_('cut'));
+        end
         found = why_wrong_sign_(g);
         stop_(g, label, sprintf(['Your chern is right on fixed vectors. But with the eigenvectors of ' ...
                                  'grid_kt(4, @pump, 1) it gives C = %s, with grid_kt(24, @pump, 1) C = %s.'], ...
                                 fmt_(C4), fmt_(C24)), ...
               ['The eigenvectors of the grid are wrong. Compare the given functions H_k, pump and grid_kt with ' ...
-               'the original file.' in_your_file_(found)]);
+               'the original file.' in_your_file_(found)], this_line_(found));
     end
     lines = {'4 x 4 grid, F/pi. One line per k interval (k/pi from 0, 0.5, 1, 1.5), one column per t interval:'};
     for i = 1:4
@@ -1794,7 +1733,7 @@ function B8_(g, label, values)
         changed_(g, label);
     end
     if any(isnan(predicted))
-        stop_(g, label, sprintf('Predict first: %d of your 4 predictions are open.', sum(isnan(predicted))), todo);
+        stop_(g, label, sprintf('Predict first. Open predictions: %d of 4.', sum(isnan(predicted))), todo);
     end
     for n = 1:4
         real_(g, label, todo, 'A prediction', predicted(n));
@@ -1884,7 +1823,12 @@ function C2_(g, label, values)
     end
     C = real(double(C(:).'));
     want = [numbers.C_m0, numbers.C_m06, numbers.C_m0_phi_negative];
-    if ~(close_(C, want, 1e-6) || close_(C, -want, 1e-6))
+    if close_(C, -want, 1e-6)
+        stop_(g, label, sprintf(['Your three Chern numbers are %s. All signs are opposite to those of the ' ...
+                                 'lower band.'], row_(C)), ...
+              'Lower band: band = 1 in grid_2d. phi = -pi/2 belongs to the third entry only.');
+    end
+    if ~close_(C, want, 1e-6)
         stop_(g, label, sprintf('Your three Chern numbers are %s.', row_(C)), todo);
     end
     lines = {sprintf('m = 0: C = %s    m = 0.6: C = %s    m = 0 and phi = -pi/2: C = %s', ...
@@ -1909,4 +1853,198 @@ function C2_(g, label, values)
     catch
     end
     ok_(label, lines);
+end
+
+
+% The expected numbers of all steps. This block is generated. Do not change it.
+function N = numbers_()
+    N = struct();
+    % BEGIN NUMBERS
+    N.A.set1.J1 = 1.0;
+    N.A.set1.J2 = 2.0;
+    N.A.set1.k_over_pi = [0, 0.5, 1, 1.5];
+    N.A.set1.h = [3.0, 0.0; 1.0, 2.0; -1.0, 0.0; 1.0, -2.0];
+    N.A.set1.phi_deg = [0.0, 63.434949, 180.0, -63.434949];
+    N.A.set1.E = [-3.0, -2.236068, -1.0, -2.236068];
+    N.A.set1.uA = [-0.707107, 0.0; -0.316228, 0.632456; 0.707107, 0.0; -0.316228, -0.632456];
+    N.A.set1.uB = 0.707107;
+    N.A.set1.winding = 1;
+    N.A.set1.ov = [0.723607, -0.447214; 0.276393, -0.447214; 0.276393, -0.447214; 0.723607, -0.447214];
+    N.A.set1.ov_len = [0.850651, 0.525731, 0.525731, 0.850651];
+    N.A.set1.ov_angle_deg = [31.717474, 58.282526, 58.282526, 31.717474];
+    N.A.set1.prod = [-0.2, -0.0];
+    N.A.set1.prod_len = 0.2;
+    N.A.set1.angle_sum_deg = 180.0;
+    N.A.set1.gamma_over_pi = 1.0;
+    N.A.set1.open_prod = [-0.2, -0.123607];
+    N.A.set1.A4.ov12 = [0.447214, 0.723607];
+    N.A.set1.A4.ov23 = [-0.447214, -0.276393];
+    N.A.set1.A4.prod = [-0.2, -0.0];
+    N.A.set1.prod_M100 = [-0.94404, 0.0];
+    N.A.set1.gamma_M100_over_pi = 1.0;
+    N.A.set2.J1 = 2.0;
+    N.A.set2.J2 = 1.0;
+    N.A.set2.k_over_pi = [0, 0.5, 1, 1.5];
+    N.A.set2.h = [3.0, 0.0; 2.0, 1.0; 1.0, 0.0; 2.0, -1.0];
+    N.A.set2.phi_deg = [0.0, 26.565051, 0.0, -26.565051];
+    N.A.set2.E = [-3.0, -2.236068, -1.0, -2.236068];
+    N.A.set2.uA = [-0.707107, 0.0; -0.632456, 0.316228; -0.707107, 0.0; -0.632456, -0.316228];
+    N.A.set2.uB = 0.707107;
+    N.A.set2.winding = 0;
+    N.A.set2.ov = [0.947214, -0.223607; 0.947214, 0.223607; 0.947214, 0.223607; 0.947214, -0.223607];
+    N.A.set2.ov_len = [0.973249, 0.973249, 0.973249, 0.973249];
+    N.A.set2.ov_angle_deg = [13.282526, -13.282526, -13.282526, 13.282526];
+    N.A.set2.prod = [0.897214, 0.0];
+    N.A.set2.prod_len = 0.897214;
+    N.A.set2.angle_sum_deg = 0.0;
+    N.A.set2.gamma_over_pi = 0.0;
+    N.A.set2.open_prod = [0.897214, 0.211803];
+    N.A.set2.A4.ov12 = [0.223607, 0.947214];
+    N.A.set2.A4.ov23 = [0.223607, -0.947214];
+    N.A.set2.A4.prod = [0.897214, 0.0];
+    N.A.set2.prod_M100 = [0.991814, 0.0];
+    N.A.set2.gamma_M100_over_pi = 0.0;
+    N.A.A7.exact.J1 = 0;
+    N.A.A7.exact.J2 = 4;
+    N.A.A7.exact.D = 3;
+    N.A.A7.exact.gamma_over_pi = 0.4;
+    N.A.A7.exact.gamma_over_pi_M4 = 0.311917;
+    N.A.A7.exact.weight_A = 0.2;
+    N.A.A7.exact.weight_B = 0.8;
+    N.A.A7.set1.D = 0.5;
+    N.A.A7.set1.M4_over_pi = 0.606656;
+    N.A.A7.set1.M100_over_pi = 0.707794;
+    N.A.A7.set1.M400_over_pi = 0.707911;
+    N.A.A7.set1.limit_over_pi = 0.707918;
+    N.A.A7.set1.upper_band_M400_over_pi = -0.707911;
+    N.A.A7.set2.D = 0.5;
+    N.A.A7.set2.M4_over_pi = 0.021892;
+    N.A.A7.set2.M100_over_pi = 0.03696;
+    N.A.A7.set2.M400_over_pi = 0.036989;
+    N.A.A7.set2.limit_over_pi = 0.036991;
+    N.A.A7.set2.upper_band_M400_over_pi = -0.036989;
+    N.B.hand.dJ = 1.0;
+    N.B.hand.D0 = 0.5;
+    N.B.sheet.dJ = 0.5;
+    N.B.sheet.D0 = 0.2;
+    N.B.B1.E.t0 = [2.0, 2.0, 2.0];
+    N.B.B1.E.tq = [2.061553, 1.5, 0.5];
+    N.B.B1.E.th = [2.0, 2.0, 2.0];
+    N.B.B1.gap_min = 1.0;
+    N.B.B1.gap_min_sheet = 0.4;
+    N.B.B1.gap_min_at = 'k = pi, t = T/4 and 3T/4';
+    N.B.B2.cells = 40;
+    N.B.B2.t0125.Delta = 0.353553;
+    N.B.B2.t0125.ingap = [];
+    N.B.B2.t03.Delta = 0.475528;
+    N.B.B2.t03.ingap(1).E = -0.475528;
+    N.B.B2.t03.ingap(1).side = 'right';
+    N.B.B2.t03.ingap(1).weight_A = 0.0;
+    N.B.B2.t03.ingap(2).E = 0.475528;
+    N.B.B2.t03.ingap(2).side = 'left';
+    N.B.B2.t03.ingap(2).weight_A = 1.0;
+    N.B.B2.t0375.Delta = 0.353553;
+    N.B.B2.t0375.ingap(1).E = -0.353553;
+    N.B.B2.t0375.ingap(1).side = 'right';
+    N.B.B2.t0375.ingap(1).weight_A = 0.0;
+    N.B.B2.t0375.ingap(2).E = 0.353553;
+    N.B.B2.t0375.ingap(2).side = 'left';
+    N.B.B2.t0375.ingap(2).weight_A = 1.0;
+    N.B.B2.t05.Delta = 0.0;
+    N.B.B2.t05.ingap(1).E = -0.0;
+    N.B.B2.t05.ingap(1).side = 'right';
+    N.B.B2.t05.ingap(1).weight_A = 0.0;
+    N.B.B2.t05.ingap(2).E = 0.0;
+    N.B.B2.t05.ingap(2).side = 'left';
+    N.B.B2.t05.ingap(2).weight_A = 1.0;
+    N.B.B2.t0625.Delta = -0.353553;
+    N.B.B2.t0625.ingap(1).E = -0.353553;
+    N.B.B2.t0625.ingap(1).side = 'left';
+    N.B.B2.t0625.ingap(1).weight_A = 1.0;
+    N.B.B2.t0625.ingap(2).E = 0.353553;
+    N.B.B2.t0625.ingap(2).side = 'right';
+    N.B.B2.t0625.ingap(2).weight_A = 0.0;
+    N.B.B2.sheet_t0375(1).E = -0.141421;
+    N.B.B2.sheet_t0375(1).side = 'right';
+    N.B.B2.sheet_t0375(1).weight_A = 0.0;
+    N.B.B2.sheet_t0375(2).E = 0.141421;
+    N.B.B2.sheet_t0375(2).side = 'left';
+    N.B.B2.sheet_t0375(2).weight_A = 1.0;
+    N.B.B3.input = '(A - B)/sqrt(2) on one cell in the middle';
+    N.B.B3.dt = 0.05;
+    N.B.B3.shift.T20 = 0.889112;
+    N.B.B3.shift.T50 = 0.967335;
+    N.B.B3.shift.T100 = 0.99894;
+    N.B.B3.cells.T20 = 40;
+    N.B.B3.cells.T50 = 60;
+    N.B.B3.cells.T100 = 120;
+    N.B.B3.norm_T20 = 0.999997;
+    N.B.B3.norm_T50 = 0.999991;
+    N.B.B3.norm_T100 = 0.999983;
+    N.B.B3.X_over_cycle_T100 = [0.0, -4.8e-05, 0.001163, 0.016586, 0.138684, 0.322209, 0.396974, 0.447549, ...
+            0.497165, 0.547785, 0.601089, 0.682146, 0.852926, 0.981537, 0.997066, 0.997833, 0.997893];
+    N.B.B3.one_guide_T50 = 0.080361;
+    N.B.B3.sheet_T20_pair = 0.552642;
+    N.B.B4.t0.ov = [1.0, 0.0];
+    N.B.B4.t0.prod = [1.0, 0.0];
+    N.B.B4.t0.gamma_over_pi = 0.0;
+    N.B.B4.thalf.ov = [0.5, -0.5];
+    N.B.B4.thalf.prod = [-0.25, -0.0];
+    N.B.B4.thalf.gamma_over_pi = 1.0;
+    N.B.B5.t_over_T = [0.0, 0.0625, 0.125, 0.1875, 0.25, 0.3125, 0.375, 0.4375, 0.5, 0.5625, 0.625, 0.6875, ...
+            0.75, 0.8125, 0.875, 0.9375, 1.0];
+    N.B.B5.gamma_raw_over_pi = [0.0, 7.7e-05, 0.002949, 0.03385, 0.281487, 0.639298, 0.792975, 0.900916, 1.0, ...
+            -0.900916, -0.792975, -0.639298, -0.281487, -0.03385, -0.002949, -7.7e-05, 0.0];
+    N.B.B5.gamma_unwrapped_over_pi = [0.0, 7.7e-05, 0.002949, 0.03385, 0.281487, 0.639298, 0.792975, 0.900916, ...
+            1.0, 1.099084, 1.207025, 1.360702, 1.718513, 1.96615, 1.997051, 1.999923, 2.0];
+    N.B.B5.C = 1;
+    N.B.B5.quarter_M4_over_pi = 0.174261;
+    N.B.B5.quarter_M400_over_pi = 0.281487;
+    N.B.B5.threequarter_M400_over_pi_raw = -0.281487;
+    N.B.B5.sheet_quarter_M400_over_pi = 0.382759;
+    N.B.B5.C_without_unwrap = 0.0;
+    N.B.B6.u_kpi2_tq = [-0.408248, 0.408248; 0.816497, 0.0];
+    N.B.B6.u_kpi2_tq_times_sqrt6 = [-1.0, 1.0; 2.0, 0.0];
+    N.B.B6.E_kpi2_tq = -1.5;
+    N.B.B6.u_kpi_tq = [0.0, 0.0; 1.0, 0.0];
+    N.B.B6.u_t0 = [-0.707107, 0.0; 0.707107, 0.0];
+    N.B.B6.ov = [0.866025, -0.288675; 0.816497, 0.0; 0.707107, 0.0; 1.0, 0.0];
+    N.B.B6.prod = [0.5, -0.166667];
+    N.B.B6.F_over_pi = 0.102416;
+    N.B.B7.F_over_pi = [-0.015286, 0.060453, 0.060453, -0.015286; 0.102416, 0.352416, 0.352416, ...
+            0.102416; 0.102416, 0.352416, 0.352416, 0.102416; -0.015286, 0.060453, 0.060453, -0.015286];
+    N.B.B7.rows = 'k interval [k_i, k_i+1], i = 0..3';
+    N.B.B7.cols = 't interval [t_j, t_j+1], j = 0..3';
+    N.B.B7.col_sums_over_pi = [0.174261, 0.825739, 0.825739, 0.174261];
+    N.B.B7.total_over_pi = 2.0;
+    N.B.B7.C = 1;
+    N.B.B7.C_24 = 1;
+    N.B.B7.C_sheet_4 = 1;
+    N.B.B7.C_sheet_3_wrong = 0;
+    N.B.B8.upper_band = -1;
+    N.B.B8.reversed_cycle = -1;
+    N.B.B8.not_enclosing = 0;
+    N.B.B8.sheet = 1;
+    N.B.B8.not_enclosing_params = 'J1 = 2.5 + 0.5 cos, J2 = 1 - 0.5 cos, Delta = 0.2 sin';
+    N.C.C1.flux = '1/3';
+    N.C.C1.grid = 6;
+    N.C.C1.chern_lower_to_upper = [-1, 2, -1];
+    N.C.C1.abs = [1, 2, 1];
+    N.C.C1.matrix = ['H[j][j] = 2 cos(ky + 2 pi j/3); H[0][1] = H[1][2] = 1 (and transposed); H[2][0] ', ...
+        '= exp(i kappa), H[0][2] = exp(-i kappa)'];
+    N.C.C2.t1 = 1;
+    N.C.C2.t2 = 0.1;
+    N.C.C2.phiH_over_pi = 0.5;
+    N.C.C2.boundary = 0.519615;
+    N.C.C2.onsite_at_K.m0 = 0.519615;
+    N.C.C2.onsite_at_K.m06 = 1.119615;
+    N.C.C2.onsite_at_Kprime.m0 = -0.519615;
+    N.C.C2.onsite_at_Kprime.m06 = 0.080385;
+    N.C.C2.K = [2.094395, 4.18879];
+    N.C.C2.Kprime = [4.18879, 2.094395];
+    N.C.C2.C_m0 = -1;
+    N.C.C2.C_m06 = 0;
+    N.C.C2.C_m0_phi_negative = 1;
+    N.C.C2.grid = 6;
+    % END NUMBERS
 end
