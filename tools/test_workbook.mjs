@@ -104,7 +104,7 @@ for (const p of PARTS) {
   const q = (p, n) => p.steps.filter((s) => s.type !== 'info')[n - 1];
   const E = A.eig(0, 0).values;
   report(/corners/.test(judge(q(pump, 6), [A.eig(0, 0, { corners: false }).values[0].toFixed(4)]).text), 'pump 6: matrix without the corners → hint about the corners');
-  report(/−H/.test(judge(q(pump, 6), [(-E[4]).toFixed(4)]).text), 'pump 6: matrix with −J → hint about the sign');
+  report(/−J/.test(judge(q(pump, 6), [(-E[4]).toFixed(4)]).text) && close(A.eig(Math.PI, 0).values[0], -E[4], 1e-12), 'pump 6: matrix with −J, or k = π → hint about the sign and about k');
   report(/highest/.test(judge(q(pump, 6), [E[4].toFixed(4)]).text) && /closest to zero/.test(judge(q(pump, 6), [E[2].toFixed(4)]).text), 'pump 6: the highest eigenvalue and the one closest to zero → their hints');
   const Jq = A.couplings(PI / 2);
   report(judge(q(pump, 5), [Jq[2].toFixed(3)]).state === 'right' && judge(q(pump, 5), [Jq[2].toFixed(4)]).state === 'right' && /z = 0/.test(judge(q(pump, 5), [A.couplings(0)[2].toFixed(3)]).text) && /J₂/.test(judge(q(pump, 5), [Jq[1].toFixed(3)]).text) && /J₄/.test(judge(q(pump, 5), [Jq[3].toFixed(3)]).text) && judge(q(pump, 5), [Jq[0].toFixed(3)]).state === 'wrong' && judge(q(pump, 5), [Jq[4].toFixed(3)]).state === 'wrong', 'pump 5: J₃ at a quarter period with three or four decimals; J₃ at z = 0, J₂ and J₄ get their hints; J₁ and J₅ are wrong', Jq.map((v) => v.toFixed(4)).join(' '));
@@ -123,7 +123,8 @@ for (const p of PARTS) {
   report(/imaginary/.test(judge(q(chern, 1), ['0.99999']).text) && /same/.test(judge(q(chern, 1), ['1']).text), 'chern 1: a matrix without imaginary part (0.99999) and two equal vectors (1) get their hints');
   for (const [M, ok] of [[20, true], [100, true], [400, true], [10, true]]) report((judge(q(chern, 2), [(A.zak(3, 0, M) / PI).toFixed(4)]).state === 'right') === ok, `chern 2: γ with M = ${M} is accepted`, (A.zak(3, 0, M) / PI).toFixed(4));
   report([1, 2, 4, 5].every((b) => judge(q(chern, 2), [(A.zak(b, 0, 50) / PI).toFixed(4)]).state === 'wrong'), 'chern 2: γ of another band is wrong', [1, 2, 4, 5].map((b) => (A.zak(b, 0, 50) / PI).toFixed(3)).join(' '));
-  report(/imaginary/.test(judge(q(chern, 2), ['0']).text), 'chern 2: γ = 0 → hint about the complex matrix');
+  report(/conjugate/.test(judge(q(chern, 2), ['0']).text) && /conjugate/.test(judge(q(chern, 3), ['0.0000']).text), 'chern 2 and 3: γ = 0 → hint about the missing complex conjugate');
+  report(/off by one/.test(judge(q(chern, 2), [(A.zak(4, 0, 50) / PI).toFixed(4)]).text) && /off by one/.test(judge(q(chern, 3), [(A.zak(2, PI / 2, 50) / PI).toFixed(4)]).text), 'chern 2 and 3: γ of band 2 or 4 → hint about the column');
   report(/reversed/.test(judge(q(chern, 2), [(-A.zak(3, 0, 50) / PI).toFixed(4)]).text) && /reversed/.test(judge(q(chern, 3), [(-A.zak(3, PI / 2, 50) / PI).toFixed(4)]).text), 'chern 2 and 3: −γ → hint about the sign');
   report(judge(q(chern, 5), [(A.plaquette(3, 0, 0, TAU / 20) / PI).toFixed(4)]).state === 'wrong' && judge(q(chern, 5), [(A.plaquette(1, 0, 0, TAU / 10) / PI).toFixed(4)]).state === 'wrong', 'chern 5: F on a 20 × 20 grid or of band 1 is wrong');
   report(judge(q(chern, 6), ['4']).state === 'right' && judge(q(chern, 6), ['4.0000000000000036']).state === 'right' && judge(q(chern, 6), ['3.9999999999999996']).state === 'right' && judge(q(chern, 6), ['4pi']).state === 'right', 'chern 6: 4, 4.0000000000000036 and 4pi are right');

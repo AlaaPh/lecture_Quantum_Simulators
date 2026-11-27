@@ -11,6 +11,8 @@ const g0 = () => zak(3, 0) / PI, g1 = () => zak(3, PI / 2) / PI;      // γ of b
 const ov12 = () => overlapAbs(3, 0, TAU / 50, 0);
 const f = (v, d) => minus(v.toFixed(d));
 const pic = (o) => () => o;
+const ZERO = 'Exactly 0? Then a complex conjugate is missing. In the overlap use <code>np.vdot(u, v)</code> or <code>u\'*v</code>. In Python create the matrix with <code>np.zeros((5, 5), complex)</code>.';
+const COLUMN = 'This is band 2 or band 4: the column is off by one. Band 3 is <code>V[:, 2]</code> in Python and <code>V(:, 3)</code> in MATLAB.';
 const FLIP = 'The sign is reversed. Three things reverse it: +arg instead of −arg; the overlaps written the other way round, ⟨u<sub>s+1</sub>|u<sub>s</sub>⟩; or e<sup>−ik</sup> in the lower left corner of the matrix.';
 
 const steps = [
@@ -33,12 +35,12 @@ const steps = [
   { type: 'number', text: 'Now all M = 50 values of k: k<sub>s</sub> = 2π(s − 1)/50. Multiply the 50 overlaps ⟨u₁|u₂⟩ ⟨u₂|u₃⟩ … ⟨u₅₀|u₁⟩. The last one closes the loop.',
     ask: 'Calculate γ = −arg(product) for band 3 at z = 0.', label: 'γ =', unit: 'π', ref: g0, tol: 0.003, mod: 2, ph: '0.00',
     hint: 'Keep the 50 eigenvectors in a list and use the same u₁ at the start and at the end of the product.',
-    how: CODE.zak, wrongs: [{ ref: () => -g0(), tol: 0.003, mod: 2, text: FLIP }, { ref: 0, tol: 0.0005, text: 'Exactly 0? Then the matrix has lost its imaginary part. In Python create it with <code>np.zeros((5, 5), complex)</code>.' }],
+    how: CODE.zak, wrongs: [{ ref: () => -g0(), tol: 0.003, mod: 2, text: FLIP }, { ref: 0, tol: 0.0005, text: ZERO }, { ref: () => zak(2, 0) / PI, tol: 0.003, mod: 2, text: COLUMN }],
     after: () => `γ = ${f(g0(), 2)}π. γ/2π = ${f(g0() / 2, 2)} is the mean position of the light of band 3 at z = 0, in unit cells. Only the change of γ matters: γ is an angle and is fixed only up to 2π.`,
     pic: (ok) => ({ kind: 'gamma', dots: ok ? 1 : 0 }) },
   { type: 'number', text: 'Go a quarter of a period further: Ωz = π/2. The five couplings have changed, so the matrix and its eigenvectors have changed too.', ask: 'Calculate γ of band 3 again.', label: 'γ =', unit: 'π', ref: g1, tol: 0.003, mod: 2, ph: '0.00',
     hint: 'Use your code for the couplings with Ωz = π/2. Nothing else changes.',
-    how: CODE.zak2, wrongs: [{ ref: () => -g1(), tol: 0.003, mod: 2, text: FLIP }, { ref: g0, tol: 0.003, mod: 2, text: 'This is γ at z = 0 again. Put Ωz = π/2 into the positions of the waveguides.' },
+    how: CODE.zak2, wrongs: [{ ref: () => -g1(), tol: 0.003, mod: 2, text: FLIP }, { ref: g0, tol: 0.003, mod: 2, text: 'This is γ at z = 0 again. Put Ωz = π/2 into the positions of the waveguides.' }, { ref: 0, tol: 0.0005, text: ZERO }, { ref: () => zak(2, PI / 2) / PI, tol: 0.003, mod: 2, text: COLUMN },
       { ref: () => g1() * PI, tol: 0.006, text: 'This is γ in radians. The field is in units of π: divide by π.' }],
     after: () => `γ went from ${f(g0(), 2)}π to ${f(g1(), 2)}π. The light of band 3 moved by (${f(g1(), 2)} + ${(-g0()).toFixed(2)})/2 = ${((g1() - g0()) / 2).toFixed(2)} unit cells.`,
     pic: (ok) => ({ kind: 'gamma', dots: ok ? 2 : 1 }) },

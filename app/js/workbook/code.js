@@ -11,7 +11,7 @@ export const CODE = {
 def couplings(phase):                # phase = Omega*z
     n = np.arange(1, 7)              # waveguides 1 ... 6
     angle = phase + 4*np.pi*n/5 - 3*np.pi/10
-    x = n*17.25 + np.cos(angle)      # positions in um
+    x = n*17.25 + 1.0*np.cos(angle)  # positions in um
     s = np.diff(x)                   # distances in um
     return 6.672*np.exp(-0.2348*s)   # J1 ... J5 in 1/mm
 
@@ -21,7 +21,7 @@ print(couplings(np.pi/2))            # the third one is J3`,
 function J = couplings(phase)        % phase = Omega*z
     n = 1:6;                         % waveguides 1 ... 6
     angle = phase + 4*pi*n/5 - 3*pi/10;
-    x = n*17.25 + cos(angle);        % positions in um
+    x = n*17.25 + 1.0*cos(angle);    % positions in um
     s = diff(x);                     % distances in um
     J = 6.672*exp(-0.2348*s);        % J1 ... J5 in 1/mm
 end
@@ -34,20 +34,20 @@ disp(couplings(pi/2))                % the third one is J3`,
     py: `# uses couplings(phase) from the question before
 def Hk(k, phase):
     J = couplings(phase)
-    M = np.zeros((5, 5), complex)
+    Hm = np.zeros((5, 5), complex)   # complex numbers
     for i in range(4):
-        M[i, i+1] = M[i+1, i] = J[i]
-    M[4, 0] = J[4]*np.exp(1j*k)
-    M[0, 4] = J[4]*np.exp(-1j*k)
-    return M
+        Hm[i, i+1] = Hm[i+1, i] = J[i]
+    Hm[4, 0] = J[4]*np.exp(1j*k)     # J[4] is J5
+    Hm[0, 4] = J[4]*np.exp(-1j*k)
+    return Hm
 
 print(np.linalg.eigvalsh(Hk(0, 0)))`,
     m: `% file Hk.m; uses couplings.m from the question before
-function M = Hk(k, phase)
+function Hm = Hk(k, phase)
     J = couplings(phase);
-    M = diag(J(1:4), 1) + diag(J(1:4), -1);
-    M(5, 1) = J(5)*exp(1i*k);
-    M(1, 5) = J(5)*exp(-1i*k);
+    Hm = diag(J(1:4), 1) + diag(J(1:4), -1);
+    Hm(5, 1) = J(5)*exp(1i*k);
+    Hm(1, 5) = J(5)*exp(-1i*k);
 end
 
 % then, in your script:
