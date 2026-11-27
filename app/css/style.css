@@ -347,6 +347,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
   .steps-main { grid-template-columns: minmax(0, 1fr); padding: 16px max(14px, env(safe-area-inset-left, 0px)) 28px; gap: 14px; }
   .step-card { padding: 20px 18px; }
   .step-pic { position: static; }
+  .steps-main.look .step-pic { order: -1; }
   .step-pic canvas { height: 300px; }
   .step-formula { font-size: 19px; white-space: normal; }
   .steps-page .top { flex-wrap: wrap; row-gap: 6px; }

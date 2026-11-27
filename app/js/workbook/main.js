@@ -8,6 +8,7 @@
 // with hint (shown after a wrong answer), how (text, or { py, m } code; offered after two wrong tries), after (shown
 // after the right answer) and pic(solved) → what the picture shows. ref, after and the ref of a known wrong value may
 // be functions: they are evaluated when needed. mod: 2 compares a phase in units of π up to a full turn.
+// look: true marks a question that is answered from the picture: on a narrow screen the picture is shown first.
 import { Canvas2D } from '../lecture1/panels.js';
 import { colors, invalidateTheme } from '../theme.js';
 import { judge, val } from './judge.js';
@@ -90,6 +91,7 @@ function show(n) {
     html += '</div>';
   }
   card.innerHTML = html;
+  card.parentElement.classList.toggle('look', Boolean(s.look));      // on a phone the picture then stands above the question
   const on = (id, fn) => { const e = $(id); if (e) e.addEventListener('click', fn); };
   on('back', () => show(i - 1)); on('next', () => show(i + 1)); on('check', check);
   on('again', () => { st.solved[p.id] = {}; show(0); chips(); });

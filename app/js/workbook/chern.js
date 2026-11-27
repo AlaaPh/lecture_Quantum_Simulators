@@ -43,7 +43,7 @@ const steps = [
     after: () => `γ went from ${f(g0(), 2)}π to ${f(g1(), 2)}π. The light of band 3 moved by (${f(g1(), 2)} + ${(-g0()).toFixed(2)})/2 = ${((g1() - g0()) / 2).toFixed(2)} unit cells.`,
     pic: (ok) => ({ kind: 'gamma', dots: ok ? 2 : 1 }) },
   { type: 'choice', text: 'The picture shows γ/2π of band 3 for the whole period. Your two values are the dots. Your code gives γ only between −π and π; in the picture 2π is added after each jump, so the curve has no jumps.',
-    ask: 'By how many unit cells does γ/2π grow in one period?', options: ['1', '2', '3'], ref: '2',
+    ask: 'By how many unit cells does γ/2π grow in one period?', look: true, options: ['1', '2', '3'], ref: '2',
     hint: 'Read the curve at z = 0 and at z = L and take the difference.',
     after: 'γ grows by 2 · 2π. This number is the Chern number of band 3: C = 2. It is the number of unit cells the light moved in part 2.',
     pic: (ok) => ({ kind: 'gamma', dots: 2, curve: true, rise: ok }) },
