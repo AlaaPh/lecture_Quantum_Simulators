@@ -46,6 +46,9 @@ R = json.load(open('tools/workbook_numbers.json')); X = R['exercises']
 # what each program prints, in the order of its questions
 WANT = {
     'chain': [X['chain20_lowest'], X['chain20_top_abs'][9], X['chain20_I10_z1']],
+    'rk': [X['rk41_I21']],
+    'beam': [X['beam_centre_z5']],
+    'ssh': [X['ssh20_21_smallest_positive'], 0.0, round(X['ssh20_12_smallest_positive'], 4)],
     'aah': R['J_z0'] + R['J_quarter'] + R['eig_k0_z0'] + [R['abs_overlap3_k0_k2pi50_phi0'], R['zak3_M50_phi0_over_pi'], R['zak3_M50_phiquarter_over_pi'], R['F3_first_plaquette_N10_over_pi'], R['sumF3_N10_over_pi'], R['chern_N10'][1]],
 }
 def numbers(text):                      # every number on the lines that hold nothing but numbers

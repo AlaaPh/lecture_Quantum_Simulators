@@ -60,6 +60,143 @@ c = V'*psi0;
 psi = V*(exp(-1i*E*z).*c);
 disp(abs(psi(10))^2)`,
   },
+  // ---------- Exercise 2: Runge–Kutta steps for the chain of 41 waveguides ----------
+  rkChain: {
+    py: `import numpy as np
+
+N = 41
+one = np.ones(N - 1)
+H = np.diag(one, 1) + np.diag(one, -1)
+
+# the slope of psi
+def f(psi):
+    return -1j*(H @ psi)
+
+psi = np.zeros(N, complex)
+psi[20] = 1              # waveguide 21
+dz = 0.1
+for n in range(20):      # 20 steps
+    k1 = f(psi)
+    k2 = f(psi + dz/2*k1)
+    k3 = f(psi + dz/2*k2)
+    k4 = f(psi + dz*k3)
+    psi = psi + dz/6*(k1 + 2*k2 + 2*k3 + k4)
+
+print(abs(psi[20])**2)`,
+    m: `N = 41;
+one = ones(1, N - 1);
+H = diag(one, 1) + diag(one, -1);
+
+% the slope of psi
+f = @(psi) -1i*(H*psi);
+
+psi = zeros(N, 1);
+psi(21) = 1;             % waveguide 21
+dz = 0.1;
+for n = 1:20             % 20 steps
+    k1 = f(psi);
+    k2 = f(psi + dz/2*k1);
+    k3 = f(psi + dz/2*k2);
+    k4 = f(psi + dz*k3);
+    psi = psi + dz/6*(k1 + 2*k2 + 2*k3 + k4);
+end
+disp(abs(psi(21))^2)`,
+  },
+  // ---------- Exercise 2: a beam with the wavenumber k ----------
+  beam: {
+    py: `import numpy as np
+
+N = 41
+one = np.ones(N - 1)
+H = np.diag(one, 1) + np.diag(one, -1)
+E, V = np.linalg.eigh(H)
+
+j = np.arange(1, N + 1)  # waveguides 1 to 41
+k = np.pi/2
+psi0 = np.exp(-(j - 26)**2/(2*3**2))
+psi0 = psi0*np.exp(1j*k*j)
+# normalise: the sum of |psi|^2 is 1
+psi0 = psi0/np.linalg.norm(psi0)
+
+z = 5
+c = V.T @ psi0           # the 41 overlaps
+psi = V @ (np.exp(-1j*E*z)*c)
+# the centre of the light
+print(np.sum(j*abs(psi)**2))`,
+    m: `N = 41;
+one = ones(1, N - 1);
+H = diag(one, 1) + diag(one, -1);
+[V, D] = eig(H);
+E = diag(D);
+
+n = (1:N)';              % waveguides 1 to 41
+k = pi/2;
+psi0 = exp(-(n - 26).^2/(2*3^2));
+psi0 = psi0.*exp(1i*k*n);
+% normalise: the sum of |psi|^2 is 1
+psi0 = psi0/norm(psi0);
+
+z = 5;
+c = V'*psi0;             % the 41 overlaps
+psi = V*(exp(-1i*E*z).*c);
+% the centre of the light
+disp(sum(n.*abs(psi).^2))`,
+  },
+  // ---------- Exercise 2: the SSH chain (tasks 1 and 2) ----------
+  sshE: {
+    py: `import numpy as np
+
+def ssh_chain(N, J1, J2):
+    hop = np.ones(N - 1) # N - 1 couplings
+    hop[0::2] = J1       # 1-2, 3-4, ...
+    hop[1::2] = J2       # 2-3, 4-5, ...
+    return np.diag(hop, 1) + np.diag(hop, -1)
+
+H = ssh_chain(20, 2, 1)
+# eigenvalues, lowest first
+E, V = np.linalg.eigh(H)
+print(E[E > 0].min())    # smallest positive`,
+    m: `% file ssh_chain.m, next to your script
+function H = ssh_chain(N, J1, J2)
+    hop = ones(1, N - 1); % N - 1 couplings
+    hop(1:2:end) = J1;    % 1-2, 3-4, ...
+    hop(2:2:end) = J2;    % 2-3, 4-5, ...
+    H = diag(hop, 1) + diag(hop, -1);
+end
+
+% then, in your script:
+H = ssh_chain(20, 2, 1);
+[V, D] = eig(H);
+% sort: lowest eigenvalue first
+[E, idx] = sort(diag(D));
+V = V(:, idx);
+disp(min(E(E > 0)))      % smallest positive`,
+  },
+  sshOdd: {
+    py: `# uses ssh_chain from question 2
+H = ssh_chain(21, 2, 1)
+E, V = np.linalg.eigh(H)
+print(E[10])             # number 11`,
+    m: `% uses ssh_chain.m from question 2
+H = ssh_chain(21, 2, 1);
+[V, D] = eig(H);
+[E, idx] = sort(diag(D));
+V = V(:, idx);
+disp(E(11))              % number 11`,
+  },
+  sshEdge: {
+    py: `# uses ssh_chain from question 2
+H = ssh_chain(20, 1, 2)
+E, V = np.linalg.eigh(H)
+# with four decimals
+print(round(E[E > 0].min(), 4))`,
+    m: `% uses ssh_chain.m from question 2
+H = ssh_chain(20, 1, 2);
+[V, D] = eig(H);
+E = sort(diag(D));
+% with four decimals
+fprintf('%.4f\\n', min(E(E > 0)))`,
+  },
   // ---------- Exercise 4: the lattice of five waveguides ----------
   couplings: {
     py: `import numpy as np
@@ -252,5 +389,8 @@ disp(total/(2*pi))`,
 // tools/workbook_numbers.json (a key of "exercises" for the parts of Exercises 1 to 3).
 export const PROGRAMS = [
   { id: 'chain', blocks: ['chainE', 'chainV', 'chainProp'] },
+  { id: 'rk', blocks: ['rkChain'] },
+  { id: 'beam', blocks: ['beam'] },
+  { id: 'ssh', blocks: ['sshE', 'sshOdd', 'sshEdge'] },
   { id: 'aah', blocks: ['couplings', 'matrix', 'overlap', 'zak', 'zak2', 'plaquette', 'sum', 'band2'] },
 ];

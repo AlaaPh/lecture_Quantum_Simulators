@@ -1,7 +1,7 @@
 // Exercise 1, second part: task 0. Twenty waveguides with the coupling J = 1: the eigenvalues and eigenvectors of the
 // 20 × 20 matrix with the student's own program, and the light that spreads from one waveguide.
 import { cmapSeq, cmapDiv, rgbToCss } from '../theme.js';
-import { TAU, tag, axes, minus } from './draw.js';
+import { TAU, tag, axes, minus, pairPicture } from './draw.js';
 import { chainEig, chainExact, spread, spreadMap, ringLowest } from './lattice.js';
 import { CODE } from './code.js';
 
@@ -64,9 +64,9 @@ const steps = [
     after: 'Only 0.05 is left: the light has spread to the neighbours. In a chain of straight waveguides this is called discrete diffraction.',
     pic: (ok) => ({ kind: 'spread', zmax: 2, mark: ok ? 1 : null }) },
   { type: 'choice', text: 'The picture shows the light from z = 0 to z = 4. Follow the two bright outer lines.',
-    ask: 'At z = 4, how far from waveguide 10 are they?', look: true, options: ['about 2 waveguides', 'about 4 waveguides', 'about 7 waveguides'], ref: 'about 7 waveguides',
+    ask: 'At z = 4, how far from waveguide 10 are they?', look: true, options: ['2 to 3 waveguides', '4 to 5 waveguides', '6 to 7 waveguides'], ref: '6 to 7 waveguides',
     hint: 'Read the position of the two outer bright lines at the top of the picture and count from waveguide 10.',
-    after: 'About 7 waveguides at z = 4. No light is faster than 2J = 2 waveguides per unit of z (8 waveguides here); the brightest lines are just behind this limit. The part on the beam shows where the 2J comes from.',
+    after: '6 to 7 waveguides at z = 4. No light is faster than 2J = 2 waveguides per unit of z (8 waveguides here); the brightest lines are just behind this limit. The part on the beam shows where the 2J comes from.',
     pic: pic({ kind: 'spread', zmax: 4 }) },
   { type: 'info', title: 'This part is done', end: true,
     html: `<p class="step-text">You have done task 0: the 20 eigenvalues lie in a band from −2J to 2J, the eigenvectors are sine waves, and light that starts in one waveguide spreads.</p>
@@ -76,20 +76,11 @@ const steps = [
 
 // ---------- pictures ----------
 function drawRow(ctx, w, h, c, st) {
-  const n = st.n, pad = n === 2 ? w * 0.3 : 26, y = st.pair ? h * 0.24 : h * 0.5, X = (j) => pad + ((w - 2 * pad) * (j - 1)) / (n - 1), r = n === 2 ? 14 : Math.max(4.5, Math.min(8, w / 60));
+  if (st.n === 2) return pairPicture(ctx, w, h, c, 1, st.pair);
+  const n = st.n, pad = 26, y = h * 0.5, X = (j) => pad + ((w - 2 * pad) * (j - 1)) / (n - 1), r = Math.max(4.5, Math.min(8, w / 60));
   ctx.strokeStyle = c['fg-2']; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(1), y); ctx.lineTo(X(n), y); ctx.stroke();
-  for (let j = 1; j <= n; j++) { ctx.fillStyle = c.psi; ctx.beginPath(); ctx.arc(X(j), y, r, 0, TAU); ctx.fill(); if (n === 2 || j === 1 || j % 5 === 0) tag(ctx, String(j), X(j), y + r + 14, { color: c.fg, px: 12.5 }); }
-  if (n === 2) tag(ctx, 'J = 1', w / 2, y - 16, { color: c['fg-2'], px: 13, wt: 500 });
-  if (st.pair) {                                    // the two eigenvectors of the pair as bars
-    [[1, 1, 'E = +1'], [1, -1, 'E = −1']].forEach(([a, b, name], k) => {
-      const y0 = h * (0.56 + 0.26 * k), u = h * 0.085;
-      ctx.strokeStyle = c.line; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(w * 0.3, y0); ctx.lineTo(w * 0.7, y0); ctx.stroke();
-      [a, b].forEach((v, m) => { ctx.fillStyle = c.v[m ? 2 : 0]; ctx.fillRect(X(m + 1) - 22, v > 0 ? y0 - u : y0, 44, u); });
-      tag(ctx, name, w * 0.86, y0, { color: c.fg, px: 14 }); tag(ctx, `(1, ${minus(b)})`, w * 0.13, y0, { color: c['fg-2'], px: 13.5, wt: 500 });
-    });
-    return 'Two waveguides and their two eigenvectors: in phase with E = +1, in antiphase with E = −1.';
-  }
-  return n === 2 ? 'Two waveguides with the coupling J = 1.' : 'Twenty waveguides in a row. Each one is coupled to its two neighbours with J = 1.';
+  for (let j = 1; j <= n; j++) { ctx.fillStyle = c.psi; ctx.beginPath(); ctx.arc(X(j), y, r, 0, TAU); ctx.fill(); if (j === 1 || j % 5 === 0) tag(ctx, String(j), X(j), y + r + 14, { color: c.fg, px: 12.5 }); }
+  return 'Twenty waveguides in a row. Each one is coupled to its two neighbours with J = 1.';
 }
 
 function drawLevels(ctx, w, h, c, st) {

@@ -250,6 +250,37 @@ console.log('3. the numbers in the texts');
   report(Object.values(CODE).every((b) => typeof b.py === 'string' && b.py.length > 0 && typeof b.m === 'string' && b.m.length > 0), 'every code hint exists in Python and in MATLAB');
 }
 
+console.log('3b. the numbers in the texts of Exercises 1 to 3');
+{
+  const text = (p) => p.steps.map((s) => [s.title, s.html, val(s.text), s.formula, s.extra, s.ask, s.hint, typeof s.how === 'string' ? s.how : '', s.type === 'info' ? '' : val(s.after), ...(s.wrongs || []).map((k) => k.text)].filter(Boolean).join(' ')).join(' ');
+  const T = Object.fromEntries(ALL_PARTS.map((p) => [p.id, text(p)])), X = R.exercises, has = (id, s) => T[id].includes(s);
+  // three waveguides
+  report(has('three', '0.8² = 0.64') && has('three', '0.6² = 0.36') && close(0.64 + 0.36, 1, 1e-12), 'three: |ψ₂|² = 0.64, |ψ₁|² = 0.36, together 1');
+  report(has('three', 'z = π/√2 = 2.22') && close(L.Z_CROSS, 2.22, 0.005) && has('three', 'z = 4.44') && close(2 * L.Z_CROSS, 4.44, 0.005) && close(L.coupler3(2 * L.Z_CROSS)[0], 1, 1e-12), 'three: the light is in waveguide 3 at z = 2.22 and back in waveguide 1 at z = 4.44');
+  report(has('three', 'weights 0.25, 0.5 and 0.25') && has('three', '0.707² = 0.5') && close(X.three_weights_guide1[1], 0.5, 1e-12), 'three: the weights of the three supermodes');
+  report(has('three', '(0.707, 1, 0.707) = 1.414 · (0.5, 0.707, 0.5)') && close(L.R2, 1.414, 5e-4) && close(L.R2 / 2, 0.707, 5e-4), 'three: H·ψ of the first supermode');
+  // the chain
+  report(has('chain', '2 · cos(8.571°) = 2 · 0.98883 = 1.978') && close(180 / 21, 8.571, 5e-4) && close(Math.cos(PI / 21), 0.98883, 5e-6) && close(X.chain20_highest, 1.978, 5e-4), 'chain: E₁ = 2·cos(8.571°) = 1.978');
+  report(has('chain', 'Only 0.05 is left') && close(X.chain20_I10_z1, 0.05, 0.005), 'chain: 0.05 of the light is left in waveguide 10 at z = 1');
+  { const I = X.chain20_I_z4, peak = I.indexOf(Math.max(...I.slice(0, 7))) + 1; report((10 - peak === 6 || 10 - peak === 7) && I[10 - 1 - 4] < 0.5 * I[peak - 1] && has('chain', '6 to 7 waveguides at z = 4'), 'chain: at z = 4 the outer bright line is 6 to 7 waveguides from waveguide 10', `waveguide ${peak}`); }
+  report(has('chain', 'ψ(j) ∝ sin(jπ/21)') && X.chain20_top_abs.every((v, i) => close(v / X.chain20_top_abs[0], Math.sin(((i + 1) * PI) / 21) / Math.sin(PI / 21), 1e-9)), 'chain: the highest eigenvector is sin(jπ/21)');
+  // one Runge–Kutta step
+  const rk = L.rkStep(), c2 = (a, re, im) => close(a[0], re, 1e-12) && close(a[1], im, 1e-12);
+  report(has('rk', 'P₂ = ψ₀ + (dz/2)·k₁ = 1 − 0.5i') && c2(rk.P2, 1, -0.5) && has('rk', 'P₃ = ψ₀ + (dz/2)·k₂ = 0.75 − 0.5i') && c2(rk.P3, 0.75, -0.5) && has('rk', 'P₄ = ψ₀ + dz·k₃ = 0.5 − 0.75i') && c2(rk.P4, 0.5, -0.75), 'rk: the points P₂, P₃, P₄ of the text');
+  report(has('rk', 'The sum in the bracket is −2.75 − 5i') && c2(rk.sum, -2.75, -5) && has('rk', '0.5417 − 0.8333i') && close(rk.psi1[0], 0.5417, 5e-5) && close(rk.psi1[1], -0.8333, 5e-5), 'rk: the sum of the slopes and ψ₁');
+  report(has('rk', 'e<sup>−i</sup> = 0.540 − 0.841i') && close(rk.exact[0], 0.540, 5e-4) && close(rk.exact[1], -0.841, 5e-4), 'rk: the exact result e^−i');
+  report(has('rk', 'loses 1.2 % of the light (|ψ₁|² = 0.988)') && close(X.rk_abs_psi1 ** 2, 0.988, 5e-4) && close(1 - X.rk_abs_psi1 ** 2, 0.012, 5e-4) && has('rk', 'the length is 0.99999999') && X.rk_abs_step_x01.toFixed(8) === '0.99999999', 'rk: the big step loses 1.2 %; with dz = 0.1 the length is 0.99999999');
+  report(has('rk', '0.1577, and the exact value is 0.1577') && has('rk', 'is 0.99999:') && has('rk', 'give 1.54.'), 'rk: the chain of 41 waveguides: 0.1577, the sum 0.99999, Euler 1.54', `${X.rk41_I21}, ${X.rk41_norm}, ${X.euler41_norm}`);
+  // a beam
+  report(has('beam', 'from 26 to 16.27: by 9.73 waveguides') && close(X.beam_centre_z5, 16.27, 0.005), 'beam: the centre moves from 26 to 16.27');
+  report(has('beam', 'z = 2π/F = 6.283/0.5 = 12.57') && close(X.bloch_period, 12.57, 0.005) && close(X.bloch_width, 8, 1e-12) && Math.abs(X.bloch_centre_half - 24) < 0.5 && Math.abs(X.bloch_centre_full - 16) < 0.01, 'beam: the period 12.57, the distance 8, the centre goes from 16 to about 24 and back', `${X.bloch_centre_half}, ${X.bloch_centre_full}`);
+  // the SSH chain
+  report(has('ssh', '10 below −1.067 and 10 above +1.067') && L.sshEig(20, 2, 1).values.filter((v) => v < 0).length === 10, 'ssh: two groups of 10 eigenvalues, below −1.067 and above +1.067');
+  report(X.ssh20_21_lowest_pair_product_negative && X.ssh20_21_highest_pair_product_positive && has('ssh', 'In the lower band the two waveguides of a pair are in antiphase'), 'ssh: lowest eigenvector antiphase in every pair, highest in phase');
+  report(has('ssh', 'three quarters of it in waveguide 21') && close(X.ssh21_21_weight_guide21, 0.75, 1e-6) && X.ssh21_21_even_weight < 1e-20, 'ssh: the edge state has no light in the even waveguides and three quarters in waveguide 21');
+  report(has('ssh', '+0.0015 and −0.0015') && close(X.ssh20_12_smallest_positive, 0.0015, 5e-5) && L.sshEig(20, 2, 1).values.every((v) => Math.abs(v) > 1), 'ssh: two eigenvalues ±0.0015 for J₁ = 1, J₂ = 2; none in the gap for J₁ = 2, J₂ = 1');
+}
+
 console.log('4. the reader of typed numbers');
 {
   const rows = [['0.5', 0.5], ['.5', 0.5], ['0,5', 0.5], ['-0.2', -0.2], ['−0.2', -0.2], ['–0.2', -0.2], ['+3', 3], ['1e-3', 0.001], ['1/4', 0.25], ['0.5/2', 0.25], ['pi', PI], ['π', PI], ['0.5pi', PI / 2], ['0.5 π', PI / 2], ['2*pi', TAU], ['pi/2', PI / 2], ['3π/4', 0.75 * PI], [' 7 ', 7], ['-0', 0],

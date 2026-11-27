@@ -39,3 +39,43 @@ export function axes(ctx, c, w, h, { xlim, ylim, xticks = [], yticks = [], xlabe
 }
 
 export const PERIOD_TICKS = [[0, '0'], [0.25, 'L/4'], [0.5, 'L/2'], [0.75, '3L/4'], [1, 'L']];
+
+// A curve y = f(x) from x0 to x1 on the maps X, Y.
+export function curve(ctx, X, Y, f, x0, x1, color, width = 2.2, n = 200) {
+  ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineJoin = 'round'; ctx.beginPath();
+  for (let i = 0; i <= n; i++) { const x = x0 + ((x1 - x0) * i) / n, y = f(x); if (i) ctx.lineTo(X(x), Y(y)); else ctx.moveTo(X(x), Y(y)); }
+  ctx.stroke(); ctx.restore();
+}
+// A dashed straight line between two points in pixels.
+export function dash(ctx, x0, y0, x1, y1, color, width = 1.5) {
+  ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.restore();
+}
+// A filled circle.
+export function dot(ctx, x, y, r, color) { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); }
+// Signed bars on the maps X, Y: bar i stands at x = i + 1 (waveguides are counted from 1). color: one colour or (i) → colour.
+export function bars(ctx, X, Y, v, color, bw) {
+  v.forEach((a, i) => { ctx.fillStyle = typeof color === 'function' ? color(i) : color; ctx.fillRect(X(i + 1) - bw / 2, Math.min(Y(a), Y(0)), bw, Math.max(1, Math.abs(Y(a) - Y(0)))); });
+}
+// A map of numbers as colours on axes: rows[r][j]; row r covers y from ylim[0] + r·step upward, column j stands at
+// x = j + 1. color(value) → css colour. Returns what axes() returns.
+export function heat(ctx, c, w, h, rows, color, opts) {
+  const a = axes(ctx, c, w, h, opts), { X, Y } = a, n = rows[0].length, m = rows.length, y0 = opts.ylim[0], dy = (opts.ylim[1] - y0) / m;
+  const bw = X(2) - X(1), bh = Y(y0) - Y(y0 + dy);
+  for (let r = 0; r < m; r++) for (let j = 0; j < n; j++) { ctx.fillStyle = color(rows[r][j]); ctx.fillRect(X(j + 0.5), Y(y0 + (r + 1) * dy), bw + 0.6, bh + 0.6); }
+  return a;
+}
+// Two coupled waveguides and, when solved, their two eigenvectors as bars: (1, 1) with E = +J and (1, −1) with E = −J.
+export function pairPicture(ctx, w, h, c, J, solved) {
+  const xs = [w * 0.3, w * 0.7], y = solved ? h * 0.24 : h * 0.5;
+  ctx.strokeStyle = c['fg-2']; ctx.lineWidth = J > 1 ? 4 : 2; ctx.beginPath(); ctx.moveTo(xs[0], y); ctx.lineTo(xs[1], y); ctx.stroke();
+  xs.forEach((x, n) => { dot(ctx, x, y, 14, c.psi); tag(ctx, String(n + 1), x, y + 28, { color: c.fg, px: 12.5 }); });
+  tag(ctx, `J = ${J}`, w / 2, y - 16, { color: c['fg-2'], px: 13, wt: 500 });
+  if (!solved) return `Two waveguides with the coupling J = ${J}.`;
+  [[1, `E = +${J}`], [-1, `E = −${J}`]].forEach(([b, name], k) => {
+    const y0 = h * (0.56 + 0.26 * k), u = h * 0.085;
+    ctx.strokeStyle = c.line; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(xs[0], y0); ctx.lineTo(xs[1], y0); ctx.stroke();
+    [1, b].forEach((v, m) => { ctx.fillStyle = c.v[m ? 2 : 0]; ctx.fillRect(xs[m] - 22, v > 0 ? y0 - u : y0, 44, u); });
+    tag(ctx, name, w * 0.86, y0, { color: c.fg, px: 14 }); tag(ctx, `(1, ${minus(b)})`, w * 0.13, y0, { color: c['fg-2'], px: 13.5, wt: 500 });
+  });
+  return `Two waveguides and their two eigenvectors: in phase with E = +${J}, in antiphase with E = −${J}.`;
+}
