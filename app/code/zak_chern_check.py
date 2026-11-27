@@ -1,12 +1,16 @@
 """Checks for zak_chern.py. Keep this file in the same folder. You do not have to read it or change it.
 
 check(label, ...) tests one step of zak_chern.py.
-  Right:  it prints "A2 OK" and the result of the step. You can type these numbers into the web page:
-          a complex number is printed as "Re Im", an angle in units of pi or in degrees, as stated in the line.
-  Open or wrong:  it prints "A2: not yet." and one hint, and the run stops at this step.
+  Right:  it prints "A6 OK" and the numbers of the step, with four decimals (the sum of |psi|^2 with six). Type them
+          into the page workbook.html. A complex number is printed as "Re Im", gamma and plaquette phases in units
+          of pi.
+          For a hand step of the worksheet (A1 to A5, the table of B1, B4, B6) it prints no number: it says that
+          your function is right and reproduces the hand step. Check your own numbers on the page.
+  Open or wrong:  it prints "A6: not yet." and one hint, and the run stops at this step.
 Every function is tested first on fixed vectors, then with two sets of random phase factors on all vectors.
-Angles count modulo 2 pi: -pi and pi are the same angle.
+A Zak phase counts modulo 2 pi.
 """
+import dis
 import os
 import sys
 import traceback
@@ -28,15 +32,16 @@ HINT = {
     6: "A7 gives -0.7079 pi -> one of: +arg; upper band; exp(-ik) in h; -Delta on A.",
     7: "B5 gives 0 -> no unwrap.",
     8: "B7 gives 0 -> arg of the total product instead of the sum of the args; or both bands added.",
-    9: "Task 9 on a 3 x 3 grid gives 0; three k points give a zero overlap for J1 = 1, J2 = 2 "
-       "-> use 4 points or more, an even number.",
+    9: "The numbers of the task sheet on a 3 x 3 grid give C = 0; three k points give a zero overlap for "
+       "J1 = 1, J2 = 2 -> use 4 points or more, an even number.",
     10: "0 and pi swapped -> the unit cell holds the J2 pair.",
-    "11 norm": "B3: the norm leaves 1 -> step too large, or H not symmetric.",
+    "11 norm": "B3: the sum of |psi|^2 leaves 1 -> step too large, or H not symmetric.",
     "11 back": "B3: the light moves to lower cell numbers -> the input is the upper band "
                "(with -J the lower band is (A + B)/sqrt(2)).",
     "11 still": "B3: the light hardly moves -> one guide alone as input.",
 }
-CUT = "Do not cut or round the result. int( ) and np.floor( ) turn a number like 0.9999999999999998 into 0."
+CUT = "Do not cut or round the result. int( ), np.floor( ) and // turn a number like 0.9999999999999998 into 0."
+PAGE = "Check your own numbers on the page workbook.html."
 
 _FILE = ["zak_chern.py"]
 _PAD = " " * 9
@@ -54,12 +59,6 @@ def _fc(z, digits=4):
     """A complex number as "Re Im"."""
     z = complex(z)
     return _fmt(z.real, digits) + " " + _fmt(z.imag, digits)
-
-
-def _fcw(z, digits=4):
-    """A complex number as "Re Im" in two columns of equal width, for tables."""
-    z = complex(z)
-    return "%8s %8s" % (_fmt(z.real, digits), _fmt(z.imag, digits))
 
 
 def _fv(u):
@@ -87,12 +86,6 @@ def _wrap(gamma):
 def _in_pi(gamma):
     """An angle in units of pi, between -1 and 1."""
     return _fmt(_wrap(gamma) / PI)
-
-
-def _in_degrees(angle):
-    """An angle in degrees with two decimals, between -180 and 180. -180 is printed as 180."""
-    x = (np.degrees(float(angle)) + 180) % 360 - 180
-    return _fmt(180.0 if abs(x + 180) < 5e-3 else x, 2)
 
 
 def _describe(value):
@@ -157,11 +150,22 @@ def _is_open(function):
 
 
 def _cut_in(function, value):
-    """The name of a function in the body that cuts a number to an integer (int, floor, ...), or ""."""
-    names = getattr(getattr(function, "__code__", None), "co_names", ())
-    if "int" in names and isinstance(value, (int, np.integer)) and not isinstance(value, bool):
-        return "int"
-    return ([name for name in ("floor", "trunc", "ceil", "fix") if name in names] + [""])[0]
+    """What in the body cuts a number to an integer: "int( )", "floor( )", ... or "//". "" if nothing does."""
+    code = getattr(function, "__code__", None)
+    names = getattr(code, "co_names", ())
+    if ("int" in names and "round" not in names and isinstance(value, (int, np.integer))
+            and not isinstance(value, bool)):
+        return "int( )"
+    for name in ("floor", "trunc", "ceil", "fix"):
+        if name in names:
+            return name + "( )"
+    try:                                                # the operator // has no name: look for it in the compiled body
+        if any("FLOOR_DIVIDE" in step.opname or (step.opname == "BINARY_OP" and step.argrepr.startswith("//"))
+               for step in dis.get_instructions(code)):
+            return "//"
+    except Exception:
+        pass
+    return ""
 
 
 def _cut_values(values, wants, one_right=True):
@@ -341,35 +345,33 @@ def _phases_grid(U, seed):
 # ---------------------------------------------------------------- Part A
 
 def _A1(label, g, h):
+    """A1 is a hand step: a message shows h at a point that is not on the worksheet, never a number of its table."""
     todo = "Write h(k) = J1 + J2 exp(ik). In Python the imaginary unit is 1j, the exponential function is np.exp."
+    free = _complex(label, todo, "h(k, J1, J2)", _call(label, todo, h, 0.7, 1.3, 0.6))
     got = [_complex(label, todo, "h(k, J1, J2)", _call(label, todo, h, k, J1, J2))
            for (J1, J2) in ((1.0, 2.0), (2.0, 1.0)) for k in _KS4]
     want = [1 + 2 * e for e in _E4] + [2 + e for e in _E4]
-    if not _close(got, want):
-        n = [abs(a - b) < 1e-9 for a, b in zip(got, want)].index(False)
-        seen = "For J1 = %s, J2 = %s and k = %s your h is %s (Re Im)." % (
-            ("1", "2", "2", "1")[n // 4 * 2], ("1", "2", "2", "1")[n // 4 * 2 + 1],
-            ("0", "pi/2", "pi", "3 pi/2")[n % 4], _fc(got[n]))
-        if _close(got, np.conj(want)):
+    free_want = 1.3 + 0.6 * np.exp(0.7j)
+    if not _close(got, want) or abs(free - free_want) > 1e-9:
+        seen = "For J1 = 1.3, J2 = 0.6 and k = 0.7 your h is %s (Re Im)." % _fc(free)
+        if _close(got, np.conj(want)) and abs(free - np.conj(free_want)) < 1e-9:
             _stop(label, seen + " The imaginary part has the wrong sign.", "exp(-ik) in h. The exponent is +ik.")
-        if _close(got, want[4:] + want[:4]):
+        if _close(got, want[4:] + want[:4]) and abs(free - (0.6 + 1.3 * np.exp(0.7j))) < 1e-9:
             _stop(label, seen + " J1 and J2 are exchanged: J1 has no factor, J2 has the factor exp(ik).", todo)
-        _stop(label, seen + " Calculate this number by hand and compare.", todo)
-    free = _complex(label, todo, "h(k, J1, J2)", _call(label, todo, h, 0.7, 1.3, 0.6))
-    if abs(free - (1.3 + 0.6 * np.exp(0.7j))) > 1e-9:
-        _stop(label, "For J1 = 1.3, J2 = 0.6 and k = 0.7 your h is %s (Re Im). Calculate this number by hand "
-              "and compare." % _fc(free), todo)
+        if abs(free - free_want) > 1e-9:
+            _stop(label, seen + " Calculate this number by hand and compare.", todo)
+        n = [abs(a - b) < 1e-9 for a, b in zip(got, want)].index(False)
+        _stop(label, "For J1 = %s, J2 = %s and k = %s your h is not J1 + J2 exp(ik)." % (
+            "12"[n // 4], "21"[n // 4], ("0", "pi/2", "pi", "3 pi/2")[n % 4]), todo)
     numbers = NUMBERS["A"]["set1"]
-    lines = ["J1 = 1, J2 = 2. Columns: k/pi | h (Re Im) | phi in degrees | E = -|h| | u_A (Re Im) | is H u = E u?"]
-    for s in range(4):
+    for s in range(4):                                       # the table of the hand step with this h: tested, not shown
         hs = got[s]
         u = np.array([-np.exp(-1j * np.angle(hs)), 1.0]) / np.sqrt(2)
         H = np.array([[0, np.conj(hs)], [hs, 0]])
-        fine = (_close(H @ u, -abs(hs) * u) and abs(-abs(hs) - numbers["E"][s]) < 2e-6
-                and abs(u[0] - complex(*numbers["uA"][s])) < 2e-6)
-        lines.append("%-4s %s %10s %10s   %s    %s" % (("0", "0.5", "1", "1.5")[s], _fcw(hs), _in_degrees(np.angle(hs)),
-                                                      _fmt(-abs(hs)), _fcw(u[0]), "yes" if fine else "no"))
-    _ok(label, *lines)
+        if not (abs(hs - complex(*numbers["h"][s])) < 2e-6 and _close(H @ u, -abs(hs) * u)
+                and abs(-abs(hs) - numbers["E"][s]) < 2e-6 and abs(u[0] - complex(*numbers["uA"][s])) < 2e-6):
+            _changed(label)
+    _ok(label, "your h is right and reproduces the hand step A1. " + PAGE)
 
 
 def _A2(label, g, overlap):
@@ -399,71 +401,78 @@ def _A2(label, g, overlap):
               "Part C has three guides per unit cell. Write the overlap for any number of entries: "
               "np.vdot(u, v), or np.sum(np.conj(u) * v).")
     numbers = NUMBERS["A"]["set1"]
-    lines = ["overlaps of the four hand vectors, J1 = 1, J2 = 2. Columns: value (Re Im) | length | -arg in degrees"]
-    for s in range(4):
+    for s in range(4):                                       # the table of the hand step: tested, not shown
         got = _complex(label, todo, "overlap(u, v)", _call(label, todo, overlap, _HAND1[s], _HAND1[(s + 1) % 4]))
-        if abs(got - complex(*numbers["ov"][s])) > 2e-6:
-            _stop(label, "The overlap <u%d|u%d> of the hand vectors is %s (Re Im). Compare with your paper."
-                  % (s + 1, (s + 1) % 4 + 1, _fc(got)), todo)
-        lines.append("<u%d|u%d> = %s %10s %10s" % (s + 1, (s + 1) % 4 + 1, _fcw(got), _fmt(abs(got)),
-                                                  _in_degrees(-np.angle(got))))
-    _ok(label, *lines)
+        if (abs(got - complex(*numbers["ov"][s])) > 2e-6 or abs(abs(got) - numbers["ov_len"][s]) > 2e-6
+                or abs(np.degrees(-np.angle(got)) - numbers["ov_angle_deg"][s]) > 2e-5):
+            _stop(label, "The overlap <u%d|u%d> of the hand vectors of A2 is not right."
+                  % (s + 1, (s + 1) % 4 + 1), todo)
+    _ok(label, "your overlap is right and reproduces the hand step A2. " + PAGE)
 
 
 def _A3(label, g, loop_product, zak):
+    """A3 is a hand step: a message never shows the product or the Zak phase of the hand vectors if they are right."""
     todo1 = ("Write the first line marked TODO A3, in loop_product: the overlap that closes the loop, <u_M|u_1>. "
              "The last vector is us[-1], the first is us[0].")
     todo2 = ("Write the second line marked TODO A3, in zak: gamma = -(angle of loop_product(us)). "
              "np.angle gives the angle of a complex number.")
     numbers = NUMBERS["A"]
+    _complex(label, todo1, "loop_product(us)", _call(label, todo1, loop_product, _FREE + _HAND_A7[1:3]))
     product = _complex(label, todo1, "loop_product(us)", _call(label, todo1, loop_product, _HAND1))
     shaken = [_complex(label, todo1, "loop_product(us)", _call(label, todo1, loop_product, _phases(_HAND1, seed)))
               for seed in (1, 2)]
-    seen = "The product over the four hand vectors (J1 = 1, J2 = 2) is %s (Re Im)." % _fc(product)
+    here = "The product over the four hand vectors (J1 = 1, J2 = 2)"
+    seen = here + " is %s (Re Im)." % _fc(product)
     if abs(product - _loop(_HAND1)) > 1e-9 or not _close(shaken, product):
         if abs(product - np.prod([np.vdot(_HAND1[s], _HAND1[s + 1]) for s in range(3)])) < 1e-9:
             _stop(label, seen, HINT[2])
         if not _close(shaken, product):
+            if abs(product - _loop(_HAND1)) < 1e-9:
+                _stop(label, here + " changes when the vectors get random phase factors.", HINT[5])
             _stop(label, seen + " With random phase factors on the vectors it is %s and %s."
                   % (_fc(shaken[0]), _fc(shaken[1])), HINT[5])
         _stop(label, seen + " It is not the product of the four overlaps of A2.", todo1)
     second = _complex(label, todo1, "loop_product(us)", _call(label, todo1, loop_product, _HAND2))
     if (abs(product - complex(*numbers["set1"]["prod"])) > 2e-6
             or abs(second - complex(*numbers["set2"]["prod"])) > 2e-6):
-        _stop(label, seen + " It is not the product of the four overlaps of A2.", todo1)
+        _stop(label, "For the four hand vectors with J1 = 2, J2 = 1 your product is not the product of the four "
+              "overlaps.", todo1)
     for vectors in (_FREE + _HAND_A7[1:3], _FREE[:3]):
         got = _complex(label, todo1, "loop_product(us)", _call(label, todo1, loop_product, vectors))
         if abs(got - _loop(vectors)) > 1e-9:
             _stop(label, "Your product is right for four vectors, but not for a loop of %d vectors." % len(vectors),
                   "The closing overlap goes from the last vector of the list, us[-1], to the first, us[0].")
+    there = _real(label, todo2, "zak(us)", _call(label, todo2, zak, _HAND_A7))        # a loop not on the worksheet
+    back = _real(label, todo2, "zak(us)", _call(label, todo2, zak, _HAND_A7[::-1]))
     gamma = _real(label, todo2, "zak(us)", _call(label, todo2, zak, _HAND1))
     gamma2 = _real(label, todo2, "zak(us)", _call(label, todo2, zak, _HAND2))
     shaken = [_real(label, todo2, "zak(us)", _call(label, todo2, zak, _phases(_HAND1, seed))) for seed in (1, 2)]
-    seen = "For the four hand vectors (J1 = 1, J2 = 2) your zak gives %s pi." % _fmt(gamma / PI)
+    here = "For the four hand vectors (J1 = 1, J2 = 2) your zak gives"
     if abs(abs(gamma) - 180) < 1e-6:
-        _stop(label, "For the four hand vectors (J1 = 1, J2 = 2) your zak gives %s. This is an angle in degrees."
-              % _fmt(gamma), "Keep the angle in radians, as np.angle gives it.")
+        _stop(label, here + " the Zak phase in degrees.", "Keep the angle in radians, as np.angle gives it.")
     for factor, unit in ((PI, "pi"), (TAU, "2 pi")):
         if abs(abs(gamma) * factor - PI) < 1e-6:
-            _stop(label, "For the four hand vectors (J1 = 1, J2 = 2) your zak gives %s. This is the angle in units "
-                  "of %s." % (_fmt(gamma), unit),
+            _stop(label, here + " the Zak phase in units of %s." % unit,
                   "Return the angle in radians, as np.angle gives it. Do not divide it.")
-    there = _real(label, todo2, "zak(us)", _call(label, todo2, zak, _HAND_A7))
-    back = _real(label, todo2, "zak(us)", _call(label, todo2, zak, _HAND_A7[::-1]))
     if _same_angle(there, back) and not _same_angle(there, -back):
         _stop(label, "For a loop of four vectors your zak gives %s pi. For the same loop walked the other way round "
               "it gives %s pi again. The two must have opposite signs." % (_fmt(there / PI), _fmt(back / PI)),
               "The sign of the angle is lost. gamma = -np.angle(product), without abs.")
+    right = _same_angle(gamma, PI * numbers["set1"]["gamma_over_pi"])
+    seen = here + " %s pi." % _fmt(gamma / PI)
     if not _same_angle(shaken, gamma):
+        if right:
+            _stop(label, here + " another Zak phase when the vectors get random phase factors.", HINT[5])
         _stop(label, seen + " With random phase factors on the vectors it gives %s pi and %s pi."
               % (_fmt(shaken[0] / PI), _fmt(shaken[1] / PI)), HINT[5])
-    if not (_same_angle(gamma, PI * numbers["set1"]["gamma_over_pi"])
-            and _same_angle(gamma2, PI * numbers["set2"]["gamma_over_pi"])):
+    if not (right and _same_angle(gamma2, PI * numbers["set2"]["gamma_over_pi"])):
+        if right:
+            _stop(label, "For the four hand vectors with J1 = 2, J2 = 1 your zak does not give minus the angle of "
+                  "loop_product(us).", todo2)
         if _same_angle(gamma, -np.angle(np.prod([np.vdot(_HAND1[s], _HAND1[s + 1]) for s in range(3)]))):
             _stop(label, seen, HINT[2])
-        _stop(label, seen + " This is not minus the angle of the product %s (Re Im)." % _fc(product), todo2)
-    _ok(label, "J1 = 1, J2 = 2, four k points: product = %s    gamma/pi = %s    (-pi and pi are the same angle)"
-        % (_fc(product), _in_pi(gamma)))
+        _stop(label, seen + " This is not minus the angle of loop_product(us).", todo2)
+    _ok(label, "your loop_product and zak are right and reproduce the hand step A3. " + PAGE)
 
 
 def _A4(label, g, first, second, product):
@@ -492,8 +501,7 @@ def _A5(label, g, product, gamma):
            _complex(label, "", "loop_product(us)", _call(label, "", loop_product, us))]
     if not _close(got, [complex(*NUMBERS["A"]["set1"]["A4"][key]) for key in ("ov12", "ov23", "prod")], 2e-6):
         _changed(label)
-    print("A4, A5 OK    your overlap, loop_product and zak reproduce the hand steps A4 and A5. "
-          "Check your own numbers on the page workbook.html.")
+    print("A4, A5 OK    your overlap, loop_product and zak reproduce the hand steps A4 and A5. " + PAGE)
     sys.stdout.flush()
 
 
@@ -552,7 +560,8 @@ def _A6(label, g, eigenvector):
         "random phase factor on every eigenvector: <u1|u2> = %s, then %s, then %s" % tuple(_fc(z) for z in first),
         "                                          product = %s, then %s, then %s"
         % (_fc(product), _fc(shaken[0]), _fc(shaken[1])),
-        "M = 100: product = %s    gamma/pi = %s" % (_fc(product100), _in_pi(gamma100)))
+        "M = 100: product = %s    gamma/pi = %s    (your zak may give -pi: the same angle)"
+        % (_fc(product100), _in_pi(gamma100)))
 
 
 def _why_wrong_sign(g):
@@ -598,7 +607,7 @@ def _A7(label, g, zak_ssh):
             found = _why_wrong_sign(g)
             _stop(label, seen + " The size is right, the sign is wrong.",
                   HINT[6] + (" In your file: %s." % "; ".join(found) if found else ""),
-                  where=("this line", "these lines")[len(found) > 1] if found else None)
+                  where="this" if found else None)
         if _same_angle(got[5], want[6]) and _same_angle(got[6], want[5]):
             _stop(label, "Without on-site term your code gives gamma = 0 for J1 = 1, J2 = 2 and pi for J1 = 2, J2 = 1.",
                   HINT[10])
@@ -610,7 +619,7 @@ def _A7(label, g, zak_ssh):
             _stop(label, "With M = 400 your code is close to the right value. With M = 4 it gives gamma/pi = %s: this "
                   "is not the value for the four points k = 0, pi/2, pi, 3 pi/2." % _in_pi(got[1]),
                   "Your k points are not k_s = 2 pi (s-1)/M. The point 2 pi is the point 0 again and must not be "
-                  "in the list (np.linspace(0, 2 pi, M) contains it). Use states(J1, J2, Delta, M).")
+                  "in the list (np.linspace(0, 2 * pi, M) contains it). Use states(J1, J2, Delta, M).")
         _stop(label, seen, todo)
     eigenvector = _need(label, g, "eigenvector")
     u = _array(label, todo, "eigenvector(H)", _call(label, todo, eigenvector, _hk(0.3, 0.0, 4.0, 3.0)), (2,))
@@ -642,7 +651,7 @@ def _B1(label, g, *values):
             if _close(got, -np.array(want), 2e-6):
                 _stop(label, seen + " This is the lower band.", "Return the upper band, with the plus sign.")
             _stop(label, seen + " Calculate sqrt(Delta^2 + |h|^2) by hand and compare.", todo)
-        _ok(label, "E at k = 0, pi/2, pi.   t = 0: %s    t = T/4: %s    t = T/2: %s" % tuple(_row(r) for r in got))
+        _ok(label, "your band_energy is right and reproduces the table of the hand step B1. " + PAGE)
         return
     if len(values) != 2:
         _changed(label)
@@ -650,7 +659,7 @@ def _B1(label, g, *values):
     if (abs(gaps[0][0] - numbers["gap_min"]) > 2e-6 or abs(gaps[1][0] - numbers["gap_min_sheet"]) > 2e-6
             or abs(gaps[0][1] - PI) > 1e-6 or min(abs(gaps[0][2] - 0.25), abs(gaps[0][2] - 0.75)) > 1e-6):
         _changed(label)
-    _ok(label, "smallest gap = %s at k/pi = %s, t/T = %s (the same at t/T = %s). Numbers of the sheet: %s"
+    _ok(label, "smallest gap = %s at k/pi = %s, t/T = %s (the same at t/T = %s). Numbers of the task sheet: %s"
         % (_fmt(gaps[0][0]), _fmt(gaps[0][1] / PI), _fmt(gaps[0][2]), _fmt(1 - gaps[0][2]), _fmt(gaps[1][0])))
 
 
@@ -680,8 +689,8 @@ def _B2(label, g, *values):
     E = _array(label, todo, "The two eigenvalues in the gap", values[0], (2,), real=True)
     V = _array(label, todo, "The two states in the gap", values[1], (2 * numbers["cells"], 2))
     E_half = _array(label, todo, "The two eigenvalues at t = T/2", values[2], (2,), real=True)
-    lines = ["40 cells. t = 3T/8: the two eigenvalues in the gap are %s and %s    t = T/2: %s and %s"
-             % (_fmt(E[0]), _fmt(E[1]), _fmt(E_half[0]), _fmt(E_half[1]))]
+    lines = ["40 cells. The two states in the gap (edge states): eigenvalues %s and %s at t = 3T/8, %s and %s at "
+             "t = T/2" % (_fmt(E[0]), _fmt(E[1]), _fmt(E_half[0]), _fmt(E_half[1]))]
     for n, state in enumerate(numbers["t0375"]["ingap"]):
         light = np.abs(V[:, n]) ** 2
         on_A, left = light[0::2].sum(), light[:numbers["cells"]].sum()
@@ -700,7 +709,7 @@ _RUNS = {   # tag: T, cells, key of the shift, key of the norm
     "T = 50": (50, 60, ("shift", "T50"), "norm_T50"),
     "T = 100": (100, 120, ("shift", "T100"), "norm_T100"),
     "one guide, T = 50": (50, 60, ("one_guide_T50",), None),
-    "sheet, T = 20": (20, 60, ("sheet_T20_pair",), None),
+    "task sheet, T = 20": (20, 60, ("sheet_T20_pair",), None),
 }
 
 
@@ -739,7 +748,7 @@ def _B3(label, g, *values):
     shift = float(X[-1] - X[0])
     want = numbers[key[0]][key[1]] if len(key) == 2 else numbers[key[0]]
     want_norm = numbers[norm_key] if norm_key else 1.0
-    seen = "Run \"%s\": shift per cycle = %s, norm at the end = %s." % (
+    seen = "Run \"%s\": shift per cycle = %s, sum of |psi|^2 at the end = %s." % (
         tag, _fmt(shift) if np.isfinite(shift) else str(shift), _fmt(norm, 6) if np.isfinite(norm) else str(norm))
     if not np.isfinite(norm) or abs(norm - want_norm) > (3e-6 if norm_key else 3e-5):
         step = " Your step is dt = %g." % (T / steps) if steps < T / 0.05 - 0.5 else ""
@@ -750,51 +759,57 @@ def _B3(label, g, *values):
         _stop(label, seen, HINT["11 still"])
     if abs(shift - want) > 1e-4 or steps != int(round(T / 0.05)):
         _changed(label, seen + " This is not the run with the given input, dt = 0.05 and %d cells." % cells)
-    lines = ["%s: shift per cycle = %s    norm at the end = %s" % (tag, _fmt(shift), _fmt(norm, 6))]
+    lines = ["%s: shift per cycle = %s    sum of |psi|^2 at the end = %s" % (tag, _fmt(shift), _fmt(norm, 6))]
     if tag.startswith("T ="):
         lines.append("X at t/T = 1/4, 1/2, 3/4, 1: %s" % _row([X[n * steps // 4] - X[0] for n in (1, 2, 3, 4)]))
     if tag.startswith("one guide"):
         lines.append("one guide alone excites both bands, and they move in opposite directions")
-    if tag.startswith("sheet"):
-        lines.append("numbers of the sheet (dJ = 0.5, Delta_0 = 0.2): the gap is small, this cycle is too fast")
-        lines.append("a slower cycle needs a longer chain: T = 400 on 800 cells gives 0.95. Not 1: here "
-                     "(A - B)/sqrt(2) is not exactly the lower band at t = 0")
+    if tag.startswith("task sheet"):
+        lines.append("numbers of the task sheet (dJ = 0.5, Delta0 = 0.2): this shift is well below one unit cell. "
+                     "It has two reasons:")
+        lines.append("the cycle is too fast, and (A - B)/sqrt(2) is not exactly the lower band at t = 0, because "
+                     "J2 = 0.5 there and not 0.")
+        lines.append("A slow cycle ends near 0.95 cell (0.9521 at T = 400 on 800 cells), not at 1.")
     _ok(label, *lines)
 
 
 def _B4(label, g, zak_pump):
+    """B4 is a hand step (t = 0 and t = T/2, four k points): a message never shows the Zak phase at these two times."""
     todo = "Write the Zak phase at the time s: zak_ssh with J1, J2, Delta of this time and M points."
     numbers = NUMBERS["B"]
-    cases = [((0.0, 4), numbers["B4"]["t0"]["gamma_over_pi"]), ((0.5, 4), numbers["B4"]["thalf"]["gamma_over_pi"]),
-             ((0.25, 4), numbers["B5"]["quarter_M4_over_pi"]), ((0.25, 400), numbers["B5"]["quarter_M400_over_pi"]),
-             ((0.75, 400), numbers["B5"]["threequarter_M400_over_pi_raw"])]
+    cases = [((0.25, 400), numbers["B5"]["quarter_M400_over_pi"]),
+             ((0.75, 400), numbers["B5"]["threequarter_M400_over_pi_raw"]),
+             ((0.25, 4), numbers["B5"]["quarter_M4_over_pi"]),
+             ((0.0, 4), numbers["B4"]["t0"]["gamma_over_pi"]), ((0.5, 4), numbers["B4"]["thalf"]["gamma_over_pi"])]
     got = [_real(label, todo, "zak_pump(s, M)", _call(label, todo, zak_pump, *args)) for args, _ in cases]
     want = [PI * x for _, x in cases]
     if not _same_angle(got, want):
-        seen = "Your code gives gamma/pi = %s at t = 0, %s at t = T/2 (four k points) and %s at t = T/4 (M = 400)." % (
-            _in_pi(got[0]), _in_pi(got[1]), _in_pi(got[3]))
-        if _same_angle(got[0], want[1]) and _same_angle(got[1], want[0]):
-            _stop(label, seen, HINT[10])
+        if _same_angle(got[3], want[4]) and _same_angle(got[4], want[3]):
+            _stop(label, "At t = 0 and at t = T/2 (four k points) your code gives the two Zak phases the other way "
+                  "round.", HINT[10])
         late = [_real(label, todo, "zak_pump(s, M)", _call(label, todo, zak_pump, s, 400)) for s in (0.375, 0.625)]
         if _same_angle(late[0], late[1]):
-            _stop(label, seen + " At t = 3T/8 and at t = 5T/8 it gives the same value: your result does not depend "
-                  "on Delta.", "Pass Delta on to zak_ssh.")
-        if _same_angle(got[2], got[3]):
-            _stop(label, seen + " Your result does not depend on the number of points M.", "Pass M on to zak_ssh.")
-        _stop(label, seen, todo)
+            _stop(label, "At t = 3T/8 and at t = 5T/8 (M = 400) your code gives the same Zak phase: your result does "
+                  "not depend on Delta.", "Pass Delta on to zak_ssh.")
+        if _same_angle(got[2], got[0]):
+            _stop(label, "At t = T/4 your code gives the same Zak phase with M = 4 and with M = 400: your result does "
+                  "not depend on the number of points M.", "Pass M on to zak_ssh.")
+        if not _same_angle(got[:2], want[:2]):
+            _stop(label, "Your code gives gamma/pi = %s at t = T/4 and %s at t = 3T/4 (M = 400)."
+                  % (_in_pi(got[0]), _in_pi(got[1])), todo)
+        _stop(label, "With M = 400 your code is right. With four k points it does not give the Zak phase.", todo)
     loop_product, states = _need(label, g, "loop_product"), _need(label, g, "states")
     products = [_complex(label, todo, "loop_product(us)",
                          _call(label, todo, loop_product, _call(label, todo, states, J1, J2, D, 4)))
                 for (J1, J2, D) in (_QUARTERS[0], _QUARTERS[2])]
     if not _close(products, [complex(*numbers["B4"][key]["prod"]) for key in ("t0", "thalf")], 2e-6):
         _changed(label)
-    _ok(label, "four k points.   t = 0: product = %s, gamma/pi = %s    t = T/2: product = %s, gamma/pi = %s"
-        % (_fc(products[0]), _in_pi(got[0]), _fc(products[1]), _in_pi(got[1])))
+    _ok(label, "your zak_pump is right and reproduces the hand step B4. " + PAGE)
 
 
 def _B5(label, g, gamma_raw, gamma, C, X):
     todo1 = ("Write the first line marked TODO B5: gamma_raw without the jumps of 2 pi. "
-             "np.unwrap takes, from one time to the next, the change that is smaller than pi.")
+             "np.unwrap takes, from one time to the next, the change that lies between -pi and pi.")
     todo2 = "Write the second line marked TODO B5: C = (gamma at the end - gamma at the start) / (2 pi)."
     numbers = NUMBERS["B"]["B5"]
     raw = _array(label, todo1, "gamma_raw", gamma_raw, (17,), real=True)
@@ -813,18 +828,21 @@ def _B5(label, g, gamma_raw, gamma, C, X):
             if _close(gamma * factor, want, 1e-5):
                 _stop(label, "Your gamma goes from %s to %s. This is gamma in units of %s."
                       % (_fmt(gamma[0]), _fmt(gamma[-1]), unit), "Keep gamma in radians: do not divide it.")
-        _stop(label, seen + " It must change by less than pi from one time to the next, without jumps.", todo1)
+        _stop(label, seen + " From one time to the next it must change by an amount between -pi and pi, without "
+              "jumps.", todo1)
     if C is None:
         _open(label, todo2)
     whole = isinstance(C, (int, np.integer)) and not isinstance(C, bool)
     C = _real(label, todo2, "C", C)
     if abs(C - numbers["C"]) > 1e-6:
         seen = "Your C is %s." % _fmt(C)
+        ends = " gamma/pi goes from %s to %s." % (_fmt(gamma[0] / PI), _fmt(gamma[-1] / PI))
         if whole and abs(abs(C - numbers["C"]) - 1) < 1e-6:
-            _stop(label, seen + " gamma/pi goes from %s to %s." % (_fmt(gamma[0] / PI), _fmt(gamma[-1] / PI)), CUT)
-        if abs(C) < 1e-6:
-            _stop(label, seen, HINT[7])
-        _stop(label, seen + " gamma/pi goes from %s to %s." % (_fmt(gamma[0] / PI), _fmt(gamma[-1] / PI)), todo2)
+            _stop(label, seen + ends, CUT)
+        if abs(C) < 1e-6:                                # gamma is right here: the cause is in the line of C
+            _stop(label, seen + " Your gamma is right:" + ends, "Take C from gamma, not from gamma_raw. And do not "
+                  "cut the result: np.floor( ) and // turn a number like 0.9999999999999998 into 0.")
+        _stop(label, seen + ends, todo2)
     zak_pump = _need(label, g, "zak_pump")
     quarter4 = _real(label, todo1, "zak_pump(s, M)", _call(label, todo1, zak_pump, 0.25, 4))
     X = np.asarray(X, dtype=float)
@@ -834,55 +852,58 @@ def _B5(label, g, gamma_raw, gamma, C, X):
     _ok(label,
         "gamma/pi at t = T/4: %s (M = 400), %s (four k points)    C = %s"
         % (_fmt(gamma[4] / PI), _in_pi(quarter4), _fmt(C)),
-        "gamma/2pi at t/T = 1/4, 1/2, 3/4, 1: %s" % _row(gamma[[4, 8, 12, 16]] / TAU),
-        "X of B3 at these times, T = %-5g   %s"
-        % (0.05 * steps, _row([X[n * steps // 4] - X[0] for n in (1, 2, 3, 4)])),
+        "gamma/pi at t = 3T/4: %s as arg gives it, %s after the rule    gamma/pi at t = T after the rule: %s"
+        % (_in_pi(raw[12]), _fmt(gamma[12] / PI), _fmt(gamma[16] / PI)),
+        "%-62s%s" % ("position gamma/2pi in unit cells at t/T = 1/4, 1/2, 3/4, 1:", _row(gamma[[4, 8, 12, 16]] / TAU)),
+        "%-62s%s" % ("position X of B3 in unit cells at these times, T = %g:" % (0.05 * steps),
+                     _row([X[n * steps // 4] - X[0] for n in (1, 2, 3, 4)])),
         "the slower the cycle, the closer X follows gamma/2pi")
 
 
 def _B6(label, g, plaquette):
+    """B6 is a hand step: a message never shows the phase or the product of the plaquette of the worksheet."""
     todo = ("Write F = -(angle of the product <a|b> <b|c> <c|d> <d|a>). "
             "Use overlap four times, in this order, and np.angle.")
     numbers = NUMBERS["B"]["B6"]
+    free = _real(label, todo, "plaquette(a, b, c, d)", _call(label, todo, plaquette, *_FREE))
     a, b, c, d = _GRID[1][0], _GRID[1][1], _GRID[2][1], _GRID[2][0]
     F = _real(label, todo, "plaquette(a, b, c, d)", _call(label, todo, plaquette, a, b, c, d))
-    free = _real(label, todo, "plaquette(a, b, c, d)", _call(label, todo, plaquette, *_FREE))
     shaken = [_real(label, todo, "plaquette(a, b, c, d)", _call(label, todo, plaquette, *_phases([a, b, c, d], seed)))
               for seed in (1, 2)]
     back = _real(label, todo, "plaquette(a, b, c, d)", _call(label, todo, plaquette, a, d, c, b))
     turned = _real(label, todo, "plaquette(a, b, c, d)",
                    _call(label, todo, plaquette, *[u * np.exp(2j * n) for n, u in enumerate((a, b, c, d))]))
-    seen = "For the plaquette k = pi/2 .. pi, t = 0 .. T/4 (hand vectors) your F is %s pi." % _fmt(F / PI)
+    right = PI * numbers["F_over_pi"]
+    here = "For the plaquette of the hand step B6 (k = pi/2 .. pi, t = 0 .. T/4) your F"
     if not _same_angle(shaken, F):
-        _stop(label, seen + " With random phase factors on the vectors it is %s pi and %s pi."
-              % (_fmt(shaken[0] / PI), _fmt(shaken[1] / PI)), HINT[5])
-    if _same_angle(F, PI * numbers["F_over_pi"]) and not _same_angle(back, -F):
-        _stop(label, seen + " Walked the other way round (a -> d -> c -> b -> a) it is %s pi. It must be %s pi."
-              % (_fmt(back / PI), _fmt(-F / PI)), "The sign of the angle is lost. F = -np.angle(product), without abs.")
-    if not (_same_angle(F, PI * numbers["F_over_pi"]) and _same_angle(free, _plaquette(*_FREE))):
-        if _same_angle(F, -PI * numbers["F_over_pi"]) and _same_angle(free, -_plaquette(*_FREE)):
-            _stop(label, seen + " The size is right, the sign is wrong.", "+arg instead of -arg, or the square is "
+        _stop(label, here + " changes when the four vectors get random phase factors.", HINT[5])
+    if _same_angle(F, right) and not _same_angle(back, -F):
+        _stop(label, here + " is the same when the square is walked the other way round (a -> d -> c -> b -> a). "
+              "The two must have opposite signs.",
+              "The sign of the angle is lost. F = -np.angle(product), without abs.")
+    if not (_same_angle(F, right) and _same_angle(free, _plaquette(*_FREE))):
+        if _same_angle(F, -right) and _same_angle(free, -_plaquette(*_FREE)):
+            _stop(label, here + " has the right size and the wrong sign.", "+arg instead of -arg, or the square is "
                   "walked the other way round. The order is a -> b -> c -> d -> a.")
-        _stop(label, seen, todo)
+        if _same_angle(F, right) or _same_angle(F, -right):
+            _stop(label, "For the four vectors %s, %s, %s, %s your F is %s pi. It must be %s pi."
+                  % (tuple(_fv(u) for u in _FREE) + (_fmt(free / PI), _fmt(_plaquette(*_FREE) / PI))), todo)
+        _stop(label, here + " is %s pi." % _fmt(F / PI), todo)
     if not _close(shaken + [turned], F, 1e-9) or max(abs(F), abs(back), abs(free)) > PI + 1e-9:
-        _stop(label, seen + " With other phase factors on the vectors it is %s pi, walked the other way round %s pi. "
-              "These are the right angles, but not always as a number between -pi and pi."
-              % (_fmt(turned / PI), _fmt(back / PI)),
+        _stop(label, here + " is right only up to a multiple of 2 pi: with other phase factors on the vectors, or "
+              "walked the other way round, it is not always a number between -pi and pi.",
               "F must lie between -pi and pi. Multiply the four overlaps first, then take np.angle of the product "
               "once: not the sum of four angles, and no % (2 pi). Step B7 adds the plaquette phases as numbers.")
-    product = np.vdot(a, b) * np.vdot(b, c) * np.vdot(c, d) * np.vdot(d, a)
-    lines = ["plaquette k = pi/2 .. pi, t = 0 .. T/4: product of the four overlaps = %s    F/pi = %s"
-             % (_fc(product), _in_pi(F))]
-    try:
+    text = "your plaquette is right and reproduces the hand step B6"
+    try:                                                 # the two checks on paper of B6: tested, not shown
         H = g["H_k"](PI / 2, *g["pump"](0.25))
-        u = g["eigenvector"](g["H_k"](PI, *g["pump"](0.25)))
-        E = _energy(H, g["eigenvector"](H))[0]
+        u = np.asarray(g["eigenvector"](g["H_k"](PI, *g["pump"](0.25))))
+        E = _energy(H, np.asarray(g["eigenvector"](H)))[0]
         if abs(E - numbers["E_kpi2_tq"]) < 2e-6 and _close(np.abs(u), [0, 1]):
-            lines.append("your two checks on paper: E = %s at k = pi/2, t = T/4;  |u_A| = %s, |u_B| = %s at k = pi, "
-                         "t = T/4" % (_fmt(E), _fmt(abs(u[0])), _fmt(abs(u[1]))))
+            text += "; your eigenvector reproduces its two checks on paper"
     except Exception:
         pass
-    _ok(label, *lines)
+    _ok(label, text + ". " + PAGE)
 
 
 def _B7(label, g, *values):
@@ -897,7 +918,7 @@ def _B7(label, g, *values):
         C_back = _real(label, todo, "chern(U)", _call(label, todo, values[0], mirrored))
         seen = "For the 4 x 4 grid of the pump (hand vectors) your chern gives %s." % _fmt(C)
         if _cut_in(values[0], first):
-            _stop(label, "Your chern uses %s( ): it cuts the result to an integer." % _cut_in(values[0], first), CUT)
+            _stop(label, "Your chern uses %s: it cuts the result to an integer." % _cut_in(values[0], first), CUT)
         if _cut_values(shaken + [C, C_back], [numbers["C"]] * 3 + [-numbers["C"]]):
             _stop(label, seen + " With random phase factors on the vectors it gives %s and %s, with k and t exchanged "
                   "%s. These are whole numbers, and not all are right."
@@ -933,7 +954,7 @@ def _B7(label, g, *values):
               "with grid(24) C = %s." % (_fmt(C4), _fmt(C24)),
               "The eigenvectors of the grid are wrong. Compare the given functions H_k, pump and grid with the "
               "original file." + (" In your file: %s." % "; ".join(found) if found else ""),
-              where=("this line", "these lines")[len(found) > 1] if found else None)
+              where="this" if found else None)
     lines = ["4 x 4 grid, F/pi. One line per k interval (k/pi from 0, 0.5, 1, 1.5), one column per t interval:"]
     lines += ["   " + " ".join("%8s" % _fmt(x / PI) for x in row) for row in F]
     lines.append("sum of each t column / pi = %s    total / pi = %s" % (_row(columns / PI), _fmt(F.sum() / PI)))
@@ -952,15 +973,15 @@ def _B8(label, g, predicted, calculated, grids):
     todo = ("Type your four predictions: the Chern number that you expect, an integer, in place of each TODO. "
             "Look at the cycle in the plane (J1 - J2, Delta): does it go around the point (0, 0), and which way round?")
     numbers = NUMBERS["B"]["B8"]
-    cases = [("upper band of the same cycle", numbers["upper_band"],
+    cases = [("(a) upper band of pump (solid cycle)", numbers["upper_band"],
               "The two bands together give 0. So the upper band has minus the Chern number of the lower band."),
-             ("cycle run backwards (Delta -> -Delta)", numbers["reversed_cycle"],
+             ("(b) pump_back (solid cycle backwards)", numbers["reversed_cycle"],
               "Delta -> -Delta mirrors the cycle. It goes around (0, 0) the other way round, the light moves back."),
-             ("cycle that does not go around (0, 0)", numbers["not_enclosing"],
+             ("(c) pump_aside (dotted cycle)", numbers["not_enclosing"],
               "This cycle does not go around (0, 0), the point where the gap closes. gamma comes back to its start "
               "without going around."),
-             ("numbers of the task sheet", numbers["sheet"],
-              "The cycle of the sheet is smaller, but it goes around (0, 0) once, the same way round. "
+             ("(d) pump_sheet with the numbers of the task sheet (dashed cycle)", numbers["sheet"],
+              "The cycle of the task sheet is smaller, but it goes around (0, 0) once, the same way round. "
               "Only this counts.")]
     predicted = list(predicted) if isinstance(predicted, np.ndarray) else predicted
     if not (isinstance(predicted, (list, tuple)) and len(predicted) == 4):
@@ -974,19 +995,20 @@ def _B8(label, g, predicted, calculated, grids):
     for (name, want, _), c, U in zip(cases, calculated, grids):
         if abs(c - want) > 1e-6:
             N = len(U)
-            seen = "Your code gives C = %s for the %s, on a grid of %d x %d points." % (_fmt(c), name, N, N)
+            seen = "Your code gives C = %s for %s, on a grid of %d x %d points." % (_fmt(c), name, N, N)
             if N < 4 or N % 2:
                 _stop(label, seen, HINT[9])
             _changed(label, seen)
-    lines = ["%-38s predicted %g, calculated %s" % (name + ":", p, _fmt(c))
+    lines = ["%-66s predicted %g, calculated %s" % (name + ":", p, _fmt(c))
              for (name, _, _), p, c in zip(cases, predicted, calculated)]
     wrong = [n for n in range(4) if abs(predicted[n] - calculated[n]) > 1e-6]
     if wrong:
         for line in lines:
             print(_PAD + line)
-        _stop(label, "Your prediction for the %s differs from your calculation." % cases[wrong[0]][0],
+        _stop(label, "Your prediction for %s differs from your calculation." % cases[wrong[0]][0],
               cases[wrong[0]][2] + " Correct the prediction.")
-    lines.append("the edge states of B2 say the same: per cycle one state crosses the gap at each end, |C| = 1")
+    lines.append("the two states in the gap (edge states) of B2 say the same: per cycle one state crosses the gap "
+                 "at each end, |C| = 1")
     _ok(label, *lines)
 
 

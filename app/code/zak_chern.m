@@ -2,17 +2,18 @@ function zak_chern()
 % Zak phase, Thouless pump and Chern number: you calculate them yourself, one line at a time.
 % Tested with GNU Octave 8.4. Not yet run in MATLAB.
 %
-% The idea. The overlap <u|v> = conj(u_A) v_A + conj(u_B) v_B of two eigenvectors is one complex number.
-% The computer gives every eigenvector an arbitrary phase factor, so the angle of a single overlap means nothing.
-% Around a closed loop every phase factor cancels: Berry phase of the loop = -(angle of the product of the overlaps).
+% The idea. The overlap <u|v> = conj(u_A) v_A + conj(u_B) v_B of two eigenvectors is one complex number. arg is its
+% angle: the angle of a complex number in the complex plane. The computer gives every eigenvector an arbitrary phase
+% factor, so the angle of a single overlap means nothing. Around a closed loop every phase factor cancels:
+% Berry phase of the loop = -arg of the product of the overlaps = minus the angle of the product.
 % Loop once through all k from 0 to 2 pi: the Zak phase gamma. gamma/2pi is the position of the light of this band
 % inside the unit cell (one waveguide A and one waveguide B; short: guide). Pump: J1, J2, Delta go slowly through a
 % cycle of length T. Chern number C = how often gamma goes around in one cycle = unit cells the light moves per cycle.
 %
 % Conventions. H(k) = [Delta, conj(h); h, -Delta], h(k) = J1 + J2 exp(ik), basis (A, B), +Delta on guide A.
 % Lower band = smallest eigenvalue. k_s = 2 pi (s-1)/M, s = 1 .. M. gamma = -arg(<u_1|u_2> <u_2|u_3> ... <u_M|u_1>).
-% Plaquette (one small square of a grid in k and t): the same -arg, walked (k, t) -> (k, t+dt) -> (k+dk, t+dt) ->
-% (k+dk, t) -> back. C = (sum of all plaquettes)/2pi. Position of the light: X = sum over the cells m of
+% Plaquette (one small square of a grid in k and t): the same -arg, walked (k, t) -> (k, next t) -> (next k, next t)
+% -> (next k, t) -> back. C = (sum of all plaquette phases)/2pi. Position of the light: X = sum over the cells m of
 % m (I_A,m + I_B,m). I_A,m is the light on guide A of cell m. Cell 0 is the cell where the light starts.
 %
 % How to work: do a hand step of the worksheet (A1 to A5, B1, B4, B6) on paper before you do the same step here.
@@ -21,7 +22,8 @@ function zak_chern()
 % in their order. The functions that you complete come after it, in the same order. Search for the step, for example
 % "TODO A1", put your code in place of the word TODO and keep the semicolon at the end of the line. Run again.
 % Always run the whole file: the functions exist only inside it, so a single line cannot be run alone.
-% Compare the numbers after OK with your paper. Keep the file zak_chern_check.m in the same folder.
+% For a hand step the file prints no number: check your own numbers on the page workbook.html. A code step prints
+% its numbers after OK: type them into the page with four decimals. Keep zak_chern_check.m in the same folder.
     if exist('zak_chern_check', 'file') ~= 2
         fprintf('The file zak_chern_check.m is missing. Put it into the folder of this file and run again.\n');
         return
@@ -97,18 +99,18 @@ function run_steps()
     [psi, X_guide] = propagate(start(60, [1, 0]), 50, dt, @pump);  % all light on one guide A
     check('B3', 'one guide, T = 50', X_guide, psi);
     [psi, X_sheet] = propagate(start(60, [1, -1]), 20, dt, @pump_sheet);
-    check('B3', 'sheet, T = 20', X_sheet, psi);
+    check('B3', 'task sheet, T = 20', X_sheet, psi);
     X_slow = X50;                                  % the slowest cycle that was run; B5 compares it with gamma
     if LONG
         [psi, X_slow] = propagate(start(120, [1, -1]), 100, dt, @pump);
         check('B3', 'T = 100', X_slow, psi);
     end
-    draw(FIGURES, 'B3', X20, X50, X_guide);        % figure (given): the position of the light during one cycle
+    draw(FIGURES, 'B3', X20, X50, X_guide, X_slow, LONG);          % figure (given): the position of the light
 
     check('B4', @zak_pump);                        % B4: you write the function zak_pump
 
     % B5. gamma at 17 times of one cycle. angle gives angles between -pi and pi, so these raw values jump by 2 pi.
-    %     One rule: from one time to the next, take the change that is smaller than pi. unwrap does exactly this.
+    %     One rule: from one time to the next, take the change that lies between -pi and pi. unwrap does exactly this.
     %     Write gamma without jumps, then C = (gamma at the end - gamma at the start)/2pi. Do not round C.
     s_list = (0:16) / 16;
     gamma_raw = zeros(1, 17);
@@ -128,11 +130,11 @@ function run_steps()
     draw(FIGURES, 'B8');                           % figure (given): the cycles in the plane (J1 - J2, Delta)
 
     % B8. Predict first, then calculate. Look at each cycle in the plane (J1 - J2, Delta): does it go around the point
-    %     (0, 0), where the gap closes, and which way round? Type the Chern number that you expect, an integer.
-    predicted = [TODO, ...                         % TODO B8: the upper band of the cycle pump
-                 TODO, ...                         % TODO B8: the lower band of pump_back (Delta -> -Delta)
-                 TODO, ...                         % TODO B8: the lower band of pump_aside
-                 TODO];                            % TODO B8: the lower band of pump_sheet (numbers of the sheet)
+    %     (0, 0), and which way round? Type the Chern number that you expect, an integer. (b), (c), (d): the lower band.
+    predicted = [TODO, ...     % TODO B8 (a): upper band of pump (solid cycle)
+                 TODO, ...     % TODO B8 (b): pump_back (solid cycle backwards)
+                 TODO, ...     % TODO B8 (c): pump_aside (dotted cycle)
+                 TODO];        % TODO B8 (d): pump_sheet with the numbers of the task sheet (dashed cycle)
     N = 8;                                         % grid points in k and in t
     grids = {grid_kt(N, @pump, 2), grid_kt(N, @pump_back, 1), grid_kt(N, @pump_aside, 1), grid_kt(N, @pump_sheet, 1)};
     calculated = [chern(grids{1}), chern(grids{2}), chern(grids{3}), chern(grids{4})];
@@ -233,7 +235,8 @@ end
 
 % A7. Now with the on-site term: +Delta on guide A, -Delta on guide B. Then the Zak phase is no longer 0 or pi:
 %     gamma/2pi tells where the light sits inside the unit cell. Write the Zak phase of the lower band on M points.
-%     Use states and zak. The lower band is band = 1.
+%     Use states and zak. The lower band is band = 1. This step tests the sign and the band. A3 to A6 cannot: without
+%     on-site term the Zak phase is 0 or pi, and each of them is the same angle with the opposite sign.
 function gamma = zak_ssh(J1, J2, Delta, M)
     gamma = TODO;                                                  % TODO A7
 end
@@ -282,7 +285,8 @@ end
 
 % B2 (task 9b). An open chain of N unit cells. Cell m (m = 1 .. N) has its guide A at index 2m - 1 and its guide B
 %     at index 2m. The couplings are given. Write the on-site term of cell m: +Delta on A, -Delta on B.
-%     Then look at the eigenvalues: the open chain can have states that live at its two ends, inside the gap.
+%     Then look at the eigenvalues: the open chain can have states that live at its two ends, inside the gap
+%     (edge states).
 function H = H_chain(N, J1, J2, Delta)
     H = zeros(2 * N, 2 * N);
     for m = 1:N
@@ -374,9 +378,9 @@ function F = plaquettes(U)                         % given: F(i, j) = plaquette 
 end
 
 
-% B7. Inner edges are walked once in each direction and drop out. So the plaquettes between two times add up to the
-%     change of gamma, up to a multiple of 2 pi. On a fine grid every plaquette is small and nothing is left over:
-%     all plaquettes together give gamma(T) - gamma(0), without the rule of B5.
+% B7. Inner edges are walked once in each direction and drop out. So the plaquette phases between two times add up to
+%     the change of gamma, up to a multiple of 2 pi. On a fine grid every plaquette phase is small and nothing is left
+%     over: all plaquette phases together give gamma(T) - gamma(0), without the rule of B5.
 %     Write the Chern number: the sum of all plaquette phases, divided by 2 pi. Do not round it.
 function C = chern(U)
     C = TODO;                                                      % TODO B7
@@ -483,12 +487,20 @@ function draw(FIGURES, name, varargin)             % given: draws the figure of 
                 X20 = varargin{1};
                 X50 = varargin{2};
                 X_guide = varargin{3};
+                X_slow = varargin{4};
+                LONG = varargin{5};
+                names = {'T = 20', 'T = 50', 'one guide, T = 50'};
                 show_figure(3);
                 plot(linspace(0, 1, numel(X20)), X20, 'Color', BLUE, 'LineWidth', 2); hold on;
                 plot(linspace(0, 1, numel(X50)), X50, 'Color', ORANGE, 'LineWidth', 2);
-                plot(linspace(0, 1, numel(X_guide)), X_guide, 'Color', AQUA, 'LineWidth', 2); hold off;
+                plot(linspace(0, 1, numel(X_guide)), X_guide, 'Color', AQUA, 'LineWidth', 2);
+                if LONG                            % the slow cycle T = 100 was run
+                    plot(linspace(0, 1, numel(X_slow)), X_slow, 'Color', INK, 'LineWidth', 2);
+                    names{4} = 'T = 100';
+                end
+                hold off;
                 xlabel('t / T'); ylabel('X (unit cells)'); title('B3: position of the light');
-                legend('T = 20', 'T = 50', 'one guide, T = 50', 'Location', 'northwest'); grid on;
+                legend(names, 'Location', 'northwest'); grid on;
             case 'B5'                              % gamma/2pi on top of the position X of B3
                 X_slow = varargin{1};
                 s_list = varargin{2};
@@ -519,10 +531,11 @@ function draw(FIGURES, name, varargin)             % given: draws the figure of 
                 show_figure(6); hold on;
                 cycles = {@pump, @pump_sheet, @pump_aside};
                 colors = {BLUE, ORANGE, AQUA};
+                styles = {'-', '--', ':'};         % solid, dashed, dotted
                 for n = 1:3
                     cycle = cycles{n};
                     [J1, J2, Delta] = cycle(linspace(0, 1, 201));
-                    plot(J1 - J2, Delta, 'Color', colors{n}, 'LineWidth', 2);
+                    plot(J1 - J2, Delta, 'Color', colors{n}, 'LineStyle', styles{n}, 'LineWidth', 2);
                 end
                 for n = 1:3                        % one arrow head on each cycle: the direction in which t runs
                     cycle = cycles{n};
@@ -536,10 +549,11 @@ function draw(FIGURES, name, varargin)             % given: draws the figure of 
                     end
                 end
                 plot(0, 0, 'x', 'Color', INK, 'MarkerSize', 9);
-                text(0.1, -0.08, 'gap closed');
+                text(0.1, -0.08, '(0, 0)');
                 hold off; grid on; xlim([-2.3, 4.6]); ylim([-0.8, 0.8]);
                 xlabel('J1 - J2'); ylabel('Delta');
-                legend({'pump', 'pump_sheet', 'pump_aside'}, 'Location', 'east', 'Interpreter', 'none');
+                legend({'pump (solid)', 'pump_sheet (dashed)', 'pump_aside (dotted)'}, 'Location', 'northeast', ...
+                       'Interpreter', 'none');
                 title('B8: the cycles. pump_back is pump with the arrow reversed', 'Interpreter', 'none');
         end
         drawnow;

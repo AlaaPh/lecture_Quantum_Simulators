@@ -1,21 +1,23 @@
 """Zak phase, Thouless pump and Chern number: you calculate them yourself, one line at a time.
 
-The idea. The overlap <u|v> = conj(u_A) v_A + conj(u_B) v_B of two eigenvectors is one complex number.
-The computer gives every eigenvector an arbitrary phase factor, so the angle of a single overlap means nothing.
-Around a closed loop every phase factor cancels: Berry phase of the loop = -(angle of the product of the overlaps).
+The idea. The overlap <u|v> = conj(u_A) v_A + conj(u_B) v_B of two eigenvectors is one complex number. arg is its
+angle: the angle of a complex number in the complex plane. The computer gives every eigenvector an arbitrary phase
+factor, so the angle of a single overlap means nothing. Around a closed loop every phase factor cancels:
+Berry phase of the loop = -arg of the product of the overlaps = minus the angle of the product.
 Loop once through all k from 0 to 2 pi: the Zak phase gamma. gamma/2pi is the position of the light of this band
 inside the unit cell (one waveguide A and one waveguide B; short: guide). Pump: J1, J2, Delta go slowly through a
 cycle of length T. Chern number C = how often gamma goes around in one cycle = unit cells the light moves per cycle.
 
 Conventions. H(k) = [[Delta, conj(h)], [h, -Delta]], h(k) = J1 + J2 exp(ik), basis (A, B), +Delta on guide A.
 Lower band = smallest eigenvalue. k_s = 2 pi (s-1)/M, s = 1 .. M. gamma = -arg(<u_1|u_2> <u_2|u_3> ... <u_M|u_1>).
-Plaquette (one small square of a grid in k and t): the same -arg, walked (k, t) -> (k, t+dt) -> (k+dk, t+dt) ->
-(k+dk, t) -> back. C = (sum of all plaquettes)/2pi. Position of the light: X = sum over the cells m of
+Plaquette (one small square of a grid in k and t): the same -arg, walked (k, t) -> (k, next t) -> (next k, next t)
+-> (next k, t) -> back. C = (sum of all plaquette phases)/2pi. Position of the light: X = sum over the cells m of
 m (I_A,m + I_B,m). I_A,m is the light on guide A of cell m. Cell 0 is the cell where the light starts.
 
 How to work: do a hand step of the worksheet (A1 to A5, B1, B4, B6) on paper before you do the same step here.
 Then run this file. It stops at the first open step. Write the line marked TODO there. Run again.
-Compare the numbers after OK with your paper.
+For a hand step the file prints no number: check your own numbers on the page workbook.html.
+A code step prints its numbers after OK: type them into the page with four decimals.
 """
 import os
 import sys
@@ -124,7 +126,8 @@ def states(J1, J2, Delta, M, band=0):              # given: the eigenvector of o
 
 # A7. Now with the on-site term: +Delta on guide A, -Delta on guide B. Then the Zak phase is no longer 0 or pi:
 #     gamma/2pi tells where the light sits inside the unit cell. Write the Zak phase of the lower band on M points.
-#     Use states and zak.
+#     Use states and zak. This step tests the sign and the band. A3 to A6 cannot: without on-site term the Zak phase
+#     is 0 or pi, and each of them is the same angle with the opposite sign.
 def zak_ssh(J1, J2, Delta, M):
     return TODO                                                    # TODO A7
 
@@ -176,7 +179,8 @@ if FIGURES and plt:                                # figure (given): the two ban
 
 # B2 (task 9b). An open chain of N unit cells. Cell m (m = 0 .. N-1) has its guide A at index 2m and its guide B
 #     at index 2m + 1. The couplings are given. Write the on-site term of cell m: +Delta on A, -Delta on B.
-#     Then look at the eigenvalues: the open chain can have states that live at its two ends, inside the gap.
+#     Then look at the eigenvalues: the open chain can have states that live at its two ends, inside the gap
+#     (edge states).
 def H_chain(N, J1, J2, Delta):
     H = np.zeros((2 * N, 2 * N))
     for m in range(N):
@@ -234,7 +238,7 @@ check("B3", "T = 50", X50, psi)
 psi, X_guide = propagate(start(60, (1, 0)), T=50)                  # all light on one guide A
 check("B3", "one guide, T = 50", X_guide, psi)
 psi, X_sheet = propagate(start(60), T=20, cycle=pump_sheet)
-check("B3", "sheet, T = 20", X_sheet, psi)
+check("B3", "task sheet, T = 20", X_sheet, psi)
 X_slow = X50                                       # the slowest cycle that was run; B5 compares it with gamma
 if LONG:
     psi, X_slow = propagate(start(120), T=100)
@@ -244,6 +248,8 @@ if FIGURES and plt:                                # figure (given): the positio
     plt.plot(np.linspace(0, 1, len(X20)), X20, color=BLUE, linewidth=2, label="T = 20")
     plt.plot(np.linspace(0, 1, len(X50)), X50, color=ORANGE, linewidth=2, label="T = 50")
     plt.plot(np.linspace(0, 1, len(X_guide)), X_guide, color=AQUA, linewidth=2, label="one guide, T = 50")
+    if LONG:
+        plt.plot(np.linspace(0, 1, len(X_slow)), X_slow, color=INK, linewidth=2, label="T = 100")
     plt.xlabel("t / T"), plt.ylabel("X (unit cells)"), plt.title("B3: position of the light")
     plt.legend(frameon=False), plt.grid(color=PALE)
     save("B3")
@@ -259,7 +265,7 @@ def zak_pump(s, M, cycle=pump):
 check("B4", zak_pump)
 
 # B5. gamma at 17 times of one cycle. np.angle gives angles between -pi and pi, so these raw values jump by 2 pi.
-#     One rule: from one time to the next, take the change that is smaller than pi. np.unwrap does exactly this.
+#     One rule: from one time to the next, take the change that lies between -pi and pi. np.unwrap does exactly this.
 #     Write gamma without jumps, then C = (gamma at the end - gamma at the start)/2pi. Do not round C.
 s_list = np.arange(17) / 16
 gamma_raw = np.array([zak_pump(s, 400) for s in s_list])
@@ -297,9 +303,9 @@ def plaquettes(U):                                 # given: F[i, j] = plaquette 
     return F
 
 
-# B7. Inner edges are walked once in each direction and drop out. So the plaquettes between two times add up to the
-#     change of gamma, up to a multiple of 2 pi. On a fine grid every plaquette is small and nothing is left over:
-#     all plaquettes together give gamma(T) - gamma(0), without the rule of B5.
+# B7. Inner edges are walked once in each direction and drop out. So the plaquette phases between two times add up to
+#     the change of gamma, up to a multiple of 2 pi. On a fine grid every plaquette phase is small and nothing is left
+#     over: all plaquette phases together give gamma(T) - gamma(0), without the rule of B5.
 #     Write the Chern number: the sum of all plaquette phases, divided by 2 pi. Do not round it.
 def chern(U):
     return TODO                                                    # TODO B7
@@ -333,24 +339,24 @@ def pump_aside(s):                                 # given: one more cycle
 
 if FIGURES and plt:                                # figure (given): the cycles in the plane (J1 - J2, Delta)
     plt.figure(figsize=(6.4, 4.4))
-    for cycle, color in ((pump, BLUE), (pump_sheet, ORANGE), (pump_aside, AQUA)):
+    for cycle, color, style in ((pump, BLUE, "solid"), (pump_sheet, ORANGE, "dashed"), (pump_aside, AQUA, "dotted")):
         J1, J2, Delta = cycle(np.linspace(0, 1, 201))
-        plt.plot(J1 - J2, Delta, color=color, linewidth=2, label=cycle.__name__)
+        plt.plot(J1 - J2, Delta, color=color, linestyle=style, linewidth=2, label="%s (%s)" % (cycle.__name__, style))
         plt.annotate("", xy=(J1[26] - J2[26], Delta[26]), xytext=(J1[22] - J2[22], Delta[22]),
                      arrowprops=dict(arrowstyle="-|>", color=color, mutation_scale=22))
     plt.plot(0, 0, "x", color=INK, markersize=9)
-    plt.annotate("gap closed", (0, 0), textcoords="offset points", xytext=(8, -16), color=INK)
+    plt.annotate("(0, 0)", (0, 0), textcoords="offset points", xytext=(8, -16), color=INK)
     plt.xlabel("J1 - J2"), plt.ylabel("Delta"), plt.xlim(-2.3, 4.6), plt.grid(color=PALE)
-    plt.legend(frameon=False, loc="center right")
+    plt.legend(frameon=False, loc="upper right")
     plt.title("B8: the cycles. pump_back is pump with the arrow reversed")
     save("B8")
 
 # B8. Predict first, then calculate. Look at each cycle in the plane (J1 - J2, Delta): does it go around the point
-#     (0, 0), where the gap closes, and which way round? Type the Chern number that you expect, an integer.
-predicted = [TODO,                                 # TODO B8: the upper band of the cycle pump
-             TODO,                                 # TODO B8: the lower band of pump_back (Delta -> -Delta)
-             TODO,                                 # TODO B8: the lower band of pump_aside
-             TODO]                                 # TODO B8: the lower band of pump_sheet (numbers of the sheet)
+#     (0, 0), and which way round? Type the Chern number that you expect, an integer. (b), (c), (d): the lower band.
+predicted = [TODO,         # TODO B8 (a): upper band of pump (solid cycle)
+             TODO,         # TODO B8 (b): pump_back (solid cycle backwards)
+             TODO,         # TODO B8 (c): pump_aside (dotted cycle)
+             TODO]         # TODO B8 (d): pump_sheet with the numbers of the task sheet (dashed cycle)
 N = 8                                              # grid points in k and in t
 grids = [grid(N, pump, band=1), grid(N, pump_back), grid(N, pump_aside), grid(N, pump_sheet)]
 check("B8", predicted, [chern(U) for U in grids], grids)

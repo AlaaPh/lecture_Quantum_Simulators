@@ -3,11 +3,14 @@ function zak_chern_check(g, label, varargin)
 % Tested with GNU Octave 8.4. Not yet run in MATLAB.
 %
 % check(label, ...) tests one step of zak_chern.m.
-%   Right:  it prints "A2 OK" and the result of the step. You can type these numbers into the web page:
-%           a complex number is printed as "Re Im", an angle in units of pi or in degrees, as stated in the line.
-%   Open or wrong:  it prints "A2: not yet." and one hint, and the run stops at this step.
+%   Right:  it prints "A6 OK" and the numbers of the step, with four decimals (the sum of |psi|^2 with six). Type them
+%           into the page workbook.html. A complex number is printed as "Re Im", gamma and plaquette phases in units
+%           of pi.
+%           For a hand step of the worksheet (A1 to A5, the table of B1, B4, B6) it prints no number: it says that
+%           your function is right and reproduces the hand step. Check your own numbers on the page.
+%   Open or wrong:  it prints "A6: not yet." and one hint, and the run stops at this step.
 % Every function is tested first on fixed vectors, then with two sets of random phase factors on all vectors.
-% Angles count modulo 2 pi: -pi and pi are the same angle.
+% A Zak phase counts modulo 2 pi.
 %
 % g holds the functions of zak_chern.m and the name of that file. zak_chern.m passes it on in every call.
     if nargin == 0
@@ -85,12 +88,12 @@ function text = hint_(key)
         case '8'
             text = 'B7 gives 0 -> arg of the total product instead of the sum of the args; or both bands added.';
         case '9'
-            text = ['Task 9 on a 3 x 3 grid gives 0; three k points give a zero overlap for J1 = 1, J2 = 2 ' ...
-                    '-> use 4 points or more, an even number.'];
+            text = ['The numbers of the task sheet on a 3 x 3 grid give C = 0; three k points give a zero overlap ' ...
+                    'for J1 = 1, J2 = 2 -> use 4 points or more, an even number.'];
         case '10'
             text = '0 and pi swapped -> the unit cell holds the J2 pair.';
         case '11 norm'
-            text = 'B3: the norm leaves 1 -> step too large, or H not symmetric.';
+            text = 'B3: the sum of |psi|^2 leaves 1 -> step too large, or H not symmetric.';
         case '11 back'
             text = ['B3: the light moves to lower cell numbers -> the input is the upper band ' ...
                     '(with -J the lower band is (A + B)/sqrt(2)).'];
@@ -99,6 +102,8 @@ function text = hint_(key)
         case 'cut'
             text = ['Do not cut or round the result. floor( ) and fix( ) turn a number like 0.9999999999999998 ' ...
                     'into 0.'];
+        case 'page'
+            text = 'Check your own numbers on the page workbook.html.';
         otherwise
             text = '';
     end
@@ -127,12 +132,6 @@ end
 function text = fc_(z)
     % A complex number as "Re Im".
     text = [fmt_(real(z)) ' ' fmt_(imag(z))];
-end
-
-
-function text = fcw_(z)
-    % A complex number as "Re Im" in two columns of equal width, for tables.
-    text = sprintf('%8s %8s', fmt_(real(z)), fmt_(imag(z)));
 end
 
 
@@ -183,16 +182,6 @@ end
 function text = in_pi_(gamma)
     % An angle in units of pi, between -1 and 1.
     text = fmt_(wrap_(gamma) / pi);
-end
-
-
-function text = in_degrees_(angle_rad)
-    % An angle in degrees with two decimals, between -180 and 180. -180 is printed as 180.
-    x = mod(angle_rad * 180 / pi + 180, 360) - 180;
-    if abs(x + 180) < 5e-3
-        x = 180;
-    end
-    text = fmt_(x, 2);
 end
 
 
@@ -696,9 +685,11 @@ end
 % ---------------------------------------------------------------- Part A
 
 function A1_(g, label, values)
+    % A1 is a hand step: a message shows h at a point that is not on the worksheet, never a number of its table.
     args_(g, label, values, 1);
     h = values{1};
     todo = 'Write h(k) = J1 + J2 exp(ik). In MATLAB the imaginary unit is 1i, the exponential function is exp.';
+    free = complex_(g, label, todo, 'h(k, J1, J2)', call_(g, label, todo, h, 0.7, 1.3, 0.6));
     k4 = ks4_();
     e4 = e4_();
     pairs = [1, 2; 2, 1];
@@ -712,44 +703,37 @@ function A1_(g, label, values)
             want(n) = pairs(p, 1) + pairs(p, 2) * e4(s);
         end
     end
-    if ~close_(got, want)
+    free_want = 1.3 + 0.6 * exp(0.7i);
+    if ~close_(got, want) || abs(free - free_want) > 1e-9
+        seen = sprintf('For J1 = 1.3, J2 = 0.6 and k = 0.7 your h is %s (Re Im).', fc_(free));
+        if close_(got, conj(want)) && abs(free - conj(free_want)) < 1e-9
+            stop_(g, label, [seen ' The imaginary part has the wrong sign.'], 'exp(-ik) in h. The exponent is +ik.');
+        end
+        if close_(got, [want(5:8), want(1:4)]) && abs(free - (0.6 + 1.3 * exp(0.7i))) < 1e-9
+            stop_(g, label, [seen ' J1 and J2 are exchanged: J1 has no factor, J2 has the factor exp(ik).'], todo);
+        end
+        if abs(free - free_want) > 1e-9
+            stop_(g, label, [seen ' Calculate this number by hand and compare.'], todo);
+        end
         n = find(~(abs(got - want) < 1e-9), 1);
         p = ceil(n / 4);
         k_names = {'0', 'pi/2', 'pi', '3 pi/2'};
-        seen = sprintf('For J1 = %d, J2 = %d and k = %s your h is %s (Re Im).', ...
-                       pairs(p, 1), pairs(p, 2), k_names{n - 4 * (p - 1)}, fc_(got(n)));
-        if close_(got, conj(want))
-            stop_(g, label, [seen ' The imaginary part has the wrong sign.'], 'exp(-ik) in h. The exponent is +ik.');
-        end
-        if close_(got, [want(5:8), want(1:4)])
-            stop_(g, label, [seen ' J1 and J2 are exchanged: J1 has no factor, J2 has the factor exp(ik).'], todo);
-        end
-        stop_(g, label, [seen ' Calculate this number by hand and compare.'], todo);
-    end
-    free = complex_(g, label, todo, 'h(k, J1, J2)', call_(g, label, todo, h, 0.7, 1.3, 0.6));
-    if abs(free - (1.3 + 0.6 * exp(0.7i))) > 1e-9
-        stop_(g, label, sprintf(['For J1 = 1.3, J2 = 0.6 and k = 0.7 your h is %s (Re Im). Calculate this number ' ...
-                                 'by hand and compare.'], fc_(free)), todo);
+        stop_(g, label, sprintf('For J1 = %d, J2 = %d and k = %s your h is not J1 + J2 exp(ik).', ...
+                                pairs(p, 1), pairs(p, 2), k_names{n - 4 * (p - 1)}), todo);
     end
     N = numbers_();
     numbers = N.A.set1;
-    lines = {'J1 = 1, J2 = 2. Columns: k/pi | h (Re Im) | phi in degrees | E = -|h| | u_A (Re Im) | is H u = E u?'};
-    k_names = {'0', '0.5', '1', '1.5'};
-    for s = 1:4
+    for s = 1:4                                              % the table of the hand step with this h: tested, not shown
         hs = got(s);
         u = [-exp(-1i * angle(hs)); 1] / sqrt(2);
         H = [0, conj(hs); hs, 0];
-        fine = close_(H * u, -abs(hs) * u) && abs(-abs(hs) - numbers.E(s)) < 2e-6 ...
-               && abs(u(1) - complex(numbers.uA(s, 1), numbers.uA(s, 2))) < 2e-6;
-        if fine
-            word = 'yes';
-        else
-            word = 'no';
+        u_A = complex(numbers.uA(s, 1), numbers.uA(s, 2));
+        if ~(abs(hs - complex(numbers.h(s, 1), numbers.h(s, 2))) < 2e-6 && close_(H * u, -abs(hs) * u) ...
+                && abs(-abs(hs) - numbers.E(s)) < 2e-6 && abs(u(1) - u_A) < 2e-6)
+            changed_(g, label);
         end
-        lines{end + 1} = sprintf('%-4s %s %10s %10s   %s    %s', k_names{s}, fcw_(hs), in_degrees_(angle(hs)), ...
-                                 fmt_(-abs(hs)), fcw_(u(1)), word); %#ok<AGROW>
     end
-    ok_(label, lines);
+    ok_(label, {['your h is right and reproduces the hand step A1. ' hint_('page')]});
 end
 
 
@@ -798,22 +782,20 @@ function A2_(g, label, values)
     N = numbers_();
     numbers = N.A.set1;
     hand1 = hand_(1, 2, 0);
-    lines = {'overlaps of the four hand vectors, J1 = 1, J2 = 2. Columns: value (Re Im) | length | -arg in degrees'};
-    for s = 1:4
+    for s = 1:4                                              % the table of the hand step: tested, not shown
         s2 = mod(s, 4) + 1;
         got = complex_(g, label, todo, 'overlap(u, v)', call_(g, label, todo, overlap, hand1(:, s), hand1(:, s2)));
-        if abs(got - complex(numbers.ov(s, 1), numbers.ov(s, 2))) > 2e-6
-            stop_(g, label, sprintf(['The overlap <u%d|u%d> of the hand vectors is %s (Re Im). ' ...
-                                     'Compare with your paper.'], s, s2, fc_(got)), todo);
+        if abs(got - complex(numbers.ov(s, 1), numbers.ov(s, 2))) > 2e-6 || abs(abs(got) - numbers.ov_len(s)) > 2e-6 ...
+                || abs(-angle(got) * 180 / pi - numbers.ov_angle_deg(s)) > 2e-5
+            stop_(g, label, sprintf('The overlap <u%d|u%d> of the hand vectors of A2 is not right.', s, s2), todo);
         end
-        lines{end + 1} = sprintf('<u%d|u%d> = %s %10s %10s', s, s2, fcw_(got), fmt_(abs(got)), ...
-                                 in_degrees_(-angle(got))); %#ok<AGROW>
     end
-    ok_(label, lines);
+    ok_(label, {['your overlap is right and reproduces the hand step A2. ' hint_('page')]});
 end
 
 
 function A3_(g, label, values)
+    % A3 is a hand step: a message never shows the product or the Zak phase of the hand vectors if they are right.
     args_(g, label, values, 2);
     loop_product = values{1};
     zak = values{2};
@@ -828,17 +810,22 @@ function A3_(g, label, values)
     hand_a7 = hand_(0, 4, 3);
     free = free_();
     name = 'loop_product(us)';
+    complex_(g, label, todo1, name, call_(g, label, todo1, loop_product, [free, hand_a7(:, 2:3)]));
     product = complex_(g, label, todo1, name, call_(g, label, todo1, loop_product, hand1));
     shaken = zeros(1, 2);
     for seed = 1:2
         shaken(seed) = complex_(g, label, todo1, name, call_(g, label, todo1, loop_product, phases_(hand1, seed)));
     end
-    seen = sprintf('The product over the four hand vectors (J1 = 1, J2 = 2) is %s (Re Im).', fc_(product));
+    here = 'The product over the four hand vectors (J1 = 1, J2 = 2)';
+    seen = sprintf('%s is %s (Re Im).', here, fc_(product));
     if abs(product - loop_(hand1)) > 1e-9 || ~close_(shaken, product)
         if abs(product - open_loop_(hand1)) < 1e-9
             stop_(g, label, seen, hint_('2'));
         end
         if ~close_(shaken, product)
+            if abs(product - loop_(hand1)) < 1e-9
+                stop_(g, label, [here ' changes when the vectors get random phase factors.'], hint_('5'));
+            end
             stop_(g, label, [seen sprintf(' With random phase factors on the vectors it is %s and %s.', ...
                                           fc_(shaken(1)), fc_(shaken(2)))], hint_('5'));
         end
@@ -847,7 +834,8 @@ function A3_(g, label, values)
     second = complex_(g, label, todo1, name, call_(g, label, todo1, loop_product, hand2));
     if abs(product - complex(numbers.set1.prod(1), numbers.set1.prod(2))) > 2e-6 ...
             || abs(second - complex(numbers.set2.prod(1), numbers.set2.prod(2))) > 2e-6
-        stop_(g, label, [seen ' It is not the product of the four overlaps of A2.'], todo1);
+        stop_(g, label, ['For the four hand vectors with J1 = 2, J2 = 1 your product is not the product of the ' ...
+                         'four overlaps.'], todo1);
     end
     loops = {[free, hand_a7(:, 2:3)], free(:, 1:3)};
     for n = 1:2
@@ -859,45 +847,50 @@ function A3_(g, label, values)
                   'The closing overlap goes from the last vector of the list, us(:, end), to the first, us(:, 1).');
         end
     end
+    there = real_(g, label, todo2, 'zak(us)', call_(g, label, todo2, zak, hand_a7));    % a loop not on the worksheet
+    back = real_(g, label, todo2, 'zak(us)', call_(g, label, todo2, zak, hand_a7(:, end:-1:1)));
     gamma = real_(g, label, todo2, 'zak(us)', call_(g, label, todo2, zak, hand1));
     gamma2 = real_(g, label, todo2, 'zak(us)', call_(g, label, todo2, zak, hand2));
     for seed = 1:2
         shaken(seed) = real_(g, label, todo2, 'zak(us)', call_(g, label, todo2, zak, phases_(hand1, seed)));
     end
-    seen = sprintf('For the four hand vectors (J1 = 1, J2 = 2) your zak gives %s pi.', fmt_(gamma / pi));
+    here = 'For the four hand vectors (J1 = 1, J2 = 2) your zak gives';
     if abs(abs(gamma) - 180) < 1e-6
-        stop_(g, label, sprintf(['For the four hand vectors (J1 = 1, J2 = 2) your zak gives %s. ' ...
-                                 'This is an angle in degrees.'], fmt_(gamma)), ...
-              'Keep the angle in radians, as angle gives it.');
+        stop_(g, label, [here ' the Zak phase in degrees.'], 'Keep the angle in radians, as angle gives it.');
     end
     units = {pi, 'pi'; 2 * pi, '2 pi'};
     for n = 1:2
         if abs(abs(gamma) * units{n, 1} - pi) < 1e-6
-            stop_(g, label, sprintf(['For the four hand vectors (J1 = 1, J2 = 2) your zak gives %s. ' ...
-                                     'This is the angle in units of %s.'], fmt_(gamma), units{n, 2}), ...
+            stop_(g, label, sprintf('%s the Zak phase in units of %s.', here, units{n, 2}), ...
                   'Return the angle in radians, as angle gives it. Do not divide it.');
         end
     end
-    there = real_(g, label, todo2, 'zak(us)', call_(g, label, todo2, zak, hand_a7));
-    back = real_(g, label, todo2, 'zak(us)', call_(g, label, todo2, zak, hand_a7(:, end:-1:1)));
     if same_angle_(there, back) && ~same_angle_(there, -back)
         stop_(g, label, sprintf(['For a loop of four vectors your zak gives %s pi. For the same loop walked the ' ...
                                  'other way round it gives %s pi again. The two must have opposite signs.'], ...
                                 fmt_(there / pi), fmt_(back / pi)), ...
               'The sign of the angle is lost. gamma = -angle(product), without abs.');
     end
+    right = same_angle_(gamma, pi * numbers.set1.gamma_over_pi);
+    seen = sprintf('%s %s pi.', here, fmt_(gamma / pi));
     if ~same_angle_(shaken, gamma)
+        if right
+            stop_(g, label, [here ' another Zak phase when the vectors get random phase factors.'], hint_('5'));
+        end
         stop_(g, label, [seen sprintf(' With random phase factors on the vectors it gives %s pi and %s pi.', ...
                                       fmt_(shaken(1) / pi), fmt_(shaken(2) / pi))], hint_('5'));
     end
-    if ~(same_angle_(gamma, pi * numbers.set1.gamma_over_pi) && same_angle_(gamma2, pi * numbers.set2.gamma_over_pi))
+    if ~(right && same_angle_(gamma2, pi * numbers.set2.gamma_over_pi))
+        if right
+            stop_(g, label, ['For the four hand vectors with J1 = 2, J2 = 1 your zak does not give minus the angle ' ...
+                             'of loop_product(us).'], todo2);
+        end
         if same_angle_(gamma, -angle(open_loop_(hand1)))
             stop_(g, label, seen, hint_('2'));
         end
-        stop_(g, label, [seen sprintf(' This is not minus the angle of the product %s (Re Im).', fc_(product))], todo2);
+        stop_(g, label, [seen ' This is not minus the angle of loop_product(us).'], todo2);
     end
-    ok_(label, {sprintf(['J1 = 1, J2 = 2, four k points: product = %s    gamma/pi = %s    ' ...
-                         '(-pi and pi are the same angle)'], fc_(product), in_pi_(gamma))});
+    ok_(label, {['your loop_product and zak are right and reproduce the hand step A3. ' hint_('page')]});
 end
 
 
@@ -950,7 +943,7 @@ function A5_(g, label, values)
         changed_(g, label);
     end
     fprintf('%s\n', ['A4, A5 OK    your overlap, loop_product and zak reproduce the hand steps A4 and A5. ' ...
-                     'Check your own numbers on the page workbook.html.']);
+                     hint_('page')]);
 end
 
 
@@ -1049,7 +1042,8 @@ function A6_(g, label, values)
                 fc_(first(1)), fc_(first(2)), fc_(first(3))), ...
         sprintf('                                          product = %s, then %s, then %s', ...
                 fc_(product), fc_(shaken(1)), fc_(shaken(2))), ...
-        sprintf('M = 100: product = %s    gamma/pi = %s', fc_(product100), in_pi_(gamma100))});
+        sprintf('M = 100: product = %s    gamma/pi = %s    (your zak may give -pi: the same angle)', ...
+                fc_(product100), in_pi_(gamma100))});
 end
 
 
@@ -1110,12 +1104,10 @@ end
 
 
 function text = this_line_(found)
-    % What the last line of the message names, if the cause is found in a line outside the step.
+    % What the last line of the message names, if the cause is found outside the step: the message names it.
     text = '';
-    if numel(found) == 1
-        text = 'this line';
-    elseif numel(found) > 1
-        text = 'these lines';
+    if ~isempty(found)
+        text = 'this';
     end
 end
 
@@ -1213,8 +1205,7 @@ function B1_(g, label, values)
                 end
             end
         end
-        ok_(label, {sprintf('E at k = 0, pi/2, pi.   t = 0: %s    t = T/4: %s    t = T/2: %s', ...
-                            row_(got(1, :)), row_(got(2, :)), row_(got(3, :)))});
+        ok_(label, {['your band_energy is right and reproduces the table of the hand step B1. ' hint_('page')]});
         return
     end
     args_(g, label, values, 2);
@@ -1226,7 +1217,7 @@ function B1_(g, label, values)
     end
     first = min(gap(3), 1 - gap(3));
     ok_(label, {sprintf(['smallest gap = %s at k/pi = %s, t/T = %s (the same at t/T = %s). ' ...
-                         'Numbers of the sheet: %s'], fmt_(gap(1)), fmt_(gap(2) / pi), fmt_(first), ...
+                         'Numbers of the task sheet: %s'], fmt_(gap(1)), fmt_(gap(2) / pi), fmt_(first), ...
                         fmt_(1 - first), fmt_(gap_sheet(1)))});
 end
 
@@ -1270,8 +1261,8 @@ function B2_(g, label, values)
     E = array_(g, label, todo, 'The two eigenvalues in the gap', values{1}, 2, true);
     V = array_(g, label, todo, 'The two states in the gap', values{2}, [2 * numbers.cells, 2], false);
     E_half = array_(g, label, todo, 'The two eigenvalues at t = T/2', values{3}, 2, true);
-    lines = {sprintf(['40 cells. t = 3T/8: the two eigenvalues in the gap are %s and %s    ' ...
-                      't = T/2: %s and %s'], fmt_(E(1)), fmt_(E(2)), fmt_(E_half(1)), fmt_(E_half(2)))};
+    lines = {sprintf(['40 cells. The two states in the gap (edge states): eigenvalues %s and %s at t = 3T/8, ' ...
+                      '%s and %s at t = T/2'], fmt_(E(1)), fmt_(E(2)), fmt_(E_half(1)), fmt_(E_half(2)))};
     for n = 1:2
         state = numbers.t0375.ingap(n);
         light = abs(V(:, n)) .^ 2;
@@ -1357,7 +1348,7 @@ function B3_(g, label, values)
             want = numbers.one_guide_T50;
             want_norm = 1;
             norm_known = false;
-        case 'sheet, T = 20'
+        case 'task sheet, T = 20'
             T = 20;
             cells = 60;
             want = numbers.sheet_T20_pair;
@@ -1392,7 +1383,7 @@ function B3_(g, label, values)
     else
         norm_text = sprintf('%g', total);
     end
-    seen = sprintf('Run "%s": shift per cycle = %s, norm at the end = %s.', tag, shift_text, norm_text);
+    seen = sprintf('Run "%s": shift per cycle = %s, sum of |psi|^2 at the end = %s.', tag, shift_text, norm_text);
     if norm_known
         norm_tol = 3e-6;
     else
@@ -1415,54 +1406,60 @@ function B3_(g, label, values)
     if ~(abs(shift - want) <= 1e-4) || steps ~= round(T / 0.05)
         changed_(g, label, [seen sprintf(' This is not the run with the given input, dt = 0.05 and %d cells.', cells)]);
     end
-    lines = {sprintf('%s: shift per cycle = %s    norm at the end = %s', tag, fmt_(shift), fmt_(total, 6))};
+    lines = {sprintf('%s: shift per cycle = %s    sum of |psi|^2 at the end = %s', tag, fmt_(shift), fmt_(total, 6))};
     if strncmp(tag, 'T =', 3)
         lines{end + 1} = sprintf('X at t/T = 1/4, 1/2, 3/4, 1: %s', row_(X((1:4) * steps / 4 + 1) - X(1)));
     end
     if one_guide
         lines{end + 1} = 'one guide alone excites both bands, and they move in opposite directions';
     end
-    if strncmp(tag, 'sheet', 5)
-        lines{end + 1} = 'numbers of the sheet (dJ = 0.5, Delta_0 = 0.2): the gap is small, this cycle is too fast';
-        lines{end + 1} = ['a slower cycle needs a longer chain: T = 400 on 800 cells gives 0.95. Not 1: here ' ...
-                          '(A - B)/sqrt(2) is not exactly the lower band at t = 0'];
+    if strncmp(tag, 'task sheet', 10)
+        lines{end + 1} = ['numbers of the task sheet (dJ = 0.5, Delta0 = 0.2): this shift is well below one unit ' ...
+                          'cell. It has two reasons:'];
+        lines{end + 1} = ['the cycle is too fast, and (A - B)/sqrt(2) is not exactly the lower band at t = 0, ' ...
+                          'because J2 = 0.5 there and not 0.'];
+        lines{end + 1} = 'A slow cycle ends near 0.95 cell (0.9521 at T = 400 on 800 cells), not at 1.';
     end
     ok_(label, lines);
 end
 
 
 function B4_(g, label, values)
+    % B4 is a hand step (t = 0 and t = T/2, four k points): a message never shows the Zak phase at these two times.
     args_(g, label, values, 1);
     zak_pump = values{1};
     todo = 'Write the Zak phase at the time s: zak_ssh with J1, J2, Delta of this time and M points.';
     N = numbers_();
     numbers = N.B;
     pump = need_(g, label, 'pump');
-    cases = [0, 4; 0.5, 4; 0.25, 4; 0.25, 400; 0.75, 400];
-    want = pi * [numbers.B4.t0.gamma_over_pi, numbers.B4.thalf.gamma_over_pi, numbers.B5.quarter_M4_over_pi, ...
-                 numbers.B5.quarter_M400_over_pi, numbers.B5.threequarter_M400_over_pi_raw];
+    cases = [0.25, 400; 0.75, 400; 0.25, 4; 0, 4; 0.5, 4];
+    want = pi * [numbers.B5.quarter_M400_over_pi, numbers.B5.threequarter_M400_over_pi_raw, ...
+                 numbers.B5.quarter_M4_over_pi, numbers.B4.t0.gamma_over_pi, numbers.B4.thalf.gamma_over_pi];
     got = zeros(1, 5);
     for n = 1:5
         got(n) = real_(g, label, todo, 'zak_pump(s, M, cycle)', ...
                        call_(g, label, todo, zak_pump, cases(n, 1), cases(n, 2), pump));
     end
     if ~same_angle_(got, want)
-        seen = sprintf(['Your code gives gamma/pi = %s at t = 0, %s at t = T/2 (four k points) and %s at t = T/4 ' ...
-                        '(M = 400).'], in_pi_(got(1)), in_pi_(got(2)), in_pi_(got(4)));
-        if same_angle_(got(1), want(2)) && same_angle_(got(2), want(1))
-            stop_(g, label, seen, hint_('10'));
+        if same_angle_(got(4), want(5)) && same_angle_(got(5), want(4))
+            stop_(g, label, ['At t = 0 and at t = T/2 (four k points) your code gives the two Zak phases the other ' ...
+                             'way round.'], hint_('10'));
         end
         late = [real_(g, label, todo, 'zak_pump(s, M, cycle)', call_(g, label, todo, zak_pump, 0.375, 400, pump)), ...
                 real_(g, label, todo, 'zak_pump(s, M, cycle)', call_(g, label, todo, zak_pump, 0.625, 400, pump))];
         if same_angle_(late(1), late(2))
-            stop_(g, label, [seen ' At t = 3T/8 and at t = 5T/8 it gives the same value: your result does not ' ...
-                             'depend on Delta.'], 'Pass Delta on to zak_ssh.');
+            stop_(g, label, ['At t = 3T/8 and at t = 5T/8 (M = 400) your code gives the same Zak phase: your ' ...
+                             'result does not depend on Delta.'], 'Pass Delta on to zak_ssh.');
         end
-        if same_angle_(got(3), got(4))
-            stop_(g, label, [seen ' Your result does not depend on the number of points M.'], ...
-                  'Pass M on to zak_ssh.');
+        if same_angle_(got(3), got(1))
+            stop_(g, label, ['At t = T/4 your code gives the same Zak phase with M = 4 and with M = 400: your ' ...
+                             'result does not depend on the number of points M.'], 'Pass M on to zak_ssh.');
         end
-        stop_(g, label, seen, todo);
+        if ~same_angle_(got(1:2), want(1:2))
+            stop_(g, label, sprintf('Your code gives gamma/pi = %s at t = T/4 and %s at t = 3T/4 (M = 400).', ...
+                                    in_pi_(got(1)), in_pi_(got(2))), todo);
+        end
+        stop_(g, label, 'With M = 400 your code is right. With four k points it does not give the Zak phase.', todo);
     end
     loop_product = need_(g, label, 'loop_product');
     states = need_(g, label, 'states');
@@ -1478,9 +1475,7 @@ function B4_(g, label, values)
     if ~close_(products, want, 2e-6)
         changed_(g, label);
     end
-    ok_(label, {sprintf(['four k points.   t = 0: product = %s, gamma/pi = %s    ' ...
-                         't = T/2: product = %s, gamma/pi = %s'], fc_(products(1)), in_pi_(got(1)), ...
-                        fc_(products(2)), in_pi_(got(2)))});
+    ok_(label, {['your zak_pump is right and reproduces the hand step B4. ' hint_('page')]});
 end
 
 
@@ -1490,7 +1485,7 @@ function B5_(g, label, values)
     C = values{3};
     X = values{4};
     todo1 = ['Write the first line marked TODO B5: gamma_raw without the jumps of 2 pi. ' ...
-             'unwrap takes, from one time to the next, the change that is smaller than pi.'];
+             'unwrap takes, from one time to the next, the change that lies between -pi and pi.'];
     todo2 = 'Write the second line marked TODO B5: C = (gamma at the end - gamma at the start) / (2 pi).';
     N = numbers_();
     numbers = N.B.B5;
@@ -1518,7 +1513,8 @@ function B5_(g, label, values)
                       'Keep gamma in radians: do not divide it.');
             end
         end
-        stop_(g, label, [seen ' It must change by less than pi from one time to the next, without jumps.'], todo1);
+        stop_(g, label, [seen ' From one time to the next it must change by an amount between -pi and pi, without ' ...
+                         'jumps.'], todo1);
     end
     if is_nothing_(C)
         open_(g, label, todo2);
@@ -1530,8 +1526,9 @@ function B5_(g, label, values)
         if C == round(C) && abs(abs(C - numbers.C) - 1) < 1e-6 && ~isempty(cut_in_(g, 'run_steps'))
             stop_(g, label, [seen ends], hint_('cut'));
         end
-        if abs(C) < 1e-6
-            stop_(g, label, seen, hint_('7'));
+        if abs(C) < 1e-6                                     % gamma is right here: the cause is in the line of C
+            stop_(g, label, [seen ' Your gamma is right:' ends], ['Take C from gamma, not from gamma_raw. And do ' ...
+                  'not cut the result: floor( ) and fix( ) turn a number like 0.9999999999999998 into 0.']);
         end
         stop_(g, label, [seen ends], todo2);
     end
@@ -1547,13 +1544,19 @@ function B5_(g, label, values)
     ok_(label, { ...
         sprintf('gamma/pi at t = T/4: %s (M = 400), %s (four k points)    C = %s', ...
                 fmt_(gamma(5) / pi), in_pi_(quarter4), fmt_(C)), ...
-        sprintf('gamma/2pi at t/T = 1/4, 1/2, 3/4, 1: %s', row_(gamma([5, 9, 13, 17]) / (2 * pi))), ...
-        sprintf('X of B3 at these times, T = %-5g   %s', 0.05 * steps, row_(X((1:4) * steps / 4 + 1) - X(1))), ...
+        sprintf(['gamma/pi at t = 3T/4: %s as arg gives it, %s after the rule    ' ...
+                 'gamma/pi at t = T after the rule: %s'], ...
+                in_pi_(raw(13)), fmt_(gamma(13) / pi), fmt_(gamma(17) / pi)), ...
+        sprintf('%-62s%s', 'position gamma/2pi in unit cells at t/T = 1/4, 1/2, 3/4, 1:', ...
+                row_(gamma([5, 9, 13, 17]) / (2 * pi))), ...
+        sprintf('%-62s%s', sprintf('position X of B3 in unit cells at these times, T = %g:', 0.05 * steps), ...
+                row_(X((1:4) * steps / 4 + 1) - X(1))), ...
         'the slower the cycle, the closer X follows gamma/2pi'});
 end
 
 
 function B6_(g, label, values)
+    % B6 is a hand step: a message never shows the phase or the product of the plaquette of the worksheet.
     args_(g, label, values, 1);
     plaquette = values{1};
     todo = ['Write F = -(angle of the product <a|b> <b|c> <c|d> <d|a>). ' ...
@@ -1562,14 +1565,14 @@ function B6_(g, label, values)
     numbers = N.B.B6;
     U = grid_();
     free = free_();
+    name = 'plaquette(a, b, c, d)';
+    F_free = real_(g, label, todo, name, ...
+                   call_(g, label, todo, plaquette, free(:, 1), free(:, 2), free(:, 3), free(:, 4)));
     a = U(:, 2, 1);
     b = U(:, 2, 2);
     c = U(:, 3, 2);
     d = U(:, 3, 1);
-    name = 'plaquette(a, b, c, d)';
     F = real_(g, label, todo, name, call_(g, label, todo, plaquette, a, b, c, d));
-    F_free = real_(g, label, todo, name, ...
-                   call_(g, label, todo, plaquette, free(:, 1), free(:, 2), free(:, 3), free(:, 4)));
     shaken = zeros(1, 2);
     for seed = 1:2
         vs = phases_([a, b, c, d], seed);
@@ -1579,47 +1582,48 @@ function B6_(g, label, values)
     back = real_(g, label, todo, name, call_(g, label, todo, plaquette, a, d, c, b));
     turned = real_(g, label, todo, name, ...
                    call_(g, label, todo, plaquette, a, b * exp(2i), c * exp(4i), d * exp(6i)));
-    seen = sprintf('For the plaquette k = pi/2 .. pi, t = 0 .. T/4 (hand vectors) your F is %s pi.', fmt_(F / pi));
+    right = pi * numbers.F_over_pi;
+    here = 'For the plaquette of the hand step B6 (k = pi/2 .. pi, t = 0 .. T/4) your F';
     if ~same_angle_(shaken, F)
-        stop_(g, label, [seen sprintf(' With random phase factors on the vectors it is %s pi and %s pi.', ...
-                                      fmt_(shaken(1) / pi), fmt_(shaken(2) / pi))], hint_('5'));
+        stop_(g, label, [here ' changes when the four vectors get random phase factors.'], hint_('5'));
     end
-    if same_angle_(F, pi * numbers.F_over_pi) && ~same_angle_(back, -F)
-        stop_(g, label, [seen sprintf([' Walked the other way round (a -> d -> c -> b -> a) it is %s pi. ' ...
-                                       'It must be %s pi.'], fmt_(back / pi), fmt_(-F / pi))], ...
+    if same_angle_(F, right) && ~same_angle_(back, -F)
+        stop_(g, label, [here ' is the same when the square is walked the other way round (a -> d -> c -> b -> a). ' ...
+                         'The two must have opposite signs.'], ...
               'The sign of the angle is lost. F = -angle(product), without abs.');
     end
     want_free = plaquette_ref_(free(:, 1), free(:, 2), free(:, 3), free(:, 4));
-    if ~(same_angle_(F, pi * numbers.F_over_pi) && same_angle_(F_free, want_free))
-        if same_angle_(F, -pi * numbers.F_over_pi) && same_angle_(F_free, -want_free)
-            stop_(g, label, [seen ' The size is right, the sign is wrong.'], ...
+    if ~(same_angle_(F, right) && same_angle_(F_free, want_free))
+        if same_angle_(F, -right) && same_angle_(F_free, -want_free)
+            stop_(g, label, [here ' has the right size and the wrong sign.'], ...
                   ['+arg instead of -arg, or the square is walked the other way round. ' ...
                    'The order is a -> b -> c -> d -> a.']);
         end
-        stop_(g, label, seen, todo);
+        if same_angle_(F, right) || same_angle_(F, -right)
+            stop_(g, label, sprintf('For the four vectors %s, %s, %s, %s your F is %s pi. It must be %s pi.', ...
+                                    fv_(free(:, 1)), fv_(free(:, 2)), fv_(free(:, 3)), fv_(free(:, 4)), ...
+                                    fmt_(F_free / pi), fmt_(want_free / pi)), todo);
+        end
+        stop_(g, label, sprintf('%s is %s pi.', here, fmt_(F / pi)), todo);
     end
     if ~close_([shaken, turned], F, 1e-9) || max(abs([F, back, F_free])) > pi + 1e-9
-        stop_(g, label, [seen sprintf([' With other phase factors on the vectors it is %s pi, walked the other ' ...
-                                       'way round %s pi. These are the right angles, but not always as a number ' ...
-                                       'between -pi and pi.'], fmt_(turned / pi), fmt_(back / pi))], ...
+        stop_(g, label, [here ' is right only up to a multiple of 2 pi: with other phase factors on the vectors, ' ...
+                         'or walked the other way round, it is not always a number between -pi and pi.'], ...
               ['F must lie between -pi and pi. Multiply the four overlaps first, then take angle of the product ' ...
                'once: not the sum of four angles, and no mod. Step B7 adds the plaquette phases as numbers.']);
     end
-    product = (a' * b) * (b' * c) * (c' * d) * (d' * a);
-    lines = {sprintf(['plaquette k = pi/2 .. pi, t = 0 .. T/4: product of the four overlaps = %s    ' ...
-                      'F/pi = %s'], fc_(product), in_pi_(F))};
-    try
+    text = 'your plaquette is right and reproduces the hand step B6';
+    try                                                      % the two checks on paper of B6: tested, not shown
         [J1, J2, D] = g.pump(0.25);
         H = g.H_k(pi / 2, J1, J2, D);
         u = g.eigenvector(g.H_k(pi, J1, J2, D), 1);
         E = energy_(H, g.eigenvector(H, 1));
         if abs(E - numbers.E_kpi2_tq) < 2e-6 && close_(abs(u), [0; 1])
-            lines{end + 1} = sprintf(['your two checks on paper: E = %s at k = pi/2, t = T/4;  |u_A| = %s, ' ...
-                                      '|u_B| = %s at k = pi, t = T/4'], fmt_(E), fmt_(abs(u(1))), fmt_(abs(u(2))));
+            text = [text '; your eigenvector reproduces its two checks on paper'];
         end
     catch
     end
-    ok_(label, lines);
+    ok_(label, {[text '. ' hint_('page')]});
 end
 
 
@@ -1727,15 +1731,15 @@ function B8_(g, label, values)
             'and which way round?'];
     N = numbers_();
     numbers = N.B.B8;
-    names = {'upper band of the same cycle', 'cycle run backwards (Delta -> -Delta)', ...
-             'cycle that does not go around (0, 0)', 'numbers of the task sheet'};
+    names = {'(a) upper band of pump (solid cycle)', '(b) pump_back (solid cycle backwards)', ...
+             '(c) pump_aside (dotted cycle)', '(d) pump_sheet with the numbers of the task sheet (dashed cycle)'};
     want = [numbers.upper_band, numbers.reversed_cycle, numbers.not_enclosing, numbers.sheet];
     reasons = {'The two bands together give 0. So the upper band has minus the Chern number of the lower band.', ...
                ['Delta -> -Delta mirrors the cycle. It goes around (0, 0) the other way round, ' ...
                 'the light moves back.'], ...
                ['This cycle does not go around (0, 0), the point where the gap closes. gamma comes back to its ' ...
                 'start without going around.'], ...
-               ['The cycle of the sheet is smaller, but it goes around (0, 0) once, the same way round. ' ...
+               ['The cycle of the task sheet is smaller, but it goes around (0, 0) once, the same way round. ' ...
                 'Only this counts.']};
     if ~(isnumeric(predicted) && numel(predicted) == 4)
         stop_(g, label, 'predicted must be a row of four numbers.', todo);
@@ -1755,7 +1759,7 @@ function B8_(g, label, values)
     for n = 1:4
         if abs(calculated(n) - want(n)) > 1e-6
             points = size(grids{n}, 2);
-            seen = sprintf('Your code gives C = %s for the %s, on a grid of %d x %d points.', ...
+            seen = sprintf('Your code gives C = %s for %s, on a grid of %d x %d points.', ...
                            fmt_(calculated(n)), names{n}, points, points);
             if points < 4 || mod(points, 2) ~= 0
                 stop_(g, label, seen, hint_('9'));
@@ -1765,17 +1769,18 @@ function B8_(g, label, values)
     end
     lines = cell(1, 4);
     for n = 1:4
-        lines{n} = sprintf('%-38s predicted %g, calculated %s', [names{n} ':'], predicted(n), fmt_(calculated(n)));
+        lines{n} = sprintf('%-66s predicted %g, calculated %s', [names{n} ':'], predicted(n), fmt_(calculated(n)));
     end
     wrong = find(abs(predicted - calculated) > 1e-6, 1);
     if ~isempty(wrong)
         for n = 1:4
             fprintf('%s%s\n', pad_(), lines{n});
         end
-        stop_(g, label, sprintf('Your prediction for the %s differs from your calculation.', names{wrong}), ...
+        stop_(g, label, sprintf('Your prediction for %s differs from your calculation.', names{wrong}), ...
               [reasons{wrong} ' Correct the prediction.']);
     end
-    lines{end + 1} = 'the edge states of B2 say the same: per cycle one state crosses the gap at each end, |C| = 1';
+    lines{end + 1} = ['the two states in the gap (edge states) of B2 say the same: per cycle one state crosses the ' ...
+                      'gap at each end, |C| = 1'];
     ok_(label, lines);
 end
 
