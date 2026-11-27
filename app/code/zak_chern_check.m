@@ -319,6 +319,15 @@ function [found, cut] = scan_todo_(g)
 end
 
 
+function yes = cut_values_(values, wants, one_right)
+    % True if the wrong values are whole numbers that miss the right number by exactly 1 (and one value is right).
+    off = abs(values - wants);
+    wrong = off > 1e-9;
+    yes = any(wrong) && all(values(wrong) == round(values(wrong))) && all(off < 1e-9 | abs(off - 1) < 1e-9) ...
+          && (~all(wrong) || ~one_right);
+end
+
+
 function word = cut_in_(g, name)
     % The name of a function that cuts a number to an integer in the function name of zak_chern.m, or ''.
     word = '';
@@ -1415,7 +1424,8 @@ function B3_(g, label, values)
     end
     if strncmp(tag, 'sheet', 5)
         lines{end + 1} = 'numbers of the sheet (dJ = 0.5, Delta_0 = 0.2): the gap is small, this cycle is too fast';
-        lines{end + 1} = 'a slower cycle needs a longer chain: T = 200 on 1000 cells gives a shift of 0.95';
+        lines{end + 1} = ['a slower cycle needs a longer chain: T = 200 on 1000 cells gives 0.95. Not 1: here ' ...
+                          '(A - B)/sqrt(2) is not exactly the lower band at t = 0'];
     end
     ok_(label, lines);
 end
@@ -1637,9 +1647,10 @@ function B7_(g, label, values)
         if ~isempty(word)
             stop_(g, label, sprintf('Your chern uses %s( ): it cuts the result to an integer.', word), hint_('cut'));
         end
-        if isequal(unique([shaken, C]), [0, 1])
-            stop_(g, label, [seen sprintf(' With random phase factors on the vectors it gives %s and %s.', ...
-                                          fmt_(shaken(1)), fmt_(shaken(2)))], hint_('cut'));
+        if cut_values_([shaken, C, C_back], [numbers.C, numbers.C, numbers.C, -numbers.C], true)
+            stop_(g, label, [seen sprintf([' With random phase factors on the vectors it gives %s and %s, with k ' ...
+                                           'and t exchanged %s. These are whole numbers, and not all are right.'], ...
+                                          fmt_(shaken(1)), fmt_(shaken(2)), fmt_(C_back))], hint_('cut'));
         end
         if ~close_(shaken, C, 1e-9)
             stop_(g, label, [seen sprintf(' With random phase factors on the vectors it gives %s and %s.', ...
@@ -1669,10 +1680,10 @@ function B7_(g, label, values)
     column_sums = sum(F, 1);
     if ~close_(F / pi, numbers.F_over_pi, 2e-6) || ~close_(column_sums / pi, numbers.col_sums_over_pi, 2e-6) ...
             || abs(C4 - numbers.C) > 1e-9 || abs(C24 - numbers.C_24) > 1e-9
-        if close_(F / pi, numbers.F_over_pi, 2e-6) && isequal([C4, C24], round([C4, C24])) ...
-                && all(abs([C4, C24] - numbers.C) < 1.5)
-            stop_(g, label, sprintf(['Your chern gives C = %s with grid_kt(4, @pump, 1) and C = %s with ' ...
-                                     'grid_kt(24, @pump, 1).'], fmt_(C4), fmt_(C24)), hint_('cut'));
+        if close_(F / pi, numbers.F_over_pi, 2e-6) && cut_values_([C4, C24], [numbers.C, numbers.C_24], false)
+            stop_(g, label, sprintf(['Your plaquette phases are right. But your chern gives C = %s with ' ...
+                                     'grid_kt(4, @pump, 1) and C = %s with grid_kt(24, @pump, 1).'], ...
+                                    fmt_(C4), fmt_(C24)), hint_('cut'));
         end
         found = why_wrong_sign_(g);
         stop_(g, label, sprintf(['Your chern is right on fixed vectors. But with the eigenvectors of ' ...

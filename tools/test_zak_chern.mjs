@@ -740,11 +740,11 @@ console.log('\n8. the fields of the page (content.js, fields.js)');
     });
   }
   report(mixed.other.length === 0 && mixed.plain.length === 0, '4000 students who mix 2 and 4 decimals or cut after 2 decimals: a value outside the tolerance is called a rounding error, never "another phase"', mixed.plain.length + mixed.other.length ? `${mixed.other.length} times "another phase", ${mixed.plain.length} other: ${mixed.plain.slice(0, 5).join('; ')}` : `${mixed.ok} values right, ${mixed.near} answered as a rounding error`);
-  // the reviewers' cases, as they typed them
+  // single values that follow from two typed decimals, and values that are further away
   const typedCases = [['A2-ov1', ['0.73', '-0.45'], 'ok'], ['A2-ov1', ['0.72', '-0.44'], 'ok'], ['A2-ang1', ['32.01'], 'ok'], ['A2-ang1', ['31.52'], 'ok'], ['A2-ang2', ['58.11'], 'ok'], ['A5-ang1', ['13.04'], 'ok'], ['A3-sum', ['180.24'], 'ok'], ['A3-sum', ['180.28'], 'ok'],
     ['B6-ov1', ['0.87', '-0.28'], 'ok'], ['B6-prod', ['0.51', '-0.17'], 'ok'], ['A2-ov1', ['0.76', '-0.45'], 'wrong'], ['A2-ang1', ['35'], 'wrong'], ['A3-sum', ['190'], 'wrong']];
   const typedRes = typedCases.map(([id, t]) => F.judge(id, t));
-  report(typedRes.every((r, i) => r.state === typedCases[i][2]), 'the values of the two reviews that came from two-decimal numbers are right now; values further away are still wrong', typedCases.map(([id, t], i) => `${id} ${t.join(' | ')}: ${typedRes[i].state}${typedRes[i].reason ? ' (' + typedRes[i].reason + ')' : ''}`).join(', '));
+  report(typedRes.every((r, i) => r.state === typedCases[i][2]), 'single values that follow from two typed decimals (0.73 − 0.45i, 32.01°, 58.11°, 180.24°, …) are right; values further away are wrong', typedCases.map(([id, t], i) => `${id} ${t.join(' | ')}: ${typedRes[i].state}${typedRes[i].reason ? ' (' + typedRes[i].reason + ')' : ''}`).join(', '));
 
   // (g) hints that name a cause: each one stands where its cause can occur
   const msg = (id, t) => F.judge(id, t).message;
@@ -761,7 +761,7 @@ console.log('\n8. the fields of the page (content.js, fields.js)');
   const far = (a, b) => cx.abs(cx.sub(a, b));
   report(far(nc.set1, cx.scale(set1.prod, -1)) < 1e-12 && far(nc.th, cx.scale(S.B.B4.thalf.prod, -1)) < 1e-12 && far(nc.set2, set2.prod) < 1e-12 && far(nc.t0, S.B.B4.t0.prod) < 1e-12
     && /complex conjugate is missing/.test(msg('A3-gamma', '0')) && /complex conjugate is missing/.test(msg('B4-gh', '0')) && !/conjugate/.test(msg('A5-gamma', '1')) && !/conjugate/.test(msg('B4-g0', '1')) && !/conjugate/.test(msg('A6-gamma100', '0'))
-    && /complex conjugate of the left vector is missing/.test(msg('A3-prod', ['0.2', '0'])) && /complex conjugate of the left vector is missing/.test(msg('B4-prodh', ['0.25', '0'])) && /np\.vdot/.test(msg('A6-prod4', ['0.2', '0'])),
+    && /Check the complex conjugate of the left vector/.test(msg('A3-prod', ['0.2', '0'])) && /⟨u₂\|u₃⟩ and ⟨u₄\|u₁⟩/.test(msg('A3-prod', ['0.2', '0'])) && /Check the complex conjugate of the left vector/.test(msg('B4-prodh', ['0.25', '0'])) && /np\.vdot/.test(msg('A6-prod4', ['0.2', '0'])),
     'gamma = 0 in place of pi: the hint names the missing complex conjugate where it gives this value (A3, B4 at T/2), and only the unit cell elsewhere; the products +0.2 and +0.25 have their hint', `products without the conjugate: ${f6(nc.set1.re)} (A3), ${f6(nc.th.re)} (B4, T/2), ${f6(nc.set2.re)} (A5), ${f6(nc.t0.re)} (B4, t = 0)`);
   // the shift -0.8891 and negative column sums have several causes: the hints list them
   const viaDelta = M.propagate(1, -0.5, 20, 40, 0.05).shiftStart, upperHint = msg('B3-T20', dec(S.B.B3.start.upper_band.T20));
@@ -777,7 +777,7 @@ console.log('\n8. the fields of the page (content.js, fields.js)');
     'typical mistakes have their own hint: a sum along t, radians in a field in degrees or in units of pi, a vector of length sqrt2, gamma/2pi, E for the gap, degrees or radians outside the range', `row sums ${rowSums.map((x) => dec(x)).join(' ')}; B7-col1 in radians ${dec(S.B.B7.col_sums_over_pi[0] * PI)}`);
   const intHints = ['B5-C', 'B7-C', 'B7-C24', 'B8-c1', 'B8-c2', 'B8-c3', 'B8-c4'].map((id) => msg(id, '7'));
   const coarse = msg('B8-c4', '0'), c24 = msg('B7-C24', '0');
-  report(intHints.every((m) => m === T.wrongInteger) && /8 × 8/.test(coarse) && !/too coarse/.test(coarse) && /add all the angles/.test(c24) && !/16/.test(c24) && M.pumpChern(0.5, 0.2, 3) < 0.5 && Math.round(M.pumpChern(0.5, 0.2, 8)) === 1,
+  report(intHints.every((m) => m === T.wrongInteger) && /8 × 8/.test(coarse) && !/too coarse/.test(coarse) && /add them all/.test(c24) && !/16/.test(c24) && M.pumpChern(0.5, 0.2, 3) < 0.5 && Math.round(M.pumpChern(0.5, 0.2, 8)) === 1,
     'integer fields: a wrong integer is not asked for four decimals; 0 for the sheet numbers names the 8 x 8 grid; 0 on the 24 x 24 grid does not speak of 16 angles', `"${coarse}" | "${c24}"`);
 
   // (h) B6: a and c are typed with either sign; the overlaps are checked for the vectors as typed; the length is asked

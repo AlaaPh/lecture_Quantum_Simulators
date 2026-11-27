@@ -164,6 +164,14 @@ def _cut_in(function, value):
     return ([name for name in ("floor", "trunc", "ceil", "fix") if name in names] + [""])[0]
 
 
+def _cut_values(values, wants, one_right=True):
+    """True if the wrong values are whole numbers that miss the right number by exactly 1 (and one value is right)."""
+    off = [abs(v - w) for v, w in zip(values, wants)]
+    wrong = [v for v, d in zip(values, off) if d > 1e-9]
+    return (len(wrong) > 0 and all(float(v).is_integer() for v in wrong)
+            and all(d < 1e-9 or abs(d - 1) < 1e-9 for d in off) and (len(wrong) < len(values) or not one_right))
+
+
 def _changed(label, what="The given lines of this step were changed."):
     _stop(label, what, "Restore the given lines of step %s. Change only the lines marked TODO." % label)
 
@@ -749,7 +757,8 @@ def _B3(label, g, *values):
         lines.append("one guide alone excites both bands, and they move in opposite directions")
     if tag.startswith("sheet"):
         lines.append("numbers of the sheet (dJ = 0.5, Delta_0 = 0.2): the gap is small, this cycle is too fast")
-        lines.append("a slower cycle needs a longer chain: T = 200 on 1000 cells gives a shift of 0.95")
+        lines.append("a slower cycle needs a longer chain: T = 200 on 1000 cells gives 0.95. Not 1: here "
+                     "(A - B)/sqrt(2) is not exactly the lower band at t = 0")
     _ok(label, *lines)
 
 
@@ -889,9 +898,10 @@ def _B7(label, g, *values):
         seen = "For the 4 x 4 grid of the pump (hand vectors) your chern gives %s." % _fmt(C)
         if _cut_in(values[0], first):
             _stop(label, "Your chern uses %s( ): it cuts the result to an integer." % _cut_in(values[0], first), CUT)
-        if sorted(set(shaken + [C])) == [0.0, 1.0]:
-            _stop(label, seen + " With random phase factors on the vectors it gives %s and %s."
-                  % (_fmt(shaken[0]), _fmt(shaken[1])), CUT)
+        if _cut_values(shaken + [C, C_back], [numbers["C"]] * 3 + [-numbers["C"]]):
+            _stop(label, seen + " With random phase factors on the vectors it gives %s and %s, with k and t exchanged "
+                  "%s. These are whole numbers, and not all are right." % (_fmt(shaken[0]), _fmt(shaken[1]), _fmt(C_back)),
+                  CUT)
         if not _close(shaken, C, 1e-9):
             _stop(label, seen + " With random phase factors on the vectors it gives %s and %s."
                   % (_fmt(shaken[0]), _fmt(shaken[1])), HINT[5])
@@ -915,8 +925,9 @@ def _B7(label, g, *values):
     if (not _close(F / PI, numbers["F_over_pi"], 2e-6) or not _close(columns / PI, numbers["col_sums_over_pi"], 2e-6)
             or abs(C4 - numbers["C"]) > 1e-9 or abs(C24 - numbers["C_24"]) > 1e-9):
         if (_close(F / PI, numbers["F_over_pi"], 2e-6)
-                and all(float(c).is_integer() and abs(c - numbers["C"]) < 1.5 for c in (C4, C24))):
-            _stop(label, "Your chern gives C = %s with grid(4) and C = %s with grid(24)." % (_fmt(C4), _fmt(C24)), CUT)
+                and _cut_values([C4, C24], [numbers["C"], numbers["C_24"]], one_right=False)):
+            _stop(label, "Your plaquette phases are right. But your chern gives C = %s with grid(4) and C = %s with "
+                  "grid(24)." % (_fmt(C4), _fmt(C24)), CUT)
         found = _why_wrong_sign(g)
         _stop(label, "Your chern is right on fixed vectors. But with the eigenvectors of grid(4) it gives C = %s, "
               "with grid(24) C = %s." % (_fmt(C4), _fmt(C24)),

@@ -69,7 +69,7 @@ const acts = [
   },
   {
     id: 'chern', tab: '4 · Chern number', heading: 'The Chern number from plaquettes',
-    lead: 'Take two neighbouring times t₁ and t₂. Walk through all k at t₂ and back through all k at t₁: the Berry phase of this closed path is γ(t₂) − γ(t₁). Cut the strip between the two times into small squares, the plaquettes: inner edges are walked once in each direction and drop out. So the plaquettes between two times add up to the change of γ, up to a multiple of 2π, and C = (sum of all plaquette phases)/2π.',
+    lead: 'Take two neighbouring times t₁ and t₂. Walk once through all k at t₂ and once backwards through all k at t₁: the Berry phase of the two loops together is γ(t₂) − γ(t₁). Cut the strip between the two times into small squares, the plaquettes: inner edges are walked once in each direction and drop out. So the plaquettes between two times add up to the change of γ, up to a multiple of 2π, and C = (sum of all plaquette phases)/2π.',
     panes: ['wd', 'wmap', 'wgamma', 'wloops'], canPlay: false,
     enter() {},
     caption() {

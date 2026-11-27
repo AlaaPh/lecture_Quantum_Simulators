@@ -11,7 +11,7 @@
 // Then, with a recorder on the canvas calls (the texts, the arrow heads and the number of line points of every figure):
 //   what a figure shows before its field is right (the dial, the curve gamma(t), its last dot), the two arrows of the
 //   solid cycle of B8, Enter in front of a question with buttons, the unit rule of a field in units of pi, a prediction
-//   after its result, the texts that the reviews asked for; the phone layout at 390 x 844 (each figure directly in front
+//   after its result, the texts of the steps; the phone layout at 390 x 844 (each figure directly in front
 //   of the step that needs it, Play and all five figures of tab 3 on one screen), Back and Forward, the place of each tab.
 // Then: the page with a storage that is blocked or holds something unreadable, and the other pages of the app.
 // The right values are taken from tools/zak_chern_numbers.json, rounded as a student would type them,
@@ -348,15 +348,15 @@ async function pass(browser, theme, width, height, { first, shots }) {
   await context.close();
 }
 
-// ---------- the findings of the reviews: one check for each ----------
+// ---------- what a figure shows and when; Enter, units, rounding, predictions, texts ----------
 // the title of every visible figure fits into its canvas (titles are drawn at the top, in 600 12px)
 const cutTitles = (page) => page.evaluate(() => [...document.querySelectorAll('.pane:not([hidden]) canvas')].flatMap((cv) => {
   const ctx = cv.getContext('2d'), font = `600 12px ${getComputedStyle(document.documentElement).getPropertyValue('--font-ui') || 'sans-serif'}`;
   return ((cv.__log || { texts: [] }).texts).filter((x) => x.y < 10 && /[a-z]/.test(x.t)).map((x) => { ctx.save(); ctx.font = font; const w = ctx.measureText(x.t).width; ctx.restore(); return x.x + w > cv.clientWidth + 0.5 ? `${cv.parentElement.id}: "${x.t}" needs ${Math.round(x.x + w)} px of ${cv.clientWidth}` : null; }).filter(Boolean);
 }));
 
-async function findings(browser) {
-  console.log('\nreview findings at 1280 x 800: what a figure shows and when, Enter, units, rounding, predictions, texts');
+async function behaviour(browser) {
+  console.log('\nat 1280 x 800: what a figure shows and when, Enter, units, rounding, predictions, texts');
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, colorScheme: 'light' });
   await context.addInitScript(RECORDER);
   const page = await context.newPage();
@@ -368,6 +368,7 @@ async function findings(browser) {
   const caption = () => page.locator('#caption').innerText();
   const inPane = async (sel, tab) => { const r = await rectOf(page, sel), q = await rectOf(page, `#pane-${PANE[tab]}`); return !!r && r.height > 0 && r.top >= q.top - 1 && r.bottom <= q.bottom + 1; };
   const paneText = (tab) => page.locator(`#pane-${PANE[tab]}`).innerText();
+  const under = (ts) => ts.filter((t) => /of 4 turns|no turn yet/.test(t)).join(' | ');      // the line below each of the two dials
   const titles = [];
 
   // ----- tab 1 -----
@@ -380,7 +381,7 @@ async function findings(browser) {
   const dial1 = await textsOf(page, 'pane-wturn'), cap1 = await caption();
   report(last.state === 'ok' && focus1 === 'f-A2-ang4' && predSeen, 'Enter on the last field of A2: the focus does not jump over the prediction of A3, and the question is in view', `focus in ${focus1}, buttons of A3-pred in view: ${predSeen}`);
   report(dial1.includes('3 of 4 turns') && !dial1.some((t) => /180\.00|4 of 4|γ =/.test(t)) && /3 of 4 turns for J₁ = 1/.test(cap1) && /it appears when your sum of the four −arg is right/.test(cap1),
-    'dial with all four angles of A2 right and no sum typed: three turns, no sum of the angles, no gamma', `texts under the dials: ${dial1.filter((t) => /turn/.test(t)).join(' | ')}`);
+    'dial with all four angles of A2 right and no sum typed: three turns, no sum of the angles, no gamma', `below the dials: ${under(dial1)}`);
   await choose(page, 'A3-pred', '0');
   await page.keyboard.press('ArrowRight');
   const hashKey = await page.evaluate(() => location.hash);
@@ -401,7 +402,7 @@ async function findings(browser) {
   await type('hand', 'A3-prod'); await type('hand', 'A3-gamma');
   const dial4 = await textsOf(page, 'pane-wturn');
   report(dial2.includes('3 of 4 turns') && !dial2.some((t) => /180\.00|γ =/.test(t)) && dial3.includes('4 of 4 turns: 180.00° → γ = π') && dial4.includes('4 of 4 turns: 180.00° → γ = π'),
-    'dial: the fourth turn and the sum appear when the sum of A3 is right (gamma was typed before)', `before the sum: ${dial2.filter((t) => /turn/.test(t))[0]}; after: ${dial3.filter((t) => /turn/.test(t))[0]}`);
+    'dial: the fourth turn and the sum appear when the sum of A3 is right (gamma was typed before)', `before the sum: ${under(dial2)}; after: ${under(dial3)}`);
   const pred = await page.evaluate(() => { const root = document.querySelector('[data-field="A3-pred"]'); root.querySelector('button[data-value="1"]').click(); return { pressed: [...root.querySelectorAll('button[aria-pressed="true"]')].map((b) => b.dataset.value).join(), disabled: root.querySelectorAll('button:disabled').length, note: root.closest('.wb-row').querySelector('.wb-pred').textContent }; });
   report(pred.pressed === '0' && pred.disabled === 2 && /You predicted γ = 0/.test(pred.note), 'a prediction cannot be changed after the result is right', `pressed "${pred.pressed}", ${pred.disabled} buttons disabled, "${pred.note}"`);
   for (const f of ['A5-wind', 'A5-ang1', 'A5-ang2', 'A5-ang3', 'A5-ang4']) await type('hand', f);
@@ -411,7 +412,7 @@ async function findings(browser) {
   await type('hand', 'A5-sum');
   const dial7 = await textsOf(page, 'pane-wturn');
   report(dial5.filter((t) => t === '3 of 4 turns').length === 1 && !dial6.some((t) => /^4 of 4 turns: 0\.00/.test(t)) && dial7.includes('4 of 4 turns: 0.00° → γ = 0') && g5a.state === 'wrong' && g5a.msg === UNIT_PI && g5b.state === 'ok' && g5c.state === 'ok',
-    'A5: the second dial waits for its sum in the same way; 180 where gamma = 0 is wrong (unit), 2 and 0 are right', `180: ${g5a.state}, 2: ${g5b.state}, 0: ${g5c.state}; ${dial7.filter((t) => /turn/.test(t)).join(' | ')}`);
+    'A5: the second dial waits for its sum in the same way; 180 where gamma = 0 is wrong (unit), 2 and 0 are right', `180: ${g5a.state}, 2: ${g5b.state}, 0: ${g5c.state}; with four angles and no sum: ${under(dial6)}; with the sum: ${under(dial7)}`);
   const t1 = await paneText('hand'), conv = await page.locator('#pane-wa .wb-conv').evaluate((e) => e.textContent), lead1 = await page.locator('#lead').innerHTML();
   report(/φ₄ − φ₃, φ₁ − φ₄\. Add or subtract 360° until the step lies between −180° and 180°/.test(t1) && /Add the four values of −arg/.test(t1) && /its length √\(Re² \+ Im²\) and −arg: minus the angle/.test(t1) && !/The angle is −arg/.test(t1) && /H\(k\) = \[\[0, h\*\], \[h, 0\]\]/.test(t1) && /φ goes back and forth/.test(t1),
     'tab 1, texts: the step of phi between −180° and 180°, "−arg" in place of a second meaning of "angle", H(k) written out in the check of A1', '');
@@ -486,7 +487,7 @@ async function findings(browser) {
   await choose(page, 'B8-p1', '1');
   const c8 = await type('chern', 'B8-c1', ['1']);
   const t4 = (await paneText('chern')).replace(/\s+/g, ' ');
-  report(e6.state === 'wrong' && /row by row/.test(e6.msg) && !/eigh|\|h\|/.test(e6.msg) && c8.state === 'wrong' && /C is an integer/.test(c8.msg) && !/four decimals/.test(c8.msg) && /Δ = 0\.2·sin\(2πt\/T\)/.test(t4) && /with m, j = 0 … 3/.test(t4) && /with length 1/.test(t4),
+  report(e6.state === 'wrong' && /row by row/.test(e6.msg) && !/eigh|\|h\|/.test(e6.msg) && c8.state === 'wrong' && /C is an integer/.test(c8.msg) && !/four decimals/.test(c8.msg) && /Δ = 0\.2·sin\(2πt\/T\)/.test(t4) && /Grid: k = 0, π\/2, π, 3π\/2 and t = 0, T\/4, T\/2, 3T\/4/.test(t4) && !/2πi\/4/.test(t4) && /with length 1/.test(t4),
     'tab 4: +1.5 for H·b = …·b is answered for this step; a wrong integer is not asked for decimals; the dotted cycle is printed with its argument', `"${e6.msg}" | "${c8.msg}"`);
   titles.push(...await cutTitles(page));
 
@@ -504,7 +505,7 @@ async function findings(browser) {
   await page.goBack(); await page.waitForTimeout(150); const back2 = await where();
   await page.goForward(); await page.waitForTimeout(150); const fwd = await where();
   report(back1 === '#code code' && back2 === '#hand hand' && fwd === '#code code', 'Back returns to the tab before, Forward goes on again', `back: ${back1}; back: ${back2}; forward: ${fwd}`);
-  report(errors.length === 0, 'review findings: no console error, no page error', errors.slice(0, 5).join(' | '));
+  report(errors.length === 0, 'figures and texts: no console error, no page error', errors.slice(0, 5).join(' | '));
   await context.close();
 }
 
@@ -565,10 +566,12 @@ async function phone(browser, theme) {
   // coming back to a tab: the page shows the field that was used last there, not the top
   await open('hand');
   await page.locator('#f-A1-wind').click(); await page.locator('#f-A1-wind').fill('1'); await page.locator('#f-A1-wind').press('Enter');
-  const yWork = await page.evaluate(() => window.scrollY);
-  await open('code'); await open('hand');
-  const yBack = await page.evaluate(() => window.scrollY), fieldSeen = await onScreen('#f-A1-wind');
-  report(yWork > 300 && fieldSeen && yBack > 300, `${theme}: back on a tab, the page shows the field that was used last`, `the page was at ${Math.round(yWork)} px, after tab 2 and back it is at ${Math.round(yBack)} px, the field is on the screen: ${fieldSeen}`);
+  const used = await activeId(page), yWork = await page.evaluate(() => window.scrollY);       // Enter has moved on to the next field
+  await open('code');
+  const yOther = await page.evaluate(() => window.scrollY);
+  await open('hand');
+  const yBack = await page.evaluate(() => window.scrollY), fieldSeen = await onScreen(`#${used}`);
+  report(yWork > 300 && yOther < 50 && fieldSeen && yBack > 300, `${theme}: back on a tab, the page shows the field that was used last`, `field ${used}: the page was at ${Math.round(yWork)} px, on tab 2 at ${Math.round(yOther)} px, back on tab 1 at ${Math.round(yBack)} px, the field is on the screen: ${fieldSeen}`);
   report(errors.length === 0, `${theme}, phone: no console error, no page error`, errors.slice(0, 5).join(' | '));
   await context.close();
 }
@@ -645,7 +648,7 @@ async function otherPages(browser) {
     await pass(browser, 'light', 390, 844, { first: false, shots: ['hand', 'pump'] });
     await pass(browser, 'dark', 1280, 800, { first: false, shots: [] });
     await pass(browser, 'dark', 390, 844, { first: false, shots: [] });
-    await findings(browser);
+    await behaviour(browser);
     await phone(browser, 'light');
     await phone(browser, 'dark');
     await storageCases(browser);

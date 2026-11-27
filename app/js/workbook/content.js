@@ -48,11 +48,11 @@ const HINT = {
   upperVector: 'this is the eigenvector of the upper band, the one with the larger eigenvalue. Take the smaller eigenvalue.',
   notNormal: 'the eigenvector must have length 1: divide by √2.',
   phase: 'the product has changed, so a phase factor did not cancel. Check the complex conjugate (the i of the left vector becomes −i) and the overlap that closes the loop.',
-  noConj: 'the sign is wrong: the complex conjugate of the left vector is missing.',
+  noConj: 'the sign is wrong. Check the complex conjugate of the left vector: without it the product has this sign.',
   noConjCode: 'the sign is wrong. Check the complex conjugate of the left vector in the overlap: np.vdot(u, v) in Python, u\'*v in MATLAB.',
   sign: 'right size, wrong sign. One of: +arg in place of −arg; the upper band; e^(−ik) in h; −Δ on guide A.',
   unwrap: 'C = 0: the jumps of 2π are still in γ. Use unwrap before you take γ(T) − γ(0).',
-  total: '0: you took arg of the total product, or you added both bands. Take −arg of every single plaquette and add all the angles.',
+  total: '0: you took arg of the total product, or you added both bands. Take −arg of every single plaquette and add them all.',
   coarse: '0: with these numbers a 3 × 3 grid gives 0. Use the 8 × 8 grid. If you did: you took arg of the total product, or you added both bands.',
   swapped: '0 and π are swapped. One of: the complex conjugate is missing (then the product has the wrong sign); your unit cell holds the J₂ pair. Here J₁ couples A and B inside the unit cell.',
   cell: '0 and π are swapped: your unit cell holds the J₂ pair. Here J₁ couples A and B inside the unit cell.',
@@ -103,7 +103,7 @@ function defineHand() {
   choice({ id: 'A3-pred', tab, options: [{ value: 0, label: '0' }, { value: 0.5, label: 'π/2' }, { value: 1, label: 'π' }], lock: 'A3-gamma', aria: 'your prediction of the Zak phase' });
   field({ id: 'A3-len', tab, tol: HAND, ref: set1.prod_len, aria: 'product of the four lengths' });
   field({ id: 'A3-sum', tab, kind: 'value', unit: 'deg', tol: SUM, ref: set1.angle_sum_deg, aria: 'sum of the four values of minus arg, in degrees' });
-  field({ id: 'A3-prod', tab, kind: 'complex', tol: HAND, ref: set1.prod, otherPhase: false, wrong: [{ value: set1.open_prod, hint: HINT.open }, { value: neg(set1.prod), hint: `${HINT.noConj} Check ⟨u₂|u₃⟩ and ⟨u₄|u₁⟩.` }], aria: 'product of the four overlaps' });
+  field({ id: 'A3-prod', tab, kind: 'complex', tol: HAND, ref: set1.prod, otherPhase: false, wrong: [{ value: set1.open_prod, hint: HINT.open }, { value: neg(set1.prod), hint: `${HINT.noConj} It changes ⟨u₂|u₃⟩ and ⟨u₄|u₁⟩.` }], aria: 'product of the four overlaps' });
   field({ id: 'A3-gamma', tab, kind: 'angle', unit: 'pi', tol: GAMMA, ref: set1.gamma_over_pi, hint: HINT.gammaHand, wrong: [{ value: 0, hint: HINT.swapped }], aria: 'Zak phase gamma in units of pi, J1 = 1, J2 = 2' });
   // A4: the phase factor is prescribed (i·u₂), so a wrong overlap with the right length is a mistake, not another phase
   field({ id: 'A4-ov1', tab, kind: 'complex', tol: HAND, ref: set1.A4.ov12, otherPhase: false, wrong: [
@@ -504,7 +504,7 @@ function buildChern() {
   const s7 = stepBlock({
     tag: 'B7', title: 'All 16 plaquettes in your code',
     children: [
-      para('Grid: <span class="m">k<sub>m</sub> = m·π/2</span> and <span class="m">t<sub>j</sub> = j·T/4</span> with m, j = 0 … 3. Point 4 is point 0 again, in k and in t. Inner edges are walked once in each direction and drop out. So the four plaquettes between two times add up to the change of γ between these times. Add the four plaquettes of each t column.'),
+      para('Grid: <span class="m">k = 0, π/2, π, 3π/2</span> and <span class="m">t = 0, T/4, T/2, 3T/4</span>. After the last point comes the first one again, in k and in t. Inner edges are walked once in each direction and drop out. So the four plaquettes between two times add up to the change of γ between these times. Add the four plaquettes of each t column.'),
       ...colName.map((name, j) => rowOf([keyCell(`t: ${name}`), fieldNode(`B7-col${j + 1}`, { label: 'column sum =', unitText: 'π' })])),
       rowOf([fieldNode('B7-total', { label: 'Sum of all 16:', unitText: 'π' }), fieldNode('B7-C', { label: 'C = sum/2π =' }), fieldNode('B7-C24', { label: '24 × 24 grid: C =' })]),
       para('Compare the first column sum with γ(T/4) for four k points, which your code prints in B5.', 'wb-small'),
@@ -512,7 +512,8 @@ function buildChern() {
     ],
     formula: () => code([
       'plaquette(a, b, c, d) = −arg(⟨a|b⟩·⟨b|c⟩·⟨c|d⟩·⟨d|a⟩)',
-      'F[m][j] = plaquette(U[m][j], U[m][j+1], U[m+1][j+1], U[m+1][j]),  U[m][j] = eigenvector at k_m, t_j,  index 4 = index 0',
+      'F[i][j] = plaquette(U[i][j], U[i][j+1], U[i+1][j+1], U[i+1][j]),  index 4 = index 0',
+      'U[i][j] = eigenvector at k = i·π/2 and t = j·T/4;  i and j are the indices 0 … 3 (here i is an index, not the imaginary unit)',
       'column sum j = F[0][j] + F[1][j] + F[2][j] + F[3][j]',
       'C = (sum of all F)/2π;  type the sums divided by π',
     ]),
@@ -534,7 +535,7 @@ function buildChern() {
       doneNote(['B8-cross', 'B8-c1', 'B8-c2', 'B8-c3', 'B8-c4'], `${crossing === 1 ? 'One state crosses' : `${crossing} states cross`} the gap at each end per cycle: this is |C|. The cycle that does not go around the point (0, 0) has C = ${B.B8.not_enclosing}. The direction of the cycle and the band decide the sign.`),
     ],
     formula: () => code([
-      'grid of 8 × 8 eigenvectors:  k_m = 2πm/8,  t_j = j·T/8;  upper band: the eigenvector of the larger eigenvalue',
+      'grid of 8 × 8 eigenvectors:  k = i·2π/8 and t = j·T/8 with the indices i, j = 0 … 7;  upper band: the eigenvector of the larger eigenvalue',
       `backwards:  J₁ and J₂ as before,  Δ = −${plain(HAND_SET.D0)}·sin(2πt/T)`,
       'C = (sum of the 64 plaquette phases)/2π',
     ]),
