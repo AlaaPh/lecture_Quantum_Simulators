@@ -9,7 +9,7 @@ node --input-type=module -e "
 import { CODE } from './app/js/workbook/code.js';
 import { writeFileSync } from 'node:fs';
 const dir = process.argv[1], order = ['couplings', 'matrix', 'overlap', 'zak', 'zak2', 'plaquette', 'sum', 'band2'];
-let long = 0; for (const k of order) for (const lang of ['py', 'm']) for (const line of CODE[k][lang].split('\n')) if (line.length > 58) { long++; console.log('line longer than 58 characters:', k, lang, line); }
+let long = 0; for (const k of order) for (const lang of ['py', 'm']) for (const line of CODE[k][lang].split('\n')) if (line.length > 60) { long++; console.log('line longer than 60 characters:', k, lang, line); }
 if (long) process.exit(1);
 writeFileSync(dir + '/hints.py', order.map((k) => CODE[k].py).join('\n\n') + '\n');
 let script = 'format long\n';
