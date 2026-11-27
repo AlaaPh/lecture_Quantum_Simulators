@@ -10,7 +10,7 @@ intuition behind them.
 |---|---|
 | `source/` | Source documents. `Coding_sessions_v1_annotated.pdf` is the task sheet with the reviewer's notes, `LectureNotes.md` the conventions of lectures VL1–VL8 that the exercises follow. |
 | `app/` | **Quantum Simulators Lab**, a static web app (no build step). Open `app/index.html` through any static server. |
-| `tools/` | Helper scripts (`make_artifact.py` builds the preview version of the app) and the tests of the workbook: `zak_chern_numbers.json` holds its reference numbers, `test_zak_chern.mjs` recomputes them, `check_workbook.cjs` drives the page in a browser. |
+| `tools/` | Helper scripts (`make_artifact.py` builds the preview version of the app) and the tests of the workbook: `workbook_numbers.json` holds its reference numbers, `test_workbook.mjs` compares the page with them and tests every question, `check_workbook.cjs` drives the page in a browser. |
 
 ## The app
 
@@ -64,36 +64,30 @@ the same picture with more guides.
 4. **Task 3** — on-site potential +Δ on A, −Δ on B: the edge state of 21 guides moves to exactly +Δ with unchanged
    shape, 20 guides give ±Δ at the two ends, and the Zak phase is no longer quantized.
 
-**Step by step** (`app/steps.html`): the Zak phase of the SSH chain in ten small questions, one on the screen at a
-time, each with one picture and checked at once. Test: `node tools/check_steps.cjs`.
+**Workbook** (`app/workbook.html`): the student calculates the Zak phase, a Thouless pump and its Chern number.
+One small question is on the screen at a time, with one picture. Every answer is checked at once; a wrong answer gets
+a hint, and after two wrong tries the worked answer can be shown. Three parts:
 
-**Workbook** (`app/workbook.html`): the student calculates the Zak phase, the Thouless pump of task 9 and its
-Chern number, in small steps that are checked at once. The same steps and numbers in three forms:
+1. **Zak phase** (ten questions) — h(k) = J₁ + J₂e^{ik} at k = 0, π/2, π, 3π/2 for J₁ = 1, J₂ = 2; how often h goes
+   around the origin; γ is half of the total turn of the angle of h, so γ = π; then J₁ = 2, J₂ = 1 with γ = 0.
+2. **Thouless pump** (seven questions) — the lattice of Jürgensen, Mukherjee, Jörg and Rechtsman, "Quantized
+   fractional Thouless pumping of solitons", Nature Physics 19, 420 (2023): five waveguides per unit cell at
+   x_n(z) = n·d + δ·cos(Ωz + 4πn/5 − 3π/10), d = 17.25 μm, δ = 1 μm, coupled by J(s) = 6.672 mm⁻¹ · e^{−0.2348 s/μm}.
+   One position, one distance and one coupling by hand; the 5 × 5 matrix H(k) in the student's own code; the five
+   bands during one period; the light of band 3, which moves by two unit cells in one period.
+3. **Chern number** (seven questions) — the Zak phase of band 3 from the overlap formula in the student's code, at
+   z = 0 and at a quarter period; its growth over the period gives C = 2; then C from the plaquettes of a 10 × 10
+   grid; band 2 with C = −3; the sum over all five bands, 2 − 3 + 2 − 3 + 2 = 0.
 
-- **Page.** Every hand step is an input field. A right value is marked, a wrong one gets the hint for its mistake,
-  and the figure fills in with the right answers. Four tabs:
-  1. **Zak phase by hand (task 8)** — h(k), its angle, the eigenvector and the four overlaps at k = 0, π/2, π, 3π/2
-     for J₁ = 1, J₂ = 2, their product and γ; then the same for J₁ = 2, J₂ = 1.
-  2. **Zak phase, your code** — the same loop with `eigh` and random phases; then with on-site term, where a case
-     with a known result shows that γ/2π is the position of the light inside the unit cell.
-  3. **Thouless pump (task 9)** — the pump to play: the cycle in the (J₁ − J₂, Δ) plane, the two bands, the
-     eigenvalues of the open chain with the two states in the gap, the light in the chain and its position X(t).
-     Fields for the bands (9a), the states in the gap (9b), the shift per cycle (9c), and the Zak phase over the
-     cycle, which gives C.
-  4. **Chern number** — one plaquette by hand, all plaquettes of the 4 × 4 grid and C; predictions for the upper
-     band, the reversed cycle and a cycle that lies aside.
-- **Code skeleton.** `app/code/zak_chern.py` with `zak_chern_check.py` (Python, numpy) and `app/code/zak_chern.m`
-  with `zak_chern_check.m` (MATLAB; run with GNU Octave 8.4 only, not yet in MATLAB). One or two missing lines per
-  step. The file stops at the first open step and names the mistake where a test identifies it. The last block
-  applies the same functions to the Harper–Hofstadter model at flux 1/3 and to the Haldane model.
-- **Worksheet.** `app/pdf/zak_chern_worksheet.pdf`, two double-sided sheets with the tables of the hand steps and
-  four questions to answer in words.
+For the questions with code the worked answer is a few lines in Python and in MATLAB (the MATLAB lines were run in
+GNU Octave 8 only). Only the linear lattice is used; the solitons of the paper are named on the last card.
 
-Conventions of all three: H(k) = [[Δ, h*], [h, −Δ]], h = J₁ + J₂e^{ik}; lower band; γ = −arg ∏⟨uₛ|uₛ₊₁⟩; plaquette
-with the same −arg, walked (k, t) → (k, t+dt) → (k+dk, t+dt) → (k+dk, t); C = sum/2π; position X counted in unit cells
-from the cell where the light starts. The filled skeletons and the solution pages are not in this repository. The
-expected numbers are, because the page and its tests need them: in `tools/zak_chern_numbers.json`, in the two check
-files and in `app/js/workbook/`.
+Conventions: +J as in the hands-on code (the paper writes −J; bands and Chern numbers are the same). H(k) has
+J₁ … J₄ next to the diagonal, J₅e^{ik} bottom left and J₅e^{−ik} top right. Band b is the b-th eigenvalue.
+γ = −arg ∏⟨uₛ|uₛ₊₁⟩ with the loop closed. Plaquette with the same −arg, walked
+(k, Ωz) → (k, Ωz + d) → (k + d, Ωz + d) → (k + d, Ωz); C = sum/2π. The position of the light counts every waveguide
+with the number of its unit cell. The model is in `app/js/workbook/aah.js`, the reference numbers, computed
+independently with numpy, in `tools/workbook_numbers.json`.
 
 **Hamiltonian builder** (`app/builder.html`): a free instrument instead of a guided exercise. A tight-binding
 Hamiltonian is built by plugging couplings into a matrix, and its spectrum is shown at once.
@@ -142,7 +136,7 @@ demand from the Actions tab). Three one-time settings on github.com, all of whic
    "No restriction"), otherwise the job is rejected before it starts.
 
 The app is then at <https://alaaph.github.io/lecture_Quantum_Simulators/>, Exercise 2 at `/exercise2.html`, Exercise 3 at `/exercise3.html`, the
-step-by-step questions at `/steps.html`, workbook at `/workbook.html`, the Hamiltonian builder at `/builder.html`, the geometry appendix at `/chapters.html`, and a QR code to project at `/share.html`.
+workbook at `/workbook.html`, the Hamiltonian builder at `/builder.html`, the geometry appendix at `/chapters.html`, and a QR code to project at `/share.html`.
 
 ### Publish with GitLab Pages (university GitLab)
 
@@ -185,10 +179,10 @@ console.log(s.chiral.nu, s.inGap.filter(Boolean).length);      // winding number
 "
 ```
 
-The workbook has its own tests. `tools/zak_chern_numbers.json` holds every number of its steps; each one was
-computed two independent ways (closed form, and `eigh` with a random phase on every eigenvector).
+The workbook has its own tests. `tools/workbook_numbers.json` holds the numbers of the five-waveguide lattice; they
+were computed with numpy in two independent ways and are not produced by the page.
 
 ```bash
-node tools/test_zak_chern.mjs      # app/js/workbook/model.js against the stored numbers, and the reader of typed answers
-node tools/check_workbook.cjs      # the page in headless Chromium (needs Playwright): every field, hints, phone width
+node tools/test_workbook.mjs       # the model against the stored numbers, every question, the reader of typed numbers
+node tools/check_workbook.cjs      # the page in headless Chromium (needs Playwright): every question, hints, phone width
 ```

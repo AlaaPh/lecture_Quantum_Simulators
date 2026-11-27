@@ -1,163 +1,147 @@
-// Workbook: the students calculate the Zak phase (task 8), the Thouless pump (task 9) and its Chern number
-// themselves, in small steps that are checked at once. Four tabs. Each has a lead text, the step blocks with their
-// fields, and the figures that fill in with the right answers.
-// Conventions: H(k) = [[Δ, h*], [h, −Δ]], h(k) = J₁ + J₂e^{ik}, basis (A, B), +Δ on A, lower band = smallest eigenvalue,
-// k_s = 2π(s − 1)/M, γ = −arg of the closed product of overlaps, C = (sum of all plaquette phases)/2π.
-// Words: "angle" is arg, the angle of a complex number; the quantity of the hand tables is −arg. "task sheet" is the sheet
-// of the course with the tasks, "worksheet" the printed sheet of this workbook.
-// Files: model.js (physics), answers.js (reading a typed value), fields.js (the fields and their storage),
-// content.js (the steps), pump.js (data of the pump), figures.js (the drawings), this file (the page shell).
-import { el, button, row, slider } from '../ui.js';
-import { invalidateTheme } from '../theme.js';
-import { fmt } from '../linalg.js';
-import { onChange, progress, resetAll, restore, refreshDynamics } from './fields.js';
-import { builders } from './content.js';
-import { draw, everyPanel, count, turnsShown, dotsShown } from './figures.js';
-import { T_VALUES, DT, CELLS, paramsAt, simulation } from './pump.js';
+// Workbook: one small question on the screen at a time, one picture next to it. Three parts:
+// the Zak phase (zak.js), a Thouless pump (pump.js), the Chern number (chern.js).
+// A part is { id, chip, next, steps, draw(panel, spec, colors) → caption }. A step is
+//   { type: 'info', title, html, button, end }                     a card to read
+//   { type: 'complex', text, formula, ref: { re, im } }            two fields: real and imaginary part
+//   { type: 'number', text, formula, extra, ask, label, unit, ref, tol, mod, wrongs }   one field
+//   { type: 'choice', text, ask, options, ref }                    buttons
+// with hint (shown after a wrong answer), how (text, or { py, m } code; offered after two wrong tries), after (shown
+// after the right answer) and pic(solved) → what the picture shows. ref, after and the ref of a known wrong value may
+// be functions: they are evaluated when needed. mod: 2 compares a phase in units of π up to a full turn.
+import { Canvas2D } from '../lecture1/panels.js';
+import { colors, invalidateTheme } from '../theme.js';
+import { judge, val } from './judge.js';
+import { zak } from './zak.js';
+import { pump } from './pump.js';
+import { chern } from './chern.js';
 
+const PARTS = [zak, pump, chern];
 const $ = (id) => document.getElementById(id);
-const num = (x, d = 2) => fmt(x, d).replace('-', '−');
+const STORE = 'qsl-workbook-v2';
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 // ---------- state ----------
-let act = 0, playing = false;
-const pump = { s: 0, T: T_VALUES[0], input: 'pair', sheet: false };       // tab 3: time s = t/T, period, input, parameter set
-const CYCLE_SECONDS = 12;                                                  // one cycle on the screen, for every T
-
-// ---------- acts ----------
-const group = (label, btns) => el('div', { class: 'group' }, [el('span', { class: 'group-label', text: label }), ...btns]);
-const pressed = (btn, on) => { btn.setAttribute('aria-pressed', String(on)); return btn; };
-let tsSlider = null;
-const acts = [
-  {
-    id: 'hand', tab: '1 · Zak phase by hand', heading: 'Zak phase by hand: four values of k (task 8)',
-    lead: 'The overlap ⟨u|v⟩ = u<sub>A</sub>*·v<sub>A</sub> + u<sub>B</sub>*·v<sub>B</sub> of two eigenvectors is one complex number; arg is its angle in the complex plane. u and e<sup>iχ</sup>·u are the same eigenvector, so the angle of one overlap is arbitrary. In a closed loop every e<sup>iχ</sup> cancels: Berry phase = −arg(product of the overlaps around the loop), minus the angle of the product. The loop through all k from 0 to 2π gives the Zak phase γ.',
-    panes: ['wa', 'wcircle', 'wturn'], canPlay: false,
-    enter(ctl) { ctl.append(el('a', { class: 'btn', href: 'pdf/zak_chern_worksheet.pdf', download: '', text: 'worksheet (PDF)' })); },
-    caption() {
-      const pts = 1 + count([2, 3, 4].map((s) => `A1-h${s}`)), turns = turnsShown(0), turns5 = turnsShown(1);
-      return `A point h(k<sub>s</sub>) appears on the circle when h of its row is right, its dashed ray when the angle φ is right: ${pts} of 4 points so far. The dial starts at 0 and turns by −arg of each overlap that is right, in the order of the loop: ${turns} of 4 turns for J₁ = 1, J₂ = 2 and ${turns5} of 4 for J₁ = 2, J₂ = 1. The fourth turn closes the loop: it appears when your sum of the four −arg is right. Where the dial stops then is γ.`;
-    },
-    render() { draw.hand(); },
-  },
-  {
-    id: 'code', tab: '2 · Zak phase, your code', heading: 'Zak phase in your own code',
-    lead: 'The computer chooses the phase factor e<sup>iχ</sup> of every eigenvector anew at every k. In the closed loop each χ enters one overlap as e<sup>+iχ</sup> and the next one as e<sup>−iχ</sup>: together 1, so the product of the overlaps is fixed. With an on-site term (+Δ on every guide A, −Δ on every guide B) the Zak phase is no longer 0 or π: γ/2π is the position of the light of this band inside the unit cell.',
-    panes: ['wb', 'wconv', 'wpos'], canPlay: false,
-    enter() {},
-    caption: () => 'Type the numbers that your code prints. A dot appears at (M, γ/π) for every value that is right, and the curve through the dots when the value for the largest M is right. Lower figure: γ/2π on the way from one unit cell to the next. 0 is the pair (A, B) of a cell, 0.5 is half a cell further, on the pair (B, next A).',
-    render() { draw.code(); },
-  },
-  {
-    id: 'pump', tab: '3 · Thouless pump (task 9)', heading: 'The Thouless pump (task 9)',
-    lead: 'Pump: J₁, J₂ and Δ go slowly through one cycle of length T, so the Zak phase γ depends on the time t. γ/2π is the position of the light of the lower band inside the unit cell. Chern number C = how many times γ grows by 2π in one cycle = unit cells that the light moves per cycle.',
-    panes: ['wc', 'wcycle', 'wbands', 'wlevels', 'wlight', 'wshift'], canPlay: true,
-    enter(ctl) {
-      tsSlider = slider({ id: 'ts', label: '<i>t</i> / <i>T</i>', min: 0, max: 1, step: 0.005, value: pump.s, format: (v) => v.toFixed(3), onInput: (v) => { pump.s = v; setPlaying(false); render(); } });
-      tsSlider.root.classList.add('wb-time');
-      const pair = button('pair (A − B)/√2', () => setInput('pair'), { id: 'in-pair', title: 'amplitude 1/√2 on guide A and −1/√2 on guide B of the middle cell: the lower band at t = 0' }), guide = button('one guide', () => setInput('guide'), { id: 'in-guide', title: 'all light on guide A of the middle cell' });
-      const sheet = button('numbers of the task sheet', () => { pump.sheet = !pump.sheet; pressed(sheet, pump.sheet); render(); }, { id: 'sheet', title: 'δJ = 0.5, Δ₀ = 0.2 as on the task sheet, in place of δJ = 1, Δ₀ = 0.5' });
-      const setInput = (v) => { pump.input = v; pressed(pair, v === 'pair'); pressed(guide, v === 'guide'); render(); };
-      pressed(pair, pump.input === 'pair'); pressed(guide, pump.input === 'guide'); pressed(sheet, pump.sheet);
-      const period = slider({ id: 'T', label: '<i>T</i>', min: 0, max: T_VALUES.length - 1, step: 1, value: T_VALUES.indexOf(pump.T), format: (v) => String(T_VALUES[v]), onInput: (v) => { pump.T = T_VALUES[v]; render(); } });
-      period.root.classList.add('wb-short'); period.input.setAttribute('aria-valuetext', `T = ${pump.T}`);
-      period.input.addEventListener('input', () => period.input.setAttribute('aria-valuetext', `T = ${pump.T}`));
-      ctl.append(tsSlider.root, period.root, group('input', [pair, guide]), sheet);
-    },
-    caption() {
-      const p = paramsAt(pump.sheet, pump.s), sim = simulation(pump.sheet, pump.T, pump.input);
-      return `t/T = ${pump.s.toFixed(3)}: J₁ = ${num(p.J1)}, J₂ = ${num(p.J2)}, Δ = ${num(p.D)} · ${pump.sheet ? 'numbers of the task sheet, ' : ''}T = ${pump.T} on ${CELLS[pump.sheet ? 'sheet' : 'hand'][pump.T]} unit cells, dt = ${DT}, input ${pump.input === 'pair' ? '(A − B)/√2 on one cell' : 'one guide A alone'} · d shows the cells −${sim.W} … ${sim.W}: the light spreads, because the band is not flat during the cycle. X is its mean position, the orange line in d and the blue curve in e.`;
-    },
-    render() { draw.pump(pump); },
-  },
-  {
-    id: 'chern', tab: '4 · Chern number', heading: 'The Chern number from plaquettes',
-    lead: 'Take two neighbouring times t₁ and t₂. Walk once through all k at t₂ and once backwards through all k at t₁: the Berry phase of the two loops together is γ(t₂) − γ(t₁). Cut the strip between the two times into small squares, the plaquettes: inner edges are walked once in each direction and drop out. So the plaquettes between two times add up to the change of γ, up to a multiple of 2π, and C = (sum of all plaquette phases)/2π.',
-    panes: ['wd', 'wmap', 'wgamma', 'wloops'], canPlay: false,
-    enter() {},
-    caption() {
-      const cols = count([1, 2, 3, 4].map((j) => `B7-col${j}`));
-      return `Map: one cell per plaquette, k upward and t to the right; the row “sum” holds the four column sums. The cell with the thick frame is the plaquette of B6 and fills in when F is right. A column fills in when its sum is right: ${cols} of 4 so far. Each right column sum adds a dot to γ(t); the last dot appears when your sum of all 16 plaquette phases is right (${dotsShown()} of 4 dots). Lower right: the cycles of B8 with a dot at t = 0 and an arrow in the direction of the time. On the solid cycle the upper arrow is (a), the lower one (b).`;
-    },
-    render() { draw.chern(); },
-  },
-];
-const panes = Object.fromEntries(['wa', 'wb', 'wc', 'wd', 'wcircle', 'wturn', 'wconv', 'wpos', 'wcycle', 'wbands', 'wlevels', 'wlight', 'wshift', 'wmap', 'wgamma', 'wloops'].map((k) => [k, $('pane-' + k)]));
-
-// ---------- shell ----------
-const ctl = $('controls'), captionEl = $('caption');
-let playBtn = null, timeEl = null, progressEl = null, lastNow = 0;
-const built = new Set();                  // the tabs whose fields exist
-let shown = null;                         // the id of the tab on the screen
-const place = {};                         // per tab: the field or button that had the focus last (where the student was working)
-function setPlaying(v) { playing = v; if (playBtn) playBtn.textContent = playing ? 'Pause' : 'Play'; }
-function advance(dts) { if (pump.s >= 1 - 1e-9) pump.s = 0; pump.s = Math.min(1, pump.s + dts / CYCLE_SECONDS); if (pump.s >= 1) setPlaying(false); }
-// A redraw: the canvases of this tab, the caption and the counters. The fields are not touched.
-function render() {
-  const a = acts[act];
-  a.render(); captionEl.innerHTML = a.caption();
-  if (timeEl) timeEl.textContent = `t = ${(pump.s * pump.T).toFixed(1)}`;
-  if (tsSlider && a.canPlay) tsSlider.set(pump.s);
-  if (progressEl) { const p = progress(a.id); progressEl.textContent = `right: ${p.ok} of ${p.total}`; }
+const st = { part: 'zak', pos: {}, solved: {}, lang: 'py' };
+for (const p of PARTS) { st.pos[p.id] = 0; st.solved[p.id] = {}; }
+let tries = 0, howShown = false;
+function load() {
+  try {
+    const o = JSON.parse(localStorage.getItem(STORE) || '{}');
+    if (!o || typeof o !== 'object') return;
+    if (PARTS.some((p) => p.id === o.part)) st.part = o.part;
+    if (o.lang === 'py' || o.lang === 'm') st.lang = o.lang;
+    for (const p of PARTS) {
+      if (o.solved && o.solved[p.id] && typeof o.solved[p.id] === 'object') for (const [k, v] of Object.entries(o.solved[p.id])) if (p.steps[k] && p.steps[k].type !== 'info' && Array.isArray(v)) st.solved[p.id][k] = v.map(String);
+      if (o.pos && Number.isInteger(o.pos[p.id])) st.pos[p.id] = Math.min(p.steps.length - 1, Math.max(0, o.pos[p.id]));
+    }
+  } catch (e) { /* no storage */ }
 }
-function frame(now) {
-  requestAnimationFrame(frame);
-  const dt = Math.min(0.05, (now - lastNow) / 1000); lastNow = now;
-  if (playing) { advance(dt); render(); }
+function save() { try { localStorage.setItem(STORE, JSON.stringify(st)); } catch (e) { /* no storage */ } }
+const part = () => PARTS.find((p) => p.id === st.part);
+const isSolved = (p, n) => p.steps[n].type === 'info' || Object.prototype.hasOwnProperty.call(st.solved[p.id], n);
+const allSolved = (p) => p.steps.every((s, n) => isSolved(p, n));
+const questions = (p) => p.steps.filter((s) => s.type !== 'info').length;
+
+// ---------- the picture ----------
+const panel = new Canvas2D($('pic'));
+function drawPic() {
+  const p = part(), i = st.pos[p.id], s = p.steps[i];
+  panel.ctx.clearRect(0, 0, panel.w, panel.h);
+  if (panel.w < 80 || panel.h < 80) return;
+  $('pic-cap').textContent = p.draw(panel, s.pic(s.type !== 'info' && isSolved(p, i)), colors()) || '';
 }
-// push: the change comes from a click or a key, so it gets its own entry in the history and Back returns to the tab before.
-function showAct(i, { push = false } = {}) {
-  act = Math.max(0, Math.min(acts.length - 1, i));
-  const a = acts[act], stepsPane = panes[a.panes[0]];
-  setPlaying(false); tsSlider = null;
-  if (!built.has(a.id)) { stepsPane.append(...builders[a.id]()); built.add(a.id); refreshDynamics(); }     // the fields of a tab are built once
-  $('stage').dataset.act = a.id; $('stage').parentElement.dataset.act = a.id;
-  for (const [key, p] of Object.entries(panes)) p.hidden = !a.panes.includes(key);
-  $('heading').textContent = a.heading; $('lead').innerHTML = a.lead;
-  document.querySelectorAll('.acts a').forEach((x, n) => { x.classList.toggle('active', n === act); if (n === act) x.setAttribute('aria-current', 'page'); else x.removeAttribute('aria-current'); });
-  ctl.innerHTML = ''; playBtn = null; timeEl = null;
-  if (a.canPlay) { playBtn = button('Play', () => setPlaying(!playing), { kind: 'primary', id: 'play' }); timeEl = el('span', { class: 'time', id: 'time' }); ctl.append(row([playBtn, button('Restart', () => { pump.s = 0; setPlaying(false); render(); }, { id: 'restart' }), timeEl])); }
-  a.enter(ctl);
-  progressEl = el('span', { class: 'time wb-progress', id: 'progress' });
-  ctl.append(el('span', { class: 'spacer' }), progressEl, button('reset', () => { if (window.confirm('Clear every value that you typed on the four tabs of this page?')) resetAll(); }, { id: 'reset', title: 'Clear every value that you typed on this page' }));
-  render();
-  if (location.hash !== '#' + a.id) history[push ? 'pushState' : 'replaceState'](null, '', '#' + a.id);
-  // On a phone the page scrolls as a whole, and the tabs stand at its top. Coming back to a tab, the page goes to the field
-  // that was used last there, not to the top. (On a wide screen each pane scrolls by itself and keeps its place.)
-  if (shown !== a.id) {
-    shown = a.id;
-    const last = place[a.id], pageScrolls = document.documentElement.scrollHeight > window.innerHeight + 40;
-    if (pageScrolls && last && last.isConnected && last.offsetParent !== null) last.scrollIntoView({ block: 'center' });
+panel.onRedraw = drawPic;
+
+// ---------- the card ----------
+const card = $('card');
+function howHtml(how) {
+  if (typeof how === 'string') return `<div class="step-how">${how}</div>`;
+  const lang = how[st.lang] ? st.lang : 'py';
+  return `<div class="step-how code"><div class="step-lang" role="group" aria-label="Language of the code"><button type="button" data-lang="py" class="${lang === 'py' ? 'on' : ''}">Python</button><button type="button" data-lang="m" class="${lang === 'm' ? 'on' : ''}"${how.m ? '' : ' disabled'}>MATLAB</button></div><pre><code>${esc(how[lang])}</code></pre></div>`;
+}
+function putHow() {
+  const s = part().steps[st.pos[st.part]], box = $('how');
+  box.innerHTML = howHtml(s.how);
+  box.querySelectorAll('.step-lang button').forEach((b) => b.addEventListener('click', () => { st.lang = b.dataset.lang; save(); putHow(); }));
+}
+function show(n) {
+  const p = part(); st.pos[p.id] = Math.max(0, Math.min(p.steps.length - 1, n)); tries = 0; howShown = false; save();
+  const i = st.pos[p.id], s = p.steps[i], done = isSolved(p, i), vals = st.solved[p.id][i] || [], qn = p.steps.slice(0, i + 1).filter((x) => x.type !== 'info').length;
+  const input = (id, label, v) => `<input id="${id}" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="${esc(label)}" value="${esc(v || '')}">`;
+  let html = '';
+  if (s.type === 'info') {
+    html += `<h2>${s.title}</h2>${s.html}<div class="step-nav">${i > 0 ? '<button class="btn link" id="back" type="button">← Back</button>' : ''}<span class="grow"></span>`;
+    if (s.end) html += `<button class="btn" id="again" type="button">Start this part again</button>${p.next ? `<button class="btn primary" id="nextpart" type="button">Next part: ${p.next} →</button>` : ''}`;
+    else html += `<button class="btn primary" id="next" type="button">${s.button || 'Next'} →</button>`;
+    html += '</div>';
+  } else {
+    html += `<div class="step-count">Question ${qn} of ${questions(p)}</div><div class="step-dots">${p.steps.map((x, k) => (x.type === 'info' ? '' : `<i class="${isSolved(p, k) ? 'done' : k === i ? 'now' : ''}"></i>`)).join('')}</div>`;
+    html += `<p class="step-text">${val(s.text)}</p>`;
+    if (s.formula) html += `<div class="step-formula">${s.formula}</div>`;
+    if (s.extra) html += s.extra;
+    if (s.ask) html += `<p class="step-text"><b>${s.ask}</b></p>`;
+    if (s.type === 'complex') html += `<div class="step-ask"><span>h =</span>${input('f0', 'real part of h', vals[0])}<span>+</span>${input('f1', 'imaginary part of h', vals[1])}<span>· i</span></div>`;
+    if (s.type === 'number') html += `<div class="step-ask"><span>${s.label}</span>${input('f0', s.label, vals[0])}<span>${s.unit || ''}</span></div>`;
+    if (s.type === 'choice') html += `<div class="step-choice">${s.options.map((o) => `<button type="button" data-v="${o}" class="${done && o === s.ref ? 'ok' : ''}">${o}</button>`).join('')}</div>`;
+    html += `<p class="step-msg${done ? ' ok' : ''}" id="msg">${done ? `<b>Right.</b> ${val(s.after)}` : ''}</p><div id="how"></div>`;
+    html += '<div class="step-nav"><button class="btn link" id="back" type="button">← Back</button><span class="grow"></span>';
+    if (s.type !== 'choice' && !done) html += '<button class="btn primary" id="check" type="button">Check</button>';
+    if (done) html += '<button class="btn primary" id="next" type="button">Next →</button>';
+    html += '</div>';
   }
+  card.innerHTML = html;
+  const on = (id, fn) => { const e = $(id); if (e) e.addEventListener('click', fn); };
+  on('back', () => show(i - 1)); on('next', () => show(i + 1)); on('check', check);
+  on('again', () => { st.solved[p.id] = {}; show(0); chips(); });
+  on('nextpart', () => setPart(PARTS[PARTS.indexOf(p) + 1].id));
+  card.querySelectorAll('.step-ask input').forEach((inp) => {
+    if (done) { inp.classList.add('ok'); inp.readOnly = true; }
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (isSolved(part(), st.pos[st.part])) show(st.pos[st.part] + 1); else check(); } });
+  });
+  card.querySelectorAll('.step-choice button').forEach((b) => b.addEventListener('click', () => choose(b)));
+  const first = card.querySelector(done || s.type === 'info' ? '#next, #nextpart' : '.step-ask input');
+  if (first) first.focus({ preventScroll: true });
+  drawPic();
 }
-$('stage').addEventListener('focusin', (e) => { if (e.target.matches('input.wb-in, .wb-opt, .wb-formula-btn')) place[acts[act].id] = e.target; });
-acts.forEach((a, i) => $('acts').append(el('a', { href: '#' + a.id, text: a.tab, onclick: (e) => { e.preventDefault(); showAct(i, { push: true }); } })));
-// Keys: the arrows change the tab and the space bar plays, but never while a field, a slider, a button or a link has the
-// focus: there the keys belong to that control (after a click on a prediction the arrow keys must not change the tab).
-window.addEventListener('keydown', (e) => {
-  if (e.target.matches('input, textarea, select, button, a, summary')) return;
-  if (e.altKey || e.ctrlKey || e.metaKey) return;
-  if (e.key === 'ArrowRight' && act < acts.length - 1) showAct(act + 1, { push: true });
-  if (e.key === 'ArrowLeft' && act > 0) showAct(act - 1, { push: true });
-  if (e.key === ' ' && acts[act].canPlay) { e.preventDefault(); setPlaying(!playing); }
-});
-everyPanel.forEach((p) => { p.onRedraw = () => render(); });
-onChange(() => render());                       // a verdict has changed: the figures may show more
+function wrong(text) {
+  const s = part().steps[st.pos[st.part]], msg = $('msg'); tries++;
+  msg.className = 'step-msg no'; msg.innerHTML = `<b>Not yet.</b> ${text || s.hint}`;
+  if (tries >= 2 && s.how && !howShown) { $('how').innerHTML = '<button class="btn" id="showhow" type="button">Show me how</button>'; $('showhow').addEventListener('click', () => { howShown = true; putHow(); }); }
+}
+function right(values) { const p = part(); st.solved[p.id][st.pos[p.id]] = values; show(st.pos[p.id]); chips(); }
+function check() {
+  const s = part().steps[st.pos[st.part]], r = judge(s, [$('f0').value, $('f1') ? $('f1').value : '']);
+  if (r.state === 'right') right(r.values); else wrong(r.text);
+}
+function choose(btn) {
+  const p = part(), s = p.steps[st.pos[p.id]]; if (isSolved(p, st.pos[p.id])) return;
+  const r = judge(s, [btn.dataset.v]);
+  if (r.state === 'right') return right(r.values);
+  btn.classList.add('no'); wrong();
+}
 
-// theme
+// ---------- the parts, the address and the theme ----------
+function chips() { $('parts').innerHTML = PARTS.map((p) => `<a href="#${p.id}" class="${p.id === st.part ? 'active' : ''}"${p.id === st.part ? ' aria-current="page"' : ''}>${p.chip}${allSolved(p) && questions(p) === Object.keys(st.solved[p.id]).length ? ' ✓' : ''}</a>`).join(''); }
+function setPart(id, { keep = false } = {}) {
+  if (!PARTS.some((p) => p.id === id)) return;
+  st.part = id; const p = part();
+  let i = keep ? st.pos[id] : st.pos[id];
+  while (i > 0 && !isSolved(p, i - 1)) i--;        // never land behind an open question
+  if (location.hash !== `#${id}`) history.replaceState(null, '', `#${id}`);
+  chips(); show(i);
+  document.title = `Quantum Simulators Workbook: ${p.chip.replace(/^\d · /, '')}`;
+}
+window.addEventListener('hashchange', () => { const id = location.hash.slice(1); if (id !== st.part) setPart(id); });
+
 const root = document.documentElement;
 try { const th = localStorage.getItem('qsl-theme'); if (th) root.dataset.theme = th; } catch (e) { /* ignore */ }
 $('theme-btn').addEventListener('click', () => {
   const dark = root.dataset.theme === 'dark' || (!root.dataset.theme && window.matchMedia('(prefers-color-scheme: dark)').matches);
   root.dataset.theme = dark ? 'light' : 'dark';
   try { localStorage.setItem('qsl-theme', root.dataset.theme); } catch (e) { /* ignore */ }
-  invalidateTheme(); render();
+  invalidateTheme(); drawPic();
 });
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (!root.dataset.theme) { invalidateTheme(); render(); } });
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (!root.dataset.theme) { invalidateTheme(); drawPic(); } });
 
-restore();                                      // the typed strings of the last visit, checked again
-const startId = (location.hash || '#hand').slice(1);
-showAct(Math.max(0, acts.findIndex((a) => a.id === startId)));
-// Back and Forward of the browser, or a hash typed by hand: show the tab of the address
-const followAddress = () => { const i = acts.findIndex((a) => a.id === location.hash.slice(1)); if (i >= 0 && i !== act) showAct(i); };
-window.addEventListener('hashchange', followAddress); window.addEventListener('popstate', followAddress);
-requestAnimationFrame((now) => { lastNow = now; requestAnimationFrame(frame); });
+load();
+setPart(PARTS.some((p) => `#${p.id}` === location.hash) ? location.hash.slice(1) : st.part);

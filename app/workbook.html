@@ -3,47 +3,29 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Quantum Simulators Workbook: Zak phase and Thouless pump</title>
-<meta name="description" content="Workbook of the Quantum Simulators course: calculate the Zak phase of the SSH chain, the Thouless pump of task 9 and its Chern number yourself, by hand and in your own code, in small steps that are checked at once.">
+<title>Quantum Simulators Workbook: Zak phase, Thouless pump, Chern number</title>
+<meta name="description" content="Workbook of the Quantum Simulators course: calculate the Zak phase, a Thouless pump and its Chern number yourself. One small question on the screen at a time, each checked at once.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400;1,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<div class="app lect workbook">
+<div class="steps-page">
   <header class="top">
-    <h1>Workbook<span class="wb-long">: Zak phase and Thouless pump</span></h1>
-    <nav class="acts" id="acts" aria-label="Parts"></nav>
+    <h1>Workbook</h1>
+    <nav class="acts" id="parts" aria-label="Parts"></nav>
     <span class="spacer"></span>
+    <a class="theme-btn only-phone" href="index.html" title="The exercises of the course">exercises</a>
     <a class="theme-btn" href="index.html" title="Exercise 1: Hilbert space and the uniform chain">exercise 1</a>
     <a class="theme-btn" href="exercise2.html" title="Exercise 2: Runge–Kutta, the beam and k, Bloch oscillations, the SSH chain">exercise 2</a>
     <a class="theme-btn" href="exercise3.html" title="Exercise 3: k-space, the Zak phase, the on-site potential">exercise 3</a>
     <a class="theme-btn" href="builder.html" title="Hamiltonian builder: plug couplings into a matrix, in real space and in k-space">builder</a>
     <button class="theme-btn" id="theme-btn" type="button" title="Switch between light and dark">Theme</button>
   </header>
-  <main class="lect-main">
-    <div class="lect-head"><h2 id="heading"></h2><p id="lead"></p></div>
-    <div class="stage-grid" id="stage" data-act="hand">
-      <div class="pane wb-steps" id="pane-wa"></div>
-      <div class="pane wb-steps" id="pane-wb"></div>
-      <div class="pane wb-steps" id="pane-wc"></div>
-      <div class="pane wb-steps" id="pane-wd"></div>
-      <div class="pane" id="pane-wcircle"><canvas></canvas></div>
-      <div class="pane" id="pane-wturn"><canvas></canvas></div>
-      <div class="pane" id="pane-wconv"><canvas></canvas></div>
-      <div class="pane" id="pane-wpos"><canvas></canvas></div>
-      <div class="pane" id="pane-wcycle"><canvas></canvas></div>
-      <div class="pane" id="pane-wbands"><canvas></canvas></div>
-      <div class="pane" id="pane-wlevels"><canvas></canvas></div>
-      <div class="pane" id="pane-wlight"><canvas></canvas></div>
-      <div class="pane" id="pane-wshift"><canvas></canvas></div>
-      <div class="pane" id="pane-wmap"><canvas></canvas></div>
-      <div class="pane" id="pane-wgamma"><canvas></canvas></div>
-      <div class="pane" id="pane-wloops"><canvas></canvas></div>
-    </div>
-    <div class="caption" id="caption"></div>
-    <div class="controls-bar" id="controls"></div>
+  <main class="steps-main">
+    <section class="step-card" id="card" aria-live="polite"></section>
+    <figure class="step-pic"><canvas id="pic"></canvas><figcaption id="pic-cap"></figcaption></figure>
   </main>
 </div>
 <script type="module" src="js/workbook/main.js"></script>

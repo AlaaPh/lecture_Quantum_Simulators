@@ -45,7 +45,7 @@ the slide PDFs. The slides themselves are on OLAT and are not part of this repos
 - **Bloch oscillations.** Produced with curved waveguides, ẍ₀ = const (VL3 p42–47, VL4 p08–13). No period or
   amplitude formula on the slides.
 
-## One rule for the signs (workbook, Exercise 3, code skeletons)
+## One rule for the signs (Exercise 3, the workbook, task 9 of the task sheet)
 
 Checked numerically (numpy and JavaScript, random phase on every eigenvector) and by propagation in real space.
 
@@ -63,15 +63,47 @@ Checked numerically (numpy and JavaScript, random phase on every eigenvector) an
 - The +i of VL5 p30–32 and VL8 p32–34 and the −i of VL8 p19 are consistent only together with the orientation
   above: the −i reverses the sign of A, the order (k, t) of the curl reverses it back.
 - On-site term in the pump: VL8 p27 writes ±Δ/2, the task sheet "potential difference Δ", VL6 and Exercise 3 ±Δ.
-  The workbook uses +Δ on A and −Δ on B. C is the same for both readings; the shift at finite T is not.
-- Shift per cycle X(T), with X counted in unit cells from the cell where the light starts, Runge–Kutta with
+  Exercise 3 uses +Δ on A and −Δ on B. C is the same for both readings; the shift at finite T is not.
+- Rice–Mele pump of task 9: shift per cycle X(T), with X counted in unit cells from the cell where the light starts, Runge–Kutta with
   dt = 0.05, input (A − B)/√2 on one cell, δJ = 1, Δ₀ = 0.5: 0.8891 (T = 20, 40 cells), 0.9673 (T = 50, 60 cells),
   0.9989 (T = 100, 120 cells). Numbers of the task sheet (δJ = 0.5, Δ₀ = 0.2) with the same input: 0.55 at T = 20. Two
   reasons: the cycle is too fast, and (A − B)/√2 is not exactly the lower band at t = 0, because J₂ = 0.5 there and
   not 0. A slow cycle therefore ends near 0.95 (0.849 at T = 100, 0.949 at T = 200, 0.952 at T = 400), not at 1.
   The exact lower-band state of one cell (the Wannier state) reaches 1.
-- Grid sizes: 4 × 4 is enough for the pump (3 × 3 gives 0 for the numbers of the task sheet). Three k points give
+- Grid sizes: 4 × 4 is enough for the Rice–Mele pump (3 × 3 gives 0 for the numbers of the task sheet). Three k points give
   a zero overlap for J₁ = 1, J₂ = 2. Harper–Hofstadter at flux 1/4 has touching bands and needs the two-band form.
+
+## The lattice of the workbook (parts 2 and 3)
+
+Model of M. Jürgensen, S. Mukherjee, C. Jörg, M. C. Rechtsman, "Quantized fractional Thouless pumping of solitons",
+Nature Physics 19, 420 (2023): off-diagonal Aubry–André–Harper model, five waveguides per unit cell, no on-site term.
+All numbers below were computed with numpy in two independent ways and by the page (`tools/workbook_numbers.json`).
+
+- Definition as in the paper: waveguide n at x_n(z) = n·d + δ·cos(Ωz + 4πn/5 − 6π/20), d = 17.25 μm, δ = 1 μm;
+  coupling J(s)/mm⁻¹ = 6.672·exp(−234.8·s/mm) with s = x_{n+1} − x_n. The couplings lie between 0.074 and 0.182 mm⁻¹.
+- The paper writes H with −J, the workbook with +J as the hands-on code. Bands and Chern numbers are the same for
+  both signs: the chain has only nearest-neighbour couplings, so −H has the bands of H shifted by π in k.
+- Chern numbers of the five bands, lowest first: 2, −3, 2, −3, 2 (as printed in the paper), with the sign rule of
+  the section above: C = +2 means that the light moves two unit cells toward higher waveguide numbers per period.
+- **The cosine form is the same model only for a weak modulation.** With J_n = K·(1 + δ·cos(Ωz + 4πn/5)) the gap
+  between bands 1 and 2 (and between 4 and 5) closes at δ = 0.2016. Below it the Chern numbers are 2, −3, 2, −3, 2,
+  with a gap of at most 0.0003·K; above it they are −3, 2, 2, 2, −3 (checked for δ = 0.1 to 0.95; δ = 0.5 by both
+  independent computations). The exponential law of the experiment, J ∝ exp(0.447·cos(…)), has a first harmonic of
+  0.44, but its second harmonic keeps 2, −3, 2, −3, 2. Band 3 has C = 2 and the two lowest bands together −1 in
+  every case, so the fraction (C₁ + C₂)/2 = −1/2 of the paper does not depend on this.
+- Gaps (smallest over k and z): 0.0060 mm⁻¹ between bands 1 and 2 and between 4 and 5, 0.102 mm⁻¹ on both sides of
+  band 3. A linear pump in the lowest band would need a period far longer than any sample. The workbook therefore
+  shows the pump with band 3, which also has C = 2.
+- Pump of the workbook: the narrowest state that fills band 3 evenly (maximally localized Wannier state) at z = 0,
+  centre at γ/2π = −0.49 unit cells, mostly on waveguide 5 of one cell and waveguide 2 of the next (0.42 each).
+  Shift of the centre in one period: 1.950 unit cells for L = 100 mm, 1.934 for 200 mm, 2.001 for 400 mm. The light
+  spreads meanwhile (rms width 1.7 unit cells after 100 mm), because the band is not flat: without the nonlinearity
+  of the experiment there is no soliton.
+- Zak phase of band 3 (M = 50): −0.984π at z = 0, 0.178π at a quarter period; it grows by 2·2π in one period.
+- Plaquette grid: 6 × 6 already gives 2, −3, 2, −3, 2; 4 × 4 and 5 × 5 do not. The workbook uses 10 × 10.
+- In the paper: a soliton that bifurcates from the lowest band moves two unit cells per period at low power
+  (calculated, gP/J_max = 0.55); at gP/J_max = 1.65 it follows the Wannier states of bands 1 and 2 together and moves
+  one unit cell to the left in two periods, f = (2 − 3)/2 = −1/2 (measured).
 
 ## Where the app differs
 

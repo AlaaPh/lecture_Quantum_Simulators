@@ -1,82 +1,162 @@
-// Data for the pump of tab 3: the propagation, the eigenvalues of the open chain and γ(t), each computed once
-// per parameter set and then kept. No DOM.
-import { HAND, SHEET, TAU, propagate, pumpParams, inGapStates, gammaCurve, energy } from './model.js';
+// Part 2: a Thouless pump. The lattice of Jürgensen, Mukherjee, Jörg and Rechtsman, Nature Physics 19, 420 (2023):
+// five waveguides per unit cell, the couplings change along z because the waveguides wiggle.
+import { cmapSeq, rgbToCss } from '../theme.js';
+import { TAU, font, tag, axes, minus, PERIOD_TICKS } from './draw.js';
+import { D, DELTA, xPos, couplings, eig, bandEdges, pumpRun, PUMP } from './aah.js';
+import { CODE } from './code.js';
 
-export const T_VALUES = [20, 50, 100];
-export const DT = 0.05;
-// Unit cells of the chain. The light spreads at most with the largest slope of the band, which is below min(J₁, J₂):
-// the chain is long enough that no light reaches an end (the test prints the light in the outermost cells).
-export const CELLS = { hand: { 20: 40, 50: 60, 100: 120 }, sheet: { 20: 60, 50: 100, 100: 160 } };
-export const CHAIN_CELLS = 40;          // the open chain of B2
-export const setOf = (sheet) => (sheet ? SHEET : HAND);
-export const paramsAt = (sheet, s) => { const { dJ, D0 } = setOf(sheet); return pumpParams(s, dJ, D0); };
+const x2 = xPos(2, 0), s12 = x2 - xPos(1, 0), J = couplings(0);
+const f = (v, d) => minus(v.toFixed(d));
+const E00 = () => eig(0, 0).values;
+const pic = (o) => () => o;
+const MATRIX = `<table class="step-matrix" aria-label="The 5 by 5 matrix H(k)"><tbody>
+  <tr><td>0</td><td>J₁</td><td>0</td><td>0</td><td>J₅e<sup>−ik</sup></td></tr>
+  <tr><td>J₁</td><td>0</td><td>J₂</td><td>0</td><td>0</td></tr>
+  <tr><td>0</td><td>J₂</td><td>0</td><td>J₃</td><td>0</td></tr>
+  <tr><td>0</td><td>0</td><td>J₃</td><td>0</td><td>J₄</td></tr>
+  <tr><td>J₅e<sup>ik</sup></td><td>0</td><td>0</td><td>J₄</td><td>0</td></tr></tbody></table>`;
 
-const sims = new Map(), spectra = new Map(), gammas = new Map();
+const steps = [
+  { type: 'info', title: 'A Thouless pump in seven small questions', button: 'Start',
+    html: `<p class="step-text">This is the lattice of an experiment: Jürgensen, Mukherjee, Jörg, Rechtsman, Nature Physics 19, 420 (2023).</p>
+      <p class="step-text">The waveguides wiggle. Waveguide n is at the position</p>
+      <div class="step-formula">x<sub>n</sub>(z) = n·d + δ·cos(Ωz + 4πn/5 − 3π/10)</div>
+      <p class="step-text">with d = 17.25 μm and δ = 1 μm. z is the distance along the waveguides; it plays the role of time. In one period L the angle Ωz goes from 0 to 2π.</p>`,
+    pic: pic({ kind: 'guides' }) },
+  { type: 'number', text: 'Take z = 0. Waveguide 1 is at x₁ = 17.25 μm, because its cosine is cos 90° = 0. Where is waveguide 2?',
+    formula: 'x₂ = 2 · 17.25 μm + 1 μm · cos 234°', label: 'x₂ =', unit: 'μm', ref: x2, tol: 0.02,
+    hint: 'cos 234° = −0.588. (The angle: 4π·2/5 − 3π/10 = 13π/10 = 234°.)', how: 'x₂ = 34.5 − 0.588 = 33.91 μm.',
+    wrongs: [{ ref: 2 * D + DELTA * Math.cos(234), tol: 0.02, text: 'Your calculator is set to radians. 234 is in degrees.' },
+      { ref: 2 * D + 0.588, tol: 0.02, text: 'Check the sign: cos 234° is negative.' }],
+    after: 'Waveguide 2 has moved 0.59 μm toward waveguide 1.', pic: (ok) => ({ kind: 'chain', x: ok ? 2 : 1 }) },
+  { type: 'number', text: 'How far apart are waveguides 1 and 2 at z = 0?', formula: 's = x₂ − x₁', label: 's =', unit: 'μm', ref: s12, tol: 0.02,
+    hint: '33.91 − 17.25.', how: 's = 33.91 − 17.25 = 16.66 μm.',
+    after: '16.66 μm: closer than the average distance d = 17.25 μm.', pic: (ok) => ({ kind: 'chain', x: 2, s: ok ? 2 : 1 }) },
+  { type: 'number', text: 'Two waveguides couple more strongly when they are closer. In the experiment the coupling was measured as',
+    formula: 'J(s) = 6.672 mm<sup>−1</sup> · e<sup>−0.2348 · s</sup> <small>(s in μm)</small>',
+    ask: 'Calculate the coupling J₁ between waveguides 1 and 2.', label: 'J₁ =', unit: 'mm⁻¹', ref: J[0], tol: 0.003,
+    hint: '0.2348 · 16.66 = 3.912 and e<sup>−3.912</sup> = 0.0200.', how: 'J₁ = 6.672 · 0.0200 = 0.133 mm⁻¹.',
+    after: 'The picture shows the next four couplings as well, calculated in the same way. A thick line is a strong coupling.', pic: (ok) => (ok ? { kind: 'chain', J: 3 } : { kind: 'chain', s: 2, J: 1 }) },
+  { type: 'choice', text: `The couplings at z = 0, from left to right: ${J.map((v) => v.toFixed(3)).join(', ')}, and then the same five again.`,
+    ask: 'After how many waveguides does the lattice repeat?', options: ['2', '5', '10'], ref: '5',
+    hint: 'Add 5 to n in the cosine: 4π(n + 5)/5 = 4πn/5 + 4π. The cosine is the same.',
+    after: 'The unit cell has 5 waveguides. Five waveguides per cell give five bands.', pic: (ok) => ({ kind: 'chain', n: 10, J: 2, cells: ok }) },
+  { type: 'number', text: 'Now use your code. For one unit cell and one wavenumber k the Hamiltonian is this 5 × 5 matrix:', extra: MATRIX,
+    ask: 'J₁ … J₅ are the five couplings. Take z = 0 and k = 0 and calculate the five eigenvalues.', label: 'smallest eigenvalue =', unit: 'mm⁻¹',
+    ref: () => E00()[0], tol: 0.0015,
+    hint: 'For k = 0 both corners are just J₅. J₂ … J₅ come from the same two formulas as J₁: the positions, then J(s). J₅ couples waveguide 5 and waveguide 6.',
+    how: CODE.matrix,
+    wrongs: [{ ref: () => eig(0, 0, { corners: false }).values[0], tol: 0.0015, text: 'The two corners of the matrix are missing: J₅ couples waveguide 5 with waveguide 1 of the next cell.' },
+      { ref: () => -E00()[4], tol: 0.0015, text: 'This is the smallest eigenvalue of −H. The matrix on this page has +J.' },
+      { ref: () => E00()[4], tol: 0.0015, text: 'This is the largest eigenvalue. The field asks for the smallest.' }],
+    after: () => `The five eigenvalues at k = 0: ${E00().map((v) => f(v, 3)).join(', ')} mm⁻¹. One for each band.`,
+    pic: pic({ kind: 'chain', J: 3, cells: true, names: true }) },
+  { type: 'choice', text: 'The picture shows the five bands during one period: for every z, the eigenvalues for all k.',
+    ask: 'Does band 3, the middle one, touch another band?', options: ['Yes', 'No'], ref: 'No',
+    hint: 'Look above and below band 3: is there a gap at every z?',
+    after: 'No. Band 3 keeps a gap on both sides, so light in band 3 stays in band 3 when the waveguides wiggle slowly. Bands 1 and 2 almost touch: that is why this part uses band 3.',
+    pic: pic({ kind: 'bands', hi: 3 }) },
+  { type: 'choice', text: `Light starts in band 3, in the middle of the chain. The picture shows it during one period, L = ${PUMP.L} mm. The line is the centre of the light.`,
+    ask: 'By how many unit cells has the centre moved at the end of the period?', options: ['0', '1', '2', '3'], ref: '2',
+    hint: 'Read the line at the bottom (z = 0) and at the top (z = L). One step of the scale is one unit cell = 5 waveguides.',
+    after: () => `2 unit cells = 10 waveguides (${pumpRun().shift.toFixed(2)} here, because the period is not infinitely long). The light also spreads, because band 3 is not flat. Why 2? The next part gives the answer: the Chern number.`,
+    pic: (ok) => ({ kind: 'pump', answer: ok }) },
+  { type: 'info', title: 'Part 2 is done', end: true,
+    html: '<p class="step-text">In one period the light of band 3 moved by 2 unit cells. This is a Thouless pump.</p><p class="step-text">Next: why exactly 2? You calculate the Chern number of band 3.</p>',
+    pic: pic({ kind: 'pump', answer: true }) },
+];
 
-// The propagation through one cycle. frames[i] = |ψ|² on every guide at the time s[i]·T, X[i] = position of the light
-// (cells counted from the cell m0 where it starts), peak[i] = largest |ψ|² of one guide.
-// W: the cells m0 − W … m0 + W hold at least 99 % of the light at every time.
-export function simulation(sheet, T, input) {
-  const key = `${sheet ? 'sheet' : 'hand'}|${T}|${input}`;
-  if (sims.has(key)) return sims.get(key);
-  const { dJ, D0 } = setOf(sheet), Nc = CELLS[sheet ? 'sheet' : 'hand'][T], n = Math.round(T / DT);
-  // about 400 frames, and a stride that divides the number of steps: the frames are equally spaced in time, so that
-  // frameAt finds the frame of a time by its index (T = 50: 1000 steps, stride 2, 501 frames)
-  let stride = Math.max(1, Math.round(n / 400));
-  while (n % stride) stride--;
-  const frames = [], X = [], s = [], peak = [];
-  let W = 3, ends = 0;
-  const m0 = Math.floor(Nc / 2);
-  const r = propagate(dJ, D0, T, Nc, DT, {
-    input,
-    onStep: ({ step, t, Xstart, re, im }) => {
-      if (step % stride !== 0 && step !== n) return;
-      const I = new Float32Array(2 * Nc);
-      let max = 0, total = 0;
-      for (let j = 0; j < 2 * Nc; j++) { I[j] = re[j] * re[j] + im[j] * im[j]; total += I[j]; if (I[j] > max) max = I[j]; }
-      let out = total;                                   // light outside the cells m0 − w … m0 + w
-      for (let w = 0; w < m0; w++) {
-        for (const m of w === 0 ? [m0] : [m0 - w, m0 + w]) if (m >= 0 && m < Nc) out -= I[2 * m] + I[2 * m + 1];
-        if (out <= 0.01 * total) { if (w > W) W = w; break; }
-        if (w === m0 - 1) W = m0 - 1;
-      }
-      ends = Math.max(ends, I[0] + I[1] + I[2 * Nc - 2] + I[2 * Nc - 1]);
-      frames.push(I); X.push(Xstart); s.push(t / T); peak.push(max);
-    },
-  });
-  const sim = { sheet, T, input, Nc, m0, W, frames, X, s, peak, ends, norm: r.norm, shift: r.shiftStart };
-  sims.set(key, sim);
-  return sim;
-}
-// The frame that belongs to the time s = t/T: the frames are equally spaced, frame i is the time i/(number of frames − 1).
-export const frameAt = (sim, s) => Math.max(0, Math.min(sim.frames.length - 1, Math.round(s * (sim.frames.length - 1))));
-
-// Eigenvalues of the open chain of CHAIN_CELLS cells at nt + 1 times of the cycle. states[j]: the eigenvalues inside
-// the gap at the time j/nt, each with the end of the chain that holds its light.
-export function spectrum(sheet, nt = 128) {
-  const key = sheet ? 'sheet' : 'hand';
-  if (spectra.has(key)) return spectra.get(key);
-  const { dJ, D0 } = setOf(sheet), s = [], levels = [], edge = [], states = [];
-  for (let j = 0; j <= nt; j++) {
-    const g = inGapStates(j / nt, dJ, D0, CHAIN_CELLS);
-    s.push(j / nt); levels.push(g.values); edge.push(g.edge); states.push(g.states.map(({ E, end }) => ({ E, end })));
+// ---------- pictures ----------
+function drawGuides(ctx, w, h, c) {
+  const A = 4, { X, Y } = axes(ctx, c, w, h, { xlim: [0.35 * D, 10.65 * D], ylim: [0, 1], yticks: PERIOD_TICKS, ylabel: 'z', xlabel: 'position x', pad: { t: 30, l: 50 } });
+  for (let n = 1; n <= 10; n++) {
+    ctx.strokeStyle = c.psi; ctx.lineWidth = 2.4; ctx.beginPath();
+    for (let i = 0; i <= 80; i++) { const t = i / 80, x = n * D + A * DELTA * Math.cos(TAU * t + (4 * Math.PI * n) / 5 - 0.3 * Math.PI); if (i) ctx.lineTo(X(x), Y(t)); else ctx.moveTo(X(x), Y(t)); }
+    ctx.stroke();
+    tag(ctx, String(n), X(n * D + A * DELTA * Math.cos((4 * Math.PI * n) / 5 - 0.3 * Math.PI)), Y(1) - 12, { color: c.fg, px: 12.5 });
   }
-  const out = { s, levels, edge, states, cells: CHAIN_CELLS };
-  spectra.set(key, out);
-  return out;
+  return 'Ten waveguides seen from above, during one period. Light runs upward. The wiggle is drawn 4 times larger than it is.';
 }
-// γ(t)/2π over the cycle, followed without jumps, with M = 400 points in k.
-export function gammaOverCycle(sheet, nt = 64) {
-  const key = sheet ? 'sheet' : 'hand';
-  if (gammas.has(key)) return gammas.get(key);
-  const { dJ, D0 } = setOf(sheet), c = gammaCurve(dJ, D0, 400, nt);
-  const out = { s: c.s, cells: c.unwrapped.map((g) => g / TAU), overPi: c.unwrapped.map((g) => g / Math.PI) };
-  gammas.set(key, out);
-  return out;
+
+// The chain at z = 0 at its true distances. st.n waveguides are shown (6: one unit cell and the first waveguide of the
+// next one; 10: two unit cells). st.x, st.s: the position and the distance of question 1 and 2 (1 asked, 2 known);
+// st.J: 0 thin lines, 1 "J₁ = ?", 2 the thickness, 3 the thickness and the values; st.names: J₁ … J₅; st.cells: unit cells.
+const JLIM = [0.074, 0.182];
+function drawChain(ctx, w, h, c, st) {
+  const N = st.n || 6, pad = 30, x0 = xPos(1, 0) - 6, x1 = xPos(N, 0) + 6, X = (x) => pad + ((x - x0) / (x1 - x0)) * (w - 2 * pad), y = h * 0.5, r = N > 6 && w < 380 ? 7 : 10;
+  const xs = []; for (let n = 1; n <= N; n++) xs.push(xPos(n, 0));
+  if (st.cells) for (let m = 0; 5 * m + 4 < N; m++) {
+    const a = X(xs[5 * m]) - r - 7, b = X(xs[5 * m + 4]) + r + 7;
+    ctx.fillStyle = c['surface-2']; ctx.fillRect(a, y - 100, b - a, 146);
+    tag(ctx, 'unit cell', (a + b) / 2, y - 85, { color: c['fg-2'], px: 12.5, wt: 500 });
+  }
+  for (let n = 1; n < N; n++) {                    // the coupling J_n between waveguide n and n + 1
+    const Jn = J[(n - 1) % 5], wd = 1.5 + (7 * (Jn - JLIM[0])) / (JLIM[1] - JLIM[0]), xm = (X(xs[n - 1]) + X(xs[n])) / 2;
+    ctx.strokeStyle = c['fg-2']; ctx.lineWidth = st.J >= 2 ? wd : 1.5; ctx.beginPath(); ctx.moveTo(X(xs[n - 1]), y); ctx.lineTo(X(xs[n]), y); ctx.stroke();
+    if (st.J === 3) tag(ctx, Jn.toFixed(3), xm, y - 26, { color: c.fg, px: 12.5, wt: 500 });
+    else if (st.J === 1 && n === 1) tag(ctx, 'J₁ = ?', xm, y - 50, { color: c.hpsi, px: 13.5 });
+    if (st.names && n <= 5) tag(ctx, `J${'₁₂₃₄₅'[n - 1]}`, xm, y - 52, { color: c.psi, px: 14.5 });
+  }
+  for (let n = 1; n <= N; n++) {
+    ctx.fillStyle = c.psi; ctx.beginPath(); ctx.arc(X(xs[n - 1]), y, r, 0, TAU); ctx.fill();
+    tag(ctx, String(n), X(xs[n - 1]), y + 27, { color: c.fg, px: 13.5 });
+  }
+  if (st.x) {
+    tag(ctx, 'x₁ = 17.25 μm', X(xs[0]) - r, y + 56, { color: c['fg-2'], px: 13, wt: 500, align: 'left' });
+    tag(ctx, st.x === 2 ? `x₂ = ${x2.toFixed(2)} μm` : 'x₂ = ?', X(xs[1]) - r, y + 78, { color: st.x === 2 ? c['fg-2'] : c.hpsi, px: 13, wt: st.x === 2 ? 500 : 600, align: 'left' });
+  }
+  if (st.s) {                                      // the distance of waveguides 1 and 2
+    const a = X(xs[0]), b = X(xs[1]), yy = y - 26;
+    ctx.strokeStyle = c.hpsi; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(a, yy + 5); ctx.lineTo(a, yy - 5); ctx.moveTo(a, yy); ctx.lineTo(b, yy); ctx.moveTo(b, yy + 5); ctx.lineTo(b, yy - 5); ctx.stroke();
+    tag(ctx, st.s === 2 ? `s = ${s12.toFixed(2)} μm` : 's = ?', (a + b) / 2, yy - 16, { color: c.hpsi, px: 13 });
+  }
+  const what = N > 6 ? 'The first ten waveguides at z = 0' : 'Waveguides 1 to 6 at z = 0', dist = ', at their true distances.';
+  return st.J === 3 ? `${what} with the couplings in mm⁻¹. A thick line is a strong coupling.` : st.J === 2 ? `${what}. A thick line is a strong coupling.` : what + dist;
 }
-// The upper band E(k) at the time s on nk + 1 points from 0 to 2π, and the smallest value.
-export function bandsAt(sheet, s, nk = 120) {
-  const p = paramsAt(sheet, s), k = [], E = [];
-  for (let i = 0; i <= nk; i++) { k.push((TAU * i) / nk); E.push(energy(k[i], p.J1, p.J2, p.D)); }
-  return { k, E, min: Math.min(...E), p };
+
+export function drawBands(ctx, w, h, c, st) {
+  const E = bandEdges(), nz = E.length - 1, { X, Y } = axes(ctx, c, w, h, { xlim: [0, 1], ylim: [-0.275, 0.275], xticks: PERIOD_TICKS, yticks: [-0.2, -0.1, 0, 0.1, 0.2], xlabel: 'z', ylabel: 'eigenvalue (mm⁻¹)', pad: { r: st.chern ? 62 : 58, l: 58 } });
+  for (let b = 0; b < 5; b++) {
+    const on = st.hi === b + 1 || (st.hiAll && st.chern && st.chern.includes(b + 1));
+    ctx.save(); ctx.fillStyle = on ? c.psi : c['fg-2']; ctx.globalAlpha = on ? 0.9 : 0.4; ctx.beginPath();
+    for (let i = 0; i <= nz; i++) { const x = X(i / nz), y = Y(E[i].hi[b]); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }
+    for (let i = nz; i >= 0; i--) ctx.lineTo(X(i / nz), Y(E[i].lo[b]) + 1);
+    ctx.closePath(); ctx.fill(); ctx.restore();
+    const ym = Y((E[nz].lo[b] + E[nz].hi[b]) / 2), CH = [2, -3, 2, -3, 2];
+    const txt = st.chern && st.chern.includes(b + 1) ? `C = ${minus(CH[b])}` : `band ${b + 1}`;
+    tag(ctx, txt, X(1) + 7, ym, { color: on ? c.psi : c['fg-2'], px: 12, wt: on ? 600 : 500, align: 'left' });
+  }
+  return st.chern ? 'The five bands during one period, with the Chern numbers you have calculated.' : 'The five bands during one period. For every z the shaded stripe holds the eigenvalues for all k.';
 }
+
+function drawPump(ctx, w, h, c, st) {
+  const { rec, L, shift } = pumpRun(), rows = rec.length - 1, X0 = rec[0].X;
+  const u0 = -4.5, u1 = 6.5;                       // window in unit cells, counted from the start of the centre
+  const { X, Y } = axes(ctx, c, w, h, { xlim: [u0, u1], ylim: [0, L], xticks: [-4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6], yticks: [0, 25, 50, 75, 100].filter((v) => v <= L), xlabel: 'distance from the start (unit cells)', ylabel: 'z (mm)', pad: { l: 50, t: 14 } });
+  const N = rec[0].I.length, pos = (i) => (i + 0.5) / 5 - 0.5 - X0;      // waveguide i (0-based): its place on the scale
+  let top = 0; for (const r of rec) for (let i = 0; i < N; i++) top = Math.max(top, r.I[i]);
+  const dy = Math.abs(Y(L / rows) - Y(0));
+  for (let r = 0; r < rows; r++) for (let i = 0; i < N; i++) {
+    const u = pos(i); if (u < u0 - 0.1 || u > u1 + 0.1) continue;
+    const xa = Math.max(X(u0), X(u - 0.1)), xb = Math.min(X(u1), X(u + 0.1));
+    ctx.fillStyle = rgbToCss(cmapSeq(Math.pow(rec[r].I[i] / top, 0.55))); ctx.fillRect(xa, Y(((r + 1) * L) / rows), xb - xa + 0.6, dy + 0.6);
+  }
+  ctx.save(); ctx.strokeStyle = c.grid; ctx.globalAlpha = 0.55; ctx.lineWidth = 1; ctx.setLineDash([3, 4]);
+  for (let u = -4; u <= 6; u++) { ctx.beginPath(); ctx.moveTo(Math.round(X(u)) + 0.5, Y(0)); ctx.lineTo(Math.round(X(u)) + 0.5, Y(L)); ctx.stroke(); }
+  ctx.restore();
+  ctx.strokeStyle = c.hpsi; ctx.lineWidth = 2.6; ctx.lineJoin = 'round'; ctx.beginPath();
+  rec.forEach((r, i) => { const x = X(r.X - X0), y = Y(r.z); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); ctx.stroke();
+  for (const r of [rec[0], rec[rows]]) { ctx.fillStyle = c.hpsi; ctx.strokeStyle = c.surface; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(X(r.X - X0), Y(r.z), 5.5, 0, TAU); ctx.fill(); ctx.stroke(); }
+  if (st.answer) tag(ctx, `${shift.toFixed(2)} unit cells`, X(shift) + 9, Y(L) + 13, { color: c.hpsi, bg: c.surface, px: 12.5, align: 'left' });
+  return 'The light in the waveguides during one period: a strong colour means much light. Orange line: the centre of the light. One step of the scale is one unit cell, 5 waveguides.';
+}
+
+function draw(panel, st, c) {
+  const { ctx, w, h } = panel;
+  if (st.kind === 'guides') return drawGuides(ctx, w, h, c);
+  if (st.kind === 'chain') return drawChain(ctx, w, h, c, st);
+  if (st.kind === 'bands') return drawBands(ctx, w, h, c, st);
+  return drawPump(ctx, w, h, c, st);
+}
+
+export const pump = { id: 'pump', chip: '2 · Thouless pump', next: 'the Chern number', steps, draw };
