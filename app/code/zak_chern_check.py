@@ -757,7 +757,7 @@ def _B3(label, g, *values):
         lines.append("one guide alone excites both bands, and they move in opposite directions")
     if tag.startswith("sheet"):
         lines.append("numbers of the sheet (dJ = 0.5, Delta_0 = 0.2): the gap is small, this cycle is too fast")
-        lines.append("a slower cycle needs a longer chain: T = 200 on 1000 cells gives 0.95. Not 1: here "
+        lines.append("a slower cycle needs a longer chain: T = 400 on 800 cells gives 0.95. Not 1: here "
                      "(A - B)/sqrt(2) is not exactly the lower band at t = 0")
     _ok(label, *lines)
 
