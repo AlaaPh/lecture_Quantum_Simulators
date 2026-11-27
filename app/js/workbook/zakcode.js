@@ -16,7 +16,7 @@ const mixed = () => { const u = uLower(0, 1, 2), v = uLower(PI / 2, 1, 2); retur
 const steps = [
   { type: 'info', title: 'The Zak phase with your program in five small questions', button: 'Start',
     html: `<p class="step-text">By hand you read the Zak phase from h(k). A program does not know h: it only gets eigenvectors. So it uses the formula of the lecture:</p>
-      <div class="step-formula"><span class="nb">γ = −arg(</span> <span class="nb">⟨u<sub>1</sub>|u<sub>2</sub>⟩ · ⟨u<sub>2</sub>|u<sub>3</sub>⟩ · … · ⟨u<sub>M</sub>|u<sub>1</sub>⟩ )</span></div>
+      <div class="step-formula"><span class="nb">γ = −arg( ⟨u<sub>1</sub>|u<sub>2</sub>⟩ ·</span> <span class="nb">⟨u<sub>2</sub>|u<sub>3</sub>⟩ · … ·</span> <span class="nb">⟨u<sub>M</sub>|u<sub>1</sub>⟩ )</span></div>
       <p class="step-text">u<sub>1</sub> … u<sub>M</sub> are the eigenvectors of the lower band at M values of k: 0, 2π/M, 2 · 2π/M, … The last overlap, ⟨u<sub>M</sub>|u<sub>1</sub>⟩, closes the loop.</p>
       <p class="step-text">This is task 8b. Take J₁ = 1 and J₂ = 2.</p>`,
     pic: pic({ kind: 'loop', M: 4, links: 0 }) },
@@ -67,7 +67,7 @@ const steps = [
 // ---------- pictures ----------
 // the values of k on a closed loop, one eigenvector at each, and the overlaps between neighbours
 function drawLoop(ctx, w, h, c, st) {
-  const cx = w / 2, cy = h / 2, R = Math.max(40, Math.min(w * 0.3, h / 2 - 54)), M = st.M, at = (s) => -PI / 2 + (TAU * s) / M;
+  const cx = w / 2, cy = h / 2, R = Math.max(40, Math.min(w / 2 - 78, h / 2 - 54)), M = st.M, at = (s) => -PI / 2 + (TAU * s) / M;
   const P = (s, r = R) => [cx + r * Math.cos(at(s)), cy + r * Math.sin(at(s))];
   ctx.strokeStyle = c.line; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.stroke();
   ctx.strokeStyle = c.hpsi; ctx.lineWidth = M > 10 ? 3 : 4; ctx.lineCap = 'butt';

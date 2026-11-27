@@ -44,7 +44,7 @@ const steps = [
     after: 'Four slopes: one at the start, two in the middle of the step and one at its end.',
     pic: (ok) => ({ kind: 'plane', n: ok ? 4 : 3, trial: 4 }) },
   { type: 'complex', text: 'The step uses the mean of the four slopes. The two from the middle of the step count twice:',
-    formula: '<span class="nb">ψ<sub>1</sub> = ψ<sub>0</sub> +</span> <span class="nb">(dz/6) · (k<sub>1</sub> + 2k<sub>2</sub> + 2k<sub>3</sub> + k<sub>4</sub>)</span>',
+    formula: '<span class="nb">ψ<sub>1</sub> = ψ<sub>0</sub> + (dz/6) ·</span> <span class="nb">(k<sub>1</sub> + 2k<sub>2</sub> + 2k<sub>3</sub> + k<sub>4</sub>)</span>',
     ask: 'The sum in the bracket is −2.75 − 5i. Calculate ψ₁.', label: 'ψ₁ =', ref: { re: 13 / 24, im: -5 / 6 }, tol: 0.006,
     hint: 'Divide −2.75 − 5i by 6 and add ψ₀ = 1.', how: 'ψ₁ = 1 + (−2.75 − 5i)/6 = 1 − 0.4583 − 0.8333i = 0.5417 − 0.8333i.',
     after: 'ψ₁ = 0.542 − 0.833i. The exact result is e<sup>−i</sup> = 0.540 − 0.841i: in the picture the two points lie on top of each other.',

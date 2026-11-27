@@ -62,6 +62,7 @@ async function walk(browser, PARTS, width, height, label, full) {
     await openPart(page, part.id);
     const qs = part.steps, tag = `${label} ${part.id}`;
     report(await page.$('#next') !== null && await inked(page) > 500, `${tag}: the first card with a picture`);
+    { const cut = await page.evaluate(() => [...document.querySelectorAll('.step-formula, .step-eq')].map((e) => e.scrollWidth - e.clientWidth).filter((d) => d > 1)); report(cut.length === 0, `${tag}: every formula of the first card fits into its box`, cut.join(', ')); }
     report((await text(page, '#parts')).includes(part.group) && (await text(page, '#parts a.active')).includes(part.title), `${tag}: the header names the exercise and the part`);
     if (SHOTS) await page.screenshot({ path: path.join(SHOTS, `${label}_${part.id}_0.png`), fullPage: width < 600 });
     await page.click('#next');
@@ -74,6 +75,7 @@ async function walk(browser, PARTS, width, height, label, full) {
       else report(await page.evaluate(() => document.querySelector('.step-card .step-pic') === null), `${name}: the picture stands outside the card`);
       report(await page.evaluate(() => window.scrollY) === 0, `${name}: the new card starts at its top`);
       report(await overflow(page) <= 0, `${name}: no sideways scroll`, String(await overflow(page)));
+      { const cut = await page.evaluate(() => [...document.querySelectorAll('.step-formula, .step-eq')].map((e) => e.scrollWidth - e.clientWidth).filter((d) => d > 1)); report(cut.length === 0, `${name}: every formula fits into its box`, cut.join(', ')); }
       if (SHOTS) await page.screenshot({ path: path.join(SHOTS, `${label}_${part.id}_${n + 1}q.png`), fullPage: width < 600 });
       if (full) {
         await answer(page, q, 'wrong');
