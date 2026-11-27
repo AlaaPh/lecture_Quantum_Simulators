@@ -25,13 +25,13 @@ TAU = 2 * np.pi
 
 HINT = {
     1: "Overlap of (1, i)/sqrt(2) with itself is not 1 -> the complex conjugate is missing (np.vdot).",
-    2: "The loop over the four hand vectors gives -0.2 - 0.12i -> the loop is not closed.",
+    2: "The product over the four hand vectors is not real -> the loop is not closed: <u_M|u_1> is missing.",
     3: "H u is not E u -> row taken instead of column.",
     4: "E > 0 -> upper band (Python: eig instead of eigh).",
     5: "The result changes when the random phases change -> a phase does not cancel: conjugate, closing overlap.",
     6: "A7 gives -0.7079 pi -> one of: +arg; upper band; exp(-ik) in h; -Delta on A.",
     7: "B5 gives 0 -> no unwrap.",
-    8: "B7 gives 0 -> arg of the total product instead of the sum of the args; or both bands added.",
+    8: "B7 gives 0 -> arg of the total product instead of the sum of all plaquette phases; or both bands added.",
     9: "The numbers of the task sheet on a 3 x 3 grid give C = 0; three k points give a zero overlap for "
        "J1 = 1, J2 = 2 -> use 4 points or more, an even number.",
     10: "0 and pi swapped -> the unit cell holds the J2 pair.",
@@ -449,11 +449,11 @@ def _A3(label, g, loop_product, zak):
     shaken = [_real(label, todo2, "zak(us)", _call(label, todo2, zak, _phases(_HAND1, seed))) for seed in (1, 2)]
     here = "For the four hand vectors (J1 = 1, J2 = 2) your zak gives"
     if abs(abs(gamma) - 180) < 1e-6:
-        _stop(label, here + " the Zak phase in degrees.", "Keep the angle in radians, as np.angle gives it.")
+        _stop(label, here + " the Zak phase in degrees.", "Keep gamma in radians, as np.angle gives it.")
     for factor, unit in ((PI, "pi"), (TAU, "2 pi")):
         if abs(abs(gamma) * factor - PI) < 1e-6:
             _stop(label, here + " the Zak phase in units of %s." % unit,
-                  "Return the angle in radians, as np.angle gives it. Do not divide it.")
+                  "Return gamma in radians, as np.angle gives it. Do not divide it.")
     if _same_angle(there, back) and not _same_angle(there, -back):
         _stop(label, "For a loop of four vectors your zak gives %s pi. For the same loop walked the other way round "
               "it gives %s pi again. The two must have opposite signs." % (_fmt(there / PI), _fmt(back / PI)),
@@ -555,7 +555,7 @@ def _A6(label, g, eigenvector):
         _stop(label, "With your eigenvectors the product over four k points is %s (Re Im). "
               "It must be the product of A3." % _fc(product), todo)
     _ok(label,
-        "eigenvalue of your vector at k = 0, pi/2, pi, 3pi/2 (J1 = 1, J2 = 2): %s" % _row(energies[:4]),
+        "eigenvalue of your vector at k = 0 (J1 = 1, J2 = 2): %s" % _fmt(energies[0]),
         "M = 4: product = %s, the same as by hand" % _fc(product),
         "random phase factor on every eigenvector: <u1|u2> = %s, then %s, then %s" % tuple(_fc(z) for z in first),
         "                                          product = %s, then %s, then %s"
@@ -823,7 +823,7 @@ def _B5(label, g, gamma_raw, gamma, C, X):
         seen = "Your gamma/pi goes from %s at the start to %s at the end of the cycle." % (
             _fmt(gamma[0] / PI), _fmt(gamma[-1] / PI))
         if abs(gamma[-1] - gamma[0]) < 1e-5:
-            _stop(label, seen, HINT[7] + " If np.unwrap is there: it needs the angles in radians, not divided by pi.")
+            _stop(label, seen, HINT[7] + " If np.unwrap is there: it needs gamma in radians, not divided by pi.")
         for factor, unit in ((PI, "pi"), (TAU, "2 pi")):
             if _close(gamma * factor, want, 1e-5):
                 _stop(label, "Your gamma goes from %s to %s. This is gamma in units of %s."
@@ -978,7 +978,7 @@ def _B8(label, g, predicted, calculated, grids):
              ("(b) pump_back (solid cycle backwards)", numbers["reversed_cycle"],
               "Delta -> -Delta mirrors the cycle. It goes around (0, 0) the other way round, the light moves back."),
              ("(c) pump_aside (dotted cycle)", numbers["not_enclosing"],
-              "This cycle does not go around (0, 0), the point where the gap closes. gamma comes back to its start "
+              "This cycle does not go around (0, 0). gamma comes back to its start "
               "without going around."),
              ("(d) pump_sheet with the numbers of the task sheet (dashed cycle)", numbers["sheet"],
               "The cycle of the task sheet is smaller, but it goes around (0, 0) once, the same way round. "

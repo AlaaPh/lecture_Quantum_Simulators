@@ -421,7 +421,7 @@ function buildPump() {
   const b3 = stepBlock({
     tag: 'B3', title: 'Light through the pump (task 9c)',
     children: [
-      para(`Solve <span class="m">i·dψ/dt = H(t)·ψ</span> in Runge–Kutta steps of dt = ${B.B3.dt}. H changes during a step: take H(t) for the first slope, H(t + dt/2) for the second and the third, H(t + dt) for the fourth. Input: amplitude 1/√2 on guide A and −1/√2 on guide B of one cell in the middle, short (A − B)/√2. This is the lower band at t = 0. X is the position of the light in unit cells, counted from the cell where it starts. In the file the Runge–Kutta step is given: at TODO B3 you write the three H(t).`),
+      para(`Solve <span class="m">i·dψ/dt = H(t)·ψ</span> in Runge–Kutta steps of dt = ${B.B3.dt}. H changes during a step: take H(t) for the first slope, H(t + dt/2) for the second and the third, H(t + dt) for the fourth. Input: amplitude 1/√2 on guide A and −1/√2 on guide B of one cell in the middle, short (A − B)/√2. This is the lower band at t = 0, where J₂ = 0. X is the position of the light in unit cells, counted from the cell where it starts. In the file the Runge–Kutta step is given: at TODO B3 you write the three H(t).`),
       rowOf([fieldNode('B3-norm', { label: 'sum of |ψ|² after one cycle, T = 20:', wide: true })]),
       rowOf([keyCell('shift per cycle X(T)'), fieldNode('B3-T20', { label: `T = 20 on ${B.B3.cells.T20} cells:` }), fieldNode('B3-T50', { label: `T = 50 on ${B.B3.cells.T50} cells:` })]),
       rowOf([fieldNode('B3-T100', { label: `T = 100 on ${B.B3.cells.T100} cells:` }), el('span', { class: 'wb-small wb-note', html: 'Your code prints this number with <code>LONG</code> set to true: <code>LONG = True</code> in zak_chern.py, <code>LONG = true</code> in zak_chern.m.' })]),
