@@ -8,10 +8,11 @@
 //     a multiple of π pi   π   0.5pi   0.5 π   2*pi   pi/2   3π/4
 //   and, only with spec = { unit: 'deg' }, the unit behind the number: 63.43°  or  63.43 deg.
 //   Spaces around the text are ignored. Everything else is unreadable: 0.72+0.44i, 1..2, 1/0, --1, 0x10, Infinity, NaN,
-//   1/4pi (π/4 or 1/(4π)?), and a number that ends with the decimal sign (5. or 5, looks unfinished).
+//   1/4pi (π/4 or 1/(4π)?), and a number that ends with a comma (5, looks unfinished). A closing point is read
+//   (4. and -3. are what numpy prints for whole numbers).
 //   value = number·π if a π was typed, else value = number.
 
-const NUM = '(?:\\d+(?:[.,]\\d+)?|[.,]\\d+)(?:[eE][+\\-\\u2212\\u2013]?\\d+)?';
+const NUM = '(?:\\d+(?:\\.\\d*|,\\d+)?|[.,]\\d+)(?:[eE][+\\-\\u2212\\u2013]?\\d+)?';
 const PI = '(?:[pP][iI]|π)';
 const RE_SIGN = /^[+\-\u2212\u2013]/;                      // +, ASCII minus, minus sign U+2212, en dash U+2013
 const RE_DEG = /\s*(?:°|[dD][eE][gG])$/;

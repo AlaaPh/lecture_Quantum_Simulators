@@ -323,8 +323,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
 .step-msg.ok b { color: var(--v1); }
 .step-msg.no b { color: var(--hpsi); }
 .step-how { font: 400 17px/1.6 var(--font-math); margin: 10px 0 0; padding: 10px 14px; border-left: 3px solid var(--line); color: var(--fg-2); }
-.step-nav { display: flex; align-items: center; gap: 10px; margin-top: 22px; }
-.step-nav .btn { font-size: 15.5px; padding: 8px 16px; border-radius: 9px; }
+.step-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 22px; }
+.step-nav .btn { font-size: 15.5px; padding: 8px 16px; border-radius: 9px; white-space: nowrap; }
+.step-nav #nextpart { margin-left: auto; }
 .step-nav .btn.link { border-color: transparent; background: transparent; color: var(--fg-2); padding-left: 0; }
 .step-nav .grow { flex: 1; }
 .step-pic { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px 10px 12px; position: sticky; top: 16px; }
@@ -333,7 +334,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
 .step-end a { font-size: 17px; }
 .step-formula small { font: 400 15px var(--font-ui); color: var(--fg-2); margin-left: 8px; }
 .step-text code, .step-msg code { font: 500 0.88em var(--font-mono); background: var(--surface-2); padding: 1px 5px; border-radius: 5px; white-space: nowrap; }
-.step-matrix { border-collapse: collapse; margin: 6px 0 14px 4px; font: 400 18px var(--font-math); border-left: 2px solid var(--fg-2); border-right: 2px solid var(--fg-2); border-radius: 7px; }
+.step-matrix { border-collapse: separate; border-spacing: 0; margin: 6px 0 14px 4px; font: 400 18px var(--font-math); border-left: 2px solid var(--fg-2); border-right: 2px solid var(--fg-2); border-radius: 12px; }
 .step-matrix td { padding: 4px 12px; text-align: center; white-space: nowrap; }
 .step-how.code { border-left: 0; padding: 0; color: var(--fg); }
 .step-how.code pre { margin: 6px 0 0; padding: 12px 14px; background: var(--surface-2); border-radius: 10px; overflow-x: auto; font: 400 13px/1.55 var(--font-mono); }
@@ -343,11 +344,16 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
 .step-lang button:disabled { opacity: 0.4; cursor: default; }
 .steps-page .acts { overflow-x: visible; }
 .steps-page .only-phone { display: none; }
-@media (max-width: 980px) {
+.nb { white-space: nowrap; }
+.step-card:focus, #howbox:focus { outline: none; }
+/* the picture inside the card: on a narrow screen, for a question that is answered from the picture */
+.step-card .step-pic { border: 0; padding: 0; margin: 4px 0 2px; background: none; position: static; }
+.step-card .step-pic figcaption { padding: 4px 0 0; }
+#howbox:not(:empty) { margin-top: 14px; }
+@media (max-width: 1080px) {
   .steps-main { grid-template-columns: minmax(0, 1fr); padding: 16px max(14px, env(safe-area-inset-left, 0px)) 28px; gap: 14px; }
   .step-card { padding: 20px 18px; }
   .step-pic { position: static; }
-  .steps-main.look .step-pic { order: -1; }
   .step-pic canvas { height: 300px; }
   .step-formula { font-size: 19px; white-space: normal; }
   .steps-page .top { flex-wrap: wrap; row-gap: 6px; }
@@ -360,7 +366,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
   .steps-page .top a.theme-btn { display: none; }
   .steps-page .top a.theme-btn.only-phone { display: inline-flex; }
   .steps-page .acts { gap: 2px; }
-  .steps-page .acts a { font-size: 13px; padding: 5px 8px; }
+  .steps-page .acts a { font-size: 12.5px; padding: 5px 6px; }
+  .step-how.code pre { margin: 6px -8px 0; padding: 12px 10px; font-size: 11.5px; }
   .step-ask { flex-wrap: nowrap; gap: 7px; font-size: 19px; }
   .step-ask span { min-width: 0; }
   .step-ask input { flex: 0 1 6.2em; min-width: 3.2em; width: auto; font-size: 18px; }

@@ -7,7 +7,8 @@
 //   answer offers "Show me how" (for a question with code: Python and MATLAB), the right answer shows "Right." and
 //   moves on with Next or with Enter; no console error; the page never scrolls sideways.
 // Then: the progress after a reload, the ticks of finished parts, the address of a part (#pump), never landing behind
-// an open question, Back, "Start this part again", the dark theme, a browser that blocks the storage, 320 px width,
+// an open question, Back, "Start this part again", stored answers that are no longer right, the dark theme, a browser
+// that blocks the storage, every card again at 320 px width,
 // the old address steps.html, and the other pages of the app with their link to the workbook.
 const { chromium } = require('playwright');
 const http = require('http'), fs = require('fs'), path = require('path');
@@ -26,7 +27,7 @@ const PARTS = ['zak', 'pump', 'chern'];
 const plan = (page, part) => page.evaluate(async (id) => {
   const mod = await import(`/js/workbook/${id}.js`), val = (x) => (typeof x === 'function' ? x() : x);
   return mod[id].steps.filter((s) => s.type !== 'info').map((s) => {
-    if (s.type === 'choice') return { type: s.type, right: s.ref, wrong: s.options.find((o) => o !== s.ref), hint: s.hint, code: false };
+    if (s.type === 'choice') return { type: s.type, right: s.ref, wrong: s.options.find((o) => o !== s.ref), hint: s.hint, code: false, look: Boolean(s.look) };
     if (s.type === 'complex') return { type: s.type, right: [String(s.ref.re), String(s.ref.im)], wrong: [String(s.ref.re + 1), String(s.ref.im)], hint: s.hint, code: false };
     const ref = val(s.ref), d = Math.max(0, Math.ceil(-Math.log10(s.tol)) + 1);
     return { type: s.type, right: [ref.toFixed(d)], wrong: [(ref + 20 * s.tol + 0.37).toFixed(d)], hint: s.hint, code: typeof s.how === 'object' };
@@ -61,6 +62,9 @@ async function walk(browser, width, height, label) {
       if (await page.$('.step-count') === null) { report(await inked(page) > 500, `${name}: a card to read stands before it, with a picture`); await page.click('#next'); }
       report((await text(page, '.step-count')) === `Question ${n + 1} of ${qs.length}`, `${name}: "Question ${n + 1} of ${qs.length}"`);
       report(await inked(page) > 500, `${name}: the picture is drawn`);
+      if (q.look) report((await page.evaluate(() => document.querySelector('.step-card .step-pic') !== null)) === (width <= 1080), `${name}: answered from the picture, so on a narrow screen the picture stands inside the card`);
+      else report(await page.evaluate(() => document.querySelector('.step-card .step-pic') === null), `${name}: the picture stands outside the card`);
+      report(await page.evaluate(() => window.scrollY) === 0, `${name}: the new card starts at its top`);
       report(await overflow(page) <= 0, `${name}: no sideways scroll`, String(await overflow(page)));
       await answer(page, q, 'wrong');
       const m1 = await text(page, '#msg');
@@ -71,10 +75,13 @@ async function walk(browser, width, height, label) {
         report(await page.$('#showhow') !== null, `${name}: "Show me how" after two wrong tries`);
         await page.click('#showhow');
         if (q.code) {
-          const py = await text(page, '#how pre'); await page.click('.step-lang button[data-lang="m"]'); const m = await text(page, '#how pre');
+          const py = await text(page, '#howbox pre'); await page.click('.step-lang button[data-lang="m"]'); const m = await text(page, '#howbox pre');
           report(py.length > 20 && m.length > 20 && py !== m && /np\.|print/.test(py) && /disp|;/.test(m), `${name}: the code in Python and in MATLAB`);
+          report(await page.evaluate(() => { const pre = document.querySelector('#howbox pre'); return pre.scrollWidth <= pre.clientWidth + 1; }) || width < 380, `${name}: the code needs no sideways scroll`);
+          report(await page.evaluate(() => document.querySelector('#howbox').compareDocumentPosition(document.querySelector('#check')) & Node.DOCUMENT_POSITION_PRECEDING) > 0, `${name}: the code stands below Check`);
           await page.click('.step-lang button[data-lang="py"]');
-        } else report((await text(page, '#how')).length > 5, `${name}: the worked answer`);
+        } else report((await text(page, '#howbox')).length > 5, `${name}: the worked answer`);
+        report(await page.evaluate(() => document.querySelector('#f0').classList.contains('no')), `${name}: the field is marked after a wrong check`);
       }
       if (SHOTS && part !== 'zak') await page.screenshot({ path: path.join(SHOTS, `${label}_${part}_${n + 1}a.png`), fullPage: width < 600 });
       if (q.type === 'choice') await page.click(`.step-choice button[data-v="${q.right}"]`);
@@ -106,11 +113,17 @@ async function walk(browser, width, height, label) {
   await page.click('#back');
   report((await text(page, '#msg')).startsWith('Right.') && await page.$('#check') === null && await page.$('#next') !== null, 'Back: a solved question shows its answer and Next');
   await page.goto(`${BASE}/workbook.html#chern`); await page.waitForFunction(() => document.querySelector('#parts a.active')?.getAttribute('href') === '#chern');
-  report((await text(page, 'h2')) === 'Done', 'the address #chern opens part 3 where it was left');
+  report((await text(page, 'h2')) === 'Part 3 is done', 'the address #chern opens part 3 where it was left');
   // "Start this part again" empties this part only
   await page.click('#again');
   const marks = await text(page, '#parts');
-  report(marks.includes('Thouless pump ✓') && !marks.includes('Chern number ✓') && (await text(page, 'h2')).includes('Chern number'), '"Start this part again" empties part 3 only');
+  report(marks.includes('✓ Thouless pump') && marks.includes('3 · Chern number') && (await text(page, 'h2')).includes('Chern number'), '"Start this part again" empties part 3 only');
+  // a stored answer that is not the right answer of the question at its place is not taken over
+  await page.evaluate(() => { const o = JSON.parse(localStorage.getItem('qsl-workbook-v2')); o.solved.pump[1] = ['999']; o.solved.pump[3] = ['0.5']; localStorage.setItem('qsl-workbook-v2', JSON.stringify(o)); });
+  await page.reload(); await page.waitForSelector('#card');          // read the storage first: a change of the part would write the old state back
+  await page.goto(`${BASE}/workbook.html#pump`); await page.waitForSelector('.step-count');
+  report((await text(page, '#parts')).includes('2 · Thouless pump') && (await text(page, '.step-count')).startsWith('Question 1 of') && await page.$('#check') !== null, 'a stored wrong answer is not shown as right: the part is open again at this question');
+  await page.goto(`${BASE}/workbook.html#chern`); await page.waitForFunction(() => document.querySelector('#parts a.active')?.getAttribute('href') === '#chern');
   // never behind an open question: the stored place is beyond the first open question
   await page.evaluate(() => { const o = JSON.parse(localStorage.getItem('qsl-workbook-v2')); o.pos.chern = 5; localStorage.setItem('qsl-workbook-v2', JSON.stringify(o)); });
   await page.reload(); await page.waitForSelector('.step-count');
@@ -120,14 +133,14 @@ async function walk(browser, width, height, label) {
   await page.goto(`${BASE}/workbook.html`); await page.reload(); await page.waitForSelector('#next');
   report((await text(page, '#parts a.active')).startsWith('1 · Zak phase'), 'an unreadable storage: the page starts at part 1');
   // dark theme
+  const bg0 = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
   await page.click('#theme-btn');
   const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-  report(await inked(page) > 500 && bg !== 'rgb(255, 255, 255)', 'the dark theme draws the picture', bg);
+  report(await inked(page) > 500 && bg !== bg0, 'the Theme button changes the theme and the picture is drawn again', `${bg0} -> ${bg}`);
   await page.click('#theme-btn');
 
-  const phone = await walk(browser, 390, 844, 'phone');
-  await phone.page.setViewportSize({ width: 320, height: 640 });
-  for (const part of PARTS) { await phone.page.goto(`${BASE}/workbook.html#${part}`); await phone.page.waitForTimeout(120); const o = await overflow(phone.page); report(o <= 0, `320 px ${part}: no sideways scroll`, String(o)); }
+  await walk(browser, 390, 844, 'phone');
+  await walk(browser, 320, 640, 'narrow');          // every card again at the smallest width
 
   // a browser that blocks the storage
   const blocked = await browser.newContext({ viewport: { width: 1280, height: 820 } });

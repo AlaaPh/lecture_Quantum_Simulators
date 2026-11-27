@@ -1,80 +1,93 @@
 // "Show me how" for the questions that are done with code: the same few lines in Python and in MATLAB.
 // Every block uses the functions of the blocks before it. In MATLAB each function is its own file
-// (couplings.m, Hk.m, u_band.m, F_square.m). The names are long on purpose: a function H, u or F would be hidden by a
-// variable of the same name in the script of a student.
-// No line is longer than 60 characters, so that the block needs no sideways scroll on a wide screen.
+// (couplings.m, Hk.m, u_band.m, zak.m, F_square.m). The names are long on purpose: a function H, u or F would be hidden
+// by a variable of the same name in the script of a student, and "angle", "i" and "j" are not used as variables,
+// because in MATLAB they are the function for arg and the imaginary unit.
+// No line is longer than 46 characters, so that a phone shows every line whole.
 // Tested by tools/test_code_hints.sh: Python 3 with numpy; the MATLAB lines in GNU Octave 8, not in MATLAB itself.
 export const CODE = {
   couplings: {
     py: `import numpy as np
 
-def couplings(phase):                # phase = Omega*z
-    n = np.arange(1, 7)              # waveguides 1 ... 6
-    angle = phase + 4*np.pi*n/5 - 3*np.pi/10
-    x = n*17.25 + 1.0*np.cos(angle)  # positions in um
-    s = np.diff(x)                   # distances in um
-    return 6.672*np.exp(-0.2348*s)   # J1 ... J5 in 1/mm
+# phase = Omega*z
+def couplings(phase):
+    n = np.arange(1, 7)    # waveguides 1 to 6
+    theta = phase + 4*np.pi*n/5 - 3*np.pi/10
+    # positions in um: n*d + delta*cos(theta)
+    x = n*17.25 + 1.0*np.cos(theta)
+    s = np.diff(x)         # distances in um
+    # J1 ... J5 in 1/mm
+    return 6.672*np.exp(-0.2348*s)
 
-print(couplings(0))                  # the picture
-print(couplings(np.pi/2))            # the third one is J3`,
-    m: `% file couplings.m
-function J = couplings(phase)        % phase = Omega*z
-    n = 1:6;                         % waveguides 1 ... 6
-    angle = phase + 4*pi*n/5 - 3*pi/10;
-    x = n*17.25 + 1.0*cos(angle);    % positions in um
-    s = diff(x);                     % distances in um
-    J = 6.672*exp(-0.2348*s);        % J1 ... J5 in 1/mm
+print(couplings(0))          # the picture
+print(couplings(np.pi/2))    # the second: J2`,
+    m: `% file couplings.m, next to your script
+function J = couplings(phase)
+    % phase = Omega*z
+    n = 1:6;               % waveguides 1 to 6
+    theta = phase + 4*pi*n/5 - 3*pi/10;
+    % positions in um: n*d + delta*cos(theta)
+    x = n*17.25 + 1.0*cos(theta);
+    s = diff(x);           % distances in um
+    J = 6.672*exp(-0.2348*s);    % in 1/mm
 end
 
 % then, in your script:
-disp(couplings(0))                   % the picture
-disp(couplings(pi/2))                % the third one is J3`,
+disp(couplings(0))           % the picture
+disp(couplings(pi/2))        % the second: J2`,
   },
   matrix: {
-    py: `# uses couplings(phase) from the question before
+    py: `# uses couplings(phase) from question 5
 def Hk(k, phase):
     J = couplings(phase)
-    Hm = np.zeros((5, 5), complex)   # complex numbers
+    # the matrix must be complex
+    Hm = np.zeros((5, 5), complex)
     for i in range(4):
         Hm[i, i+1] = Hm[i+1, i] = J[i]
-    Hm[4, 0] = J[4]*np.exp(1j*k)     # J[4] is J5
+    # the two corners; J[4] is J5
+    Hm[4, 0] = J[4]*np.exp(1j*k)
     Hm[0, 4] = J[4]*np.exp(-1j*k)
     return Hm
 
+# the eigenvalues, lowest first
 print(np.linalg.eigvalsh(Hk(0, 0)))`,
-    m: `% file Hk.m; uses couplings.m from the question before
+    m: `% file Hk.m; uses couplings.m
 function Hm = Hk(k, phase)
     J = couplings(phase);
+    % J1 ... J4 next to the diagonal
     Hm = diag(J(1:4), 1) + diag(J(1:4), -1);
-    Hm(5, 1) = J(5)*exp(1i*k);
-    Hm(1, 5) = J(5)*exp(-1i*k);
+    Hm(5, 1) = J(5)*exp(1i*k);   % bottom left
+    Hm(1, 5) = J(5)*exp(-1i*k);  % top right
 end
 
 % then, in your script:
+% the eigenvalues, lowest first
 disp(sort(real(eig(Hk(0, 0)))))`,
   },
   overlap: {
     py: `# uses Hk(k, phase) from part 2
 
-# the eigenvector of one band; band 3 is column 2
+# the eigenvector of one band
 def u_band(band, k, phase):
     E, V = np.linalg.eigh(Hk(k, phase))
-    return V[:, band - 1]
+    return V[:, band - 1]    # band 3: V[:, 2]
 
 u1 = u_band(3, 0, 0)
 u2 = u_band(3, 2*np.pi/50, 0)
-print(abs(np.vdot(u1, u2)))   # vdot conjugates u1`,
-    m: `% file u_band.m: the eigenvector of one band; uses Hk.m
+# vdot takes the complex conjugate of u1
+print(abs(np.vdot(u1, u2)))`,
+    m: `% file u_band.m: the eigenvector of one band
 function v = u_band(band, k, phase)
     [V, E] = eig(Hk(k, phase));
     [~, idx] = sort(real(diag(E)));
-    v = V(:, idx(band));
+    v = V(:, idx(band));   % band 3: column 3
 end
 
 % then, in your script:
 u1 = u_band(3, 0, 0);
 u2 = u_band(3, 2*pi/50, 0);
-disp(abs(u1'*u2))             % u1' is conjugated`,
+% u1' is the conjugate transpose of u1
+disp(abs(u1'*u2))`,
   },
   zak: {
     py: `# uses u_band(band, k, phase) from question 1
@@ -83,36 +96,36 @@ def zak(band, phase, M=50):
     us = [u_band(band, k, phase) for k in ks]
     p = 1
     for s in range(M):
-        # the last one, <u_M|u_1>, closes the loop
+        # the last overlap closes the loop
         p = p*np.vdot(us[s], us[(s + 1) % M])
     return -np.angle(p)
 
 print(zak(3, 0)/np.pi)`,
-    m: `% uses u_band.m from question 1
-M = 50;  U = zeros(5, M);
-for s = 1:M
-    U(:, s) = u_band(3, 2*pi*(s - 1)/M, 0);
+    m: `% file zak.m; uses u_band.m from question 1
+function g = zak(band, phase, M)
+    U = zeros(5, M);     % the M eigenvectors
+    for s = 1:M
+        k = 2*pi*(s - 1)/M;
+        U(:, s) = u_band(band, k, phase);
+    end
+    p = 1;
+    for s = 1:M
+        t = mod(s, M) + 1; % after the last: 1
+        p = p*(U(:, s)'*U(:, t));
+    end
+    g = -angle(p);
 end
-p = 1;
-for s = 1:M
-    t = mod(s, M) + 1;       % after the last: the first
-    p = p*(U(:, s)'*U(:, t));
-end
-disp(-angle(p)/pi)`,
+
+% then, in your script:
+disp(zak(3, 0, 50)/pi)`,
   },
   zak2: {
-    py: `# the function zak of question 2, with the phase pi/2
+    py: `# the function zak from question 2,
+# with Omega*z = pi/2
 print(zak(3, np.pi/2)/np.pi)`,
-    m: `% only the phase changes: pi/2 instead of 0
-for s = 1:M
-    U(:, s) = u_band(3, 2*pi*(s - 1)/M, pi/2);
-end
-p = 1;
-for s = 1:M
-    t = mod(s, M) + 1;
-    p = p*(U(:, s)'*U(:, t));
-end
-disp(-angle(p)/pi)`,
+    m: `% the function zak from question 2,
+% with Omega*z = pi/2
+disp(zak(3, pi/2, 50)/pi)`,
   },
   plaquette: {
     py: `# uses u_band(band, k, phase) from question 1
@@ -127,7 +140,7 @@ def F_square(band, k, phase, step):
 
 step = 2*np.pi/10
 print(F_square(3, 0, 0, step)/np.pi)`,
-    m: `% file F_square.m; uses u_band.m from question 1
+    m: `% file F_square.m; uses u_band.m
 function f = F_square(band, k, phase, step)
     a = u_band(band, k, phase);
     b = u_band(band, k, phase + step);
@@ -141,31 +154,39 @@ step = 2*pi/10;
 disp(F_square(3, 0, 0, step)/pi)`,
   },
   sum: {
-    py: `total = 0
-for i in range(10):
-    for j in range(10):
-        total = total + F_square(3, i*step, j*step, step)
+    py: `# uses F_square and step from question 5
+values = step*np.arange(10)  # 0, 2*pi/10, ...
+total = 0
+for k in values:
+    for phase in values:
+        f = F_square(3, k, phase, step)
+        total = total + f
 
 print(total/np.pi)`,
-    m: `total = 0;
-for i = 0:9
-    for j = 0:9
-        total = total + F_square(3, i*step, j*step, step);
+    m: `% uses F_square.m and step from question 5
+values = (0:9)*step;         % 0, 2*pi/10, ...
+total = 0;
+for k = values
+    for phase = values
+        f = F_square(3, k, phase, step);
+        total = total + f;
     end
 end
 disp(total/pi)`,
   },
   band2: {
     py: `total = 0
-for i in range(10):
-    for j in range(10):
-        total = total + F_square(2, i*step, j*step, step)
+for k in values:
+    for phase in values:
+        f = F_square(2, k, phase, step)
+        total = total + f
 
 print(total/(2*np.pi))`,
     m: `total = 0;
-for i = 0:9
-    for j = 0:9
-        total = total + F_square(2, i*step, j*step, step);
+for k = values
+    for phase = values
+        f = F_square(2, k, phase, step);
+        total = total + f;
     end
 end
 disp(total/(2*pi))`,

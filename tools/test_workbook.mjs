@@ -78,6 +78,7 @@ for (const p of PARTS) {
       report(spell(ref, d).every((t) => judge(s, [t]).state === 'right'), `${name}: ${ref.toFixed(d)} is right, also with − (U+2212), a decimal comma, spaces`);
       const digits = Math.max(0, Math.ceil(-Math.log10(s.tol)));              // as many decimals as the tolerance asks for
       report(judge(s, [ref.toFixed(digits)]).state === 'right', `${name}: rounded to ${digits} decimals it is still right`, ref.toFixed(digits));
+      if (s.ph) { const shown = (s.ph.split('.')[1] || '').length; report(judge(s, [ref.toFixed(shown)]).state === 'right', `${name}: with the ${shown} decimals that the empty field shows (${s.ph}) the answer is right`, ref.toFixed(shown)); }
       report(judge(s, [(ref + 6 * s.tol).toFixed(d + 1)]).state === 'wrong' && judge(s, [(ref - 6 * s.tol).toFixed(d + 1)]).state === 'wrong', `${name}: six tolerances away is wrong`);
       report(judge(s, ['']).state === 'empty' && judge(s, ['abc']).state === 'unreadable' && judge(s, ['1..2']).state === 'unreadable', `${name}: an empty field and letters are told`);
       if (s.unit === 'π') report(judge(s, [`${ref.toFixed(d)}pi`]).state === 'right' && judge(s, [`${ref.toFixed(d)} π`]).state === 'right', `${name}: "${ref.toFixed(d)}pi" in a field with the unit π is read as ${ref.toFixed(d)}`);
@@ -91,7 +92,7 @@ for (const p of PARTS) {
         const w = val(k.ref), r = judge(s, [w.toFixed(d + 1)]);
         if (s.mod && Math.abs(w) > s.mod) { report(r.state === 'wrong', `${name}: ${w.toFixed(d)} is wrong (outside one turn)`); continue; }
         report(r.state === 'wrong' && r.text === k.text, `${name}: ${w.toFixed(d)} → "${k.text.slice(0, 60)}…"`);
-        report(!close(w, ref, s.tol + (k.tol ?? s.tol)) || s.mod !== undefined, `${name}: the wrong value ${w.toFixed(d)} is not inside the tolerance of the right one`);
+        { let dist = w - ref; if (s.mod) dist -= s.mod * Math.round(dist / s.mod); report(Math.abs(dist) > s.tol + (k.tol ?? s.tol), `${name}: the wrong value ${w.toFixed(d)} is not inside the tolerance of the right one`, Math.abs(dist).toFixed(4)); }
       }
     }
   }
@@ -106,8 +107,13 @@ for (const p of PARTS) {
   report(/corners/.test(judge(q(pump, 6), [A.eig(0, 0, { corners: false }).values[0].toFixed(4)]).text), 'pump 6: matrix without the corners → hint about the corners');
   report(/−J/.test(judge(q(pump, 6), [(-E[4]).toFixed(4)]).text) && close(A.eig(Math.PI, 0).values[0], -E[4], 1e-12), 'pump 6: matrix with −J, or k = π → hint about the sign and about k');
   report(/highest/.test(judge(q(pump, 6), [E[4].toFixed(4)]).text) && /closest to zero/.test(judge(q(pump, 6), [E[2].toFixed(4)]).text), 'pump 6: the highest eigenvalue and the one closest to zero → their hints');
-  const Jq = A.couplings(PI / 2);
-  report(judge(q(pump, 5), [Jq[2].toFixed(3)]).state === 'right' && judge(q(pump, 5), [Jq[2].toFixed(4)]).state === 'right' && /z = 0/.test(judge(q(pump, 5), [A.couplings(0)[2].toFixed(3)]).text) && /J₂/.test(judge(q(pump, 5), [Jq[1].toFixed(3)]).text) && /J₄/.test(judge(q(pump, 5), [Jq[3].toFixed(3)]).text) && judge(q(pump, 5), [Jq[0].toFixed(3)]).state === 'wrong' && judge(q(pump, 5), [Jq[4].toFixed(3)]).state === 'wrong', 'pump 5: J₃ at a quarter period with three or four decimals; J₃ at z = 0, J₂ and J₄ get their hints; J₁ and J₅ are wrong', Jq.map((v) => v.toFixed(4)).join(' '));
+  const Jq = A.couplings(PI / 2), J0 = A.couplings(0), hint5 = (v) => judge(q(pump, 5), [v.toFixed(3)]).text || '';
+  report(judge(q(pump, 5), [Jq[1].toFixed(3)]).state === 'right' && judge(q(pump, 5), [Jq[1].toFixed(4)]).state === 'right', 'pump 5: J₂ at a quarter period with three or four decimals is right', Jq.map((v) => v.toFixed(4)).join(' '));
+  report(/z = 0/.test(hint5(J0[1])) && /J₄/.test(hint5(Jq[3])) && /−Ωz/.test(hint5(Jq[3])) && /J₃/.test(hint5(Jq[2])) && /without the cosine/.test(hint5(Jq[2])) && /J₁/.test(hint5(Jq[0])) && judge(q(pump, 5), [Jq[4].toFixed(3)]).state === 'wrong', 'pump 5: J₂ at z = 0, J₄ (= J₂ with −Ωz), J₃ (= no cosine) and J₁ get their hints; J₅ is wrong');
+  {                                                 // what the two mistakes named in the hints really give
+    const Jmis = (sign, amp) => { const x = [2, 3].map((n) => n * 17.25 + amp * Math.cos(sign * PI / 2 + 4 * PI * n / 5 - 0.3 * PI)); return 6.672 * Math.exp(-0.2348 * (x[1] - x[0])); };
+    report(close(Jmis(-1, 1), Jq[3], 1e-12) && close(Jmis(1, 0), Jq[2], 1e-12) && close(Jmis(1, 1), Jq[1], 1e-12), 'pump 5: −Ωz in the cosine gives the value of J₄, no cosine gives the value of J₃', `${Jmis(-1, 1).toFixed(4)}, ${Jmis(1, 0).toFixed(4)}`);
+  }
   const Jr = A.couplings(0).map((v) => Number(v.toFixed(3)));                // a student who types the five rounded couplings of the picture
   const re = Array.from({ length: 5 }, () => [0, 0, 0, 0, 0]), im = Array.from({ length: 5 }, () => [0, 0, 0, 0, 0]);
   for (let i = 0; i < 4; i++) { re[i][i + 1] = Jr[i]; re[i + 1][i] = Jr[i]; } re[4][0] = Jr[4]; re[0][4] = Jr[4];
@@ -120,11 +126,14 @@ for (const p of PARTS) {
   const o3 = A.overlapAbs(3, 0, TAU / 50, 0);
   report(judge(q(chern, 1), [o3.toFixed(4)]).state === 'right' && judge(q(chern, 1), [o3.toFixed(5)]).state === 'right' && /four decimals/.test(judge(q(chern, 1), [o3.toFixed(3)]).text), 'chern 1: the overlap with four or five decimals is right, with three it asks for four', o3.toFixed(6));
   report(/band 4/.test(judge(q(chern, 1), [A.overlapAbs(4, 0, TAU / 50, 0).toFixed(4)]).text) && /band 2/.test(judge(q(chern, 1), [A.overlapAbs(2, 0, TAU / 50, 0).toFixed(4)]).text) && judge(q(chern, 1), [A.overlapAbs(1, 0, TAU / 50, 0).toFixed(4)]).state === 'wrong' && judge(q(chern, 1), [A.overlapAbs(5, 0, TAU / 50, 0).toFixed(4)]).state === 'wrong', 'chern 1: the overlap of band 4 and of band 2 get their hints, bands 1 and 5 are wrong');
-  report(/imaginary/.test(judge(q(chern, 1), ['0.99999']).text) && /same/.test(judge(q(chern, 1), ['1']).text), 'chern 1: a matrix without imaginary part (0.99999) and two equal vectors (1) get their hints');
+  report(/imaginary/.test(judge(q(chern, 1), ['0.99999']).text) && /same/.test(judge(q(chern, 1), ['1']).text) && /imaginary/.test(judge(q(chern, 1), ['1.0000']).text) && /same/.test(judge(q(chern, 1), ['1.0000']).text), 'chern 1: 0.99999, 1.0000 and 1 name both causes: equal vectors, or a matrix without imaginary part');
   for (const [M, ok] of [[20, true], [100, true], [400, true], [10, true]]) report((judge(q(chern, 2), [(A.zak(3, 0, M) / PI).toFixed(4)]).state === 'right') === ok, `chern 2: γ with M = ${M} is accepted`, (A.zak(3, 0, M) / PI).toFixed(4));
   report([1, 2, 4, 5].every((b) => judge(q(chern, 2), [(A.zak(b, 0, 50) / PI).toFixed(4)]).state === 'wrong'), 'chern 2: γ of another band is wrong', [1, 2, 4, 5].map((b) => (A.zak(b, 0, 50) / PI).toFixed(3)).join(' '));
-  report(/conjugate/.test(judge(q(chern, 2), ['0']).text) && /conjugate/.test(judge(q(chern, 3), ['0.0000']).text), 'chern 2 and 3: γ = 0 → hint about the missing complex conjugate');
-  report(/off by one/.test(judge(q(chern, 2), [(A.zak(4, 0, 50) / PI).toFixed(4)]).text) && /off by one/.test(judge(q(chern, 3), [(A.zak(2, PI / 2, 50) / PI).toFixed(4)]).text), 'chern 2 and 3: γ of band 2 or 4 → hint about the column');
+  report(/complex numbers are missing/.test(judge(q(chern, 2), ['0']).text) && /complex numbers are missing/.test(judge(q(chern, 3), ['0.0000']).text), 'chern 2 and 3: γ = 0 → hint about the missing complex numbers');
+  report(judge(q(chern, 2), ['-0.98']).state === 'right' && judge(q(chern, 2), ['1.02']).state === 'right' && judge(q(chern, 3), ['0.18']).state === 'right' && judge(q(chern, 2), ['0.98']).state === 'wrong' && judge(q(chern, 2), ['-0.97']).state === 'wrong' && judge(q(chern, 3), ['0.17']).state === 'wrong', 'chern 2 and 3: the two decimals that the field shows are enough (−0.98, 1.02, 0.18); 0.98, −0.97 and 0.17 are wrong');
+  report(/radians/.test(judge(q(chern, 6), ['12.566']).text) && /radians/.test(judge(q(chern, 6), ['12.6']).text) && /radians/.test(judge(q(chern, 5), ['0.2379']).text), 'chern 5 and 6: F and the sum in radians get their hint');
+  report(/−Ωz|Ωz = π\/2/.test(judge(q(pump, 6), ['-0.211']).text) && judge(q(pump, 6), ['-0.212']).state === 'right' && judge(q(pump, 6), ['-0.213']).state === 'right' && judge(q(pump, 6), ['-0.2107']).state === 'wrong', 'pump 6: −0.212 and −0.213 are right; −0.211 is the value at Ωz = π/2 and gets its hint', A.eig(0, PI / 2).values[0].toFixed(4));
+  report(/neighbouring column/.test(judge(q(chern, 2), [(A.zak(4, 0, 50) / PI).toFixed(4)]).text) && /neighbouring column/.test(judge(q(chern, 3), [(A.zak(2, PI / 2, 50) / PI).toFixed(4)]).text), 'chern 2 and 3: γ of band 2 or 4 → hint about the column');
   report(/reversed/.test(judge(q(chern, 2), [(-A.zak(3, 0, 50) / PI).toFixed(4)]).text) && /reversed/.test(judge(q(chern, 3), [(-A.zak(3, PI / 2, 50) / PI).toFixed(4)]).text), 'chern 2 and 3: −γ → hint about the sign');
   report(judge(q(chern, 5), [(A.plaquette(3, 0, 0, TAU / 20) / PI).toFixed(4)]).state === 'wrong' && judge(q(chern, 5), [(A.plaquette(1, 0, 0, TAU / 10) / PI).toFixed(4)]).state === 'wrong', 'chern 5: F on a 20 × 20 grid or of band 1 is wrong');
   report(judge(q(chern, 6), ['4']).state === 'right' && judge(q(chern, 6), ['4.0000000000000036']).state === 'right' && judge(q(chern, 6), ['3.9999999999999996']).state === 'right' && judge(q(chern, 6), ['4pi']).state === 'right', 'chern 6: 4, 4.0000000000000036 and 4pi are right');
@@ -139,7 +148,9 @@ console.log('3. the numbers in the texts');
   const m = (v, d) => v.toFixed(d).replace('-', '−');
   report(has('d = 17.25 μm') && has('δ = 1 μm') && has('4πn/5 − 3π/10') && has('6.672 mm') && has('0.2348'), 'the numbers of the paper: d, δ, the phase 4πn/5 − 3π/10, the measured coupling');
   report(close(Math.cos((234 * PI) / 180), -0.588, 5e-4) && close((4 * PI * 2) / 5 - 0.3 * PI, (234 * PI) / 180, 1e-12) && close(4 * PI / 5 - 0.3 * PI, PI / 2, 1e-12), 'cos 234° = −0.588, the angle of waveguide 2 is 234°, of waveguide 1 is 90°');
-  report(has(m(A.xPos(2, 0), 2)) && has(m(A.xPos(2, 0) - A.xPos(1, 0), 2)) && close(34.5 - A.xPos(2, 0), 0.59, 0.005), 'x₂ = 33.91 μm, s = 16.66 μm, moved 0.59 μm');
+  report(has(m(A.xPos(2, 0), 2)) && has(m(A.xPos(2, 0) - A.xPos(1, 0), 2)) && close(34.5 - A.xPos(2, 0), 0.59, 0.005), 'x₂ = 33.91 μm, s = 16.66 μm, shifted by 0.59 μm');
+  { const Jq2 = A.couplings(PI / 2), big = (a) => a.indexOf(Math.max(...a)) + 1; report(big(Jq2) === 5 && big(A.couplings(0)) === 3 && has('The strongest coupling is now J₅; at z = 0 it was J₃'), 'the strongest coupling is J₃ at z = 0 and J₅ at a quarter period'); }
+  { const w = A.wannier(3, 21, 9), I = Array.from(w.re, (r, i) => r * r + w.im[i] * w.im[i]), cell = (c) => I.slice(5 * c, 5 * c + 5).reduce((x, y) => x + y, 0); report(close(cell(8), 0.5, 0.01) && close(cell(9), 0.5, 0.01) && has('about half of this light is in one unit cell, half in the next'), 'at z = 0 half of the light of band 3 is in one unit cell and half in the next', `${cell(8).toFixed(3)}, ${cell(9).toFixed(3)}`); }
   report(close(0.2348 * 16.66, 3.912, 5e-4) && close(Math.exp(-3.912), 0.02, 5e-5) && close(6.672 * 0.02, 0.133, 1e-3), 'the hint of the coupling: 0.2348 · 16.66 = 3.912, e^−3.912 = 0.0200, J₁ = 0.133');
   report(has(J.map((v) => v.toFixed(3)).join(', ')) && has(A.couplings(PI / 2).map((v) => v.toFixed(3)).join(', ')), 'the five couplings at z = 0 and at a quarter period in the text', J.map((v) => v.toFixed(3)).join(', '));
   report(has(E.map((v) => m(v, 3)).join(', ')), 'the five eigenvalues in the text', E.map((v) => m(v, 3)).join(', '));
@@ -158,7 +169,7 @@ console.log('3. the numbers in the texts');
 console.log('4. the reader of typed numbers');
 {
   const rows = [['0.5', 0.5], ['.5', 0.5], ['0,5', 0.5], ['-0.2', -0.2], ['−0.2', -0.2], ['–0.2', -0.2], ['+3', 3], ['1e-3', 0.001], ['1/4', 0.25], ['0.5/2', 0.25], ['pi', PI], ['π', PI], ['0.5pi', PI / 2], ['0.5 π', PI / 2], ['2*pi', TAU], ['pi/2', PI / 2], ['3π/4', 0.75 * PI], [' 7 ', 7], ['-0', 0],
-    ['', 'empty'], [' ', 'empty'], ['\t\n', 'empty'], ['abc', 'unreadable'], ['0.72+0.44i', 'unreadable'], ['1..2', 'unreadable'], ['1/0', 'unreadable'], ['--1', 'unreadable'], ['0x10', 'unreadable'], ['Infinity', 'unreadable'], ['NaN', 'unreadable'], ['1e', 'unreadable'], ['e3', 'unreadable'], ['1e999', 'unreadable'], ['1,2,3', 'unreadable'], ['1 2', 'unreadable'], ['1/2/3', 'unreadable'], ['1/-4', 'unreadable'], ['1/4pi', 'unreadable'], ['2pi3', 'unreadable'], ['pi pi', 'unreadable'], ['-', 'unreadable'], ['(1)', 'unreadable'], ['1 cell', 'unreadable'], ['5.', 'unreadable'], ['5,', 'unreadable'], ['63.43°', 'unreadable']];
+    ['', 'empty'], [' ', 'empty'], ['\t\n', 'empty'], ['abc', 'unreadable'], ['0.72+0.44i', 'unreadable'], ['1..2', 'unreadable'], ['1/0', 'unreadable'], ['--1', 'unreadable'], ['0x10', 'unreadable'], ['Infinity', 'unreadable'], ['NaN', 'unreadable'], ['1e', 'unreadable'], ['e3', 'unreadable'], ['1e999', 'unreadable'], ['1,2,3', 'unreadable'], ['1 2', 'unreadable'], ['1/2/3', 'unreadable'], ['1/-4', 'unreadable'], ['1/4pi', 'unreadable'], ['2pi3', 'unreadable'], ['pi pi', 'unreadable'], ['-', 'unreadable'], ['(1)', 'unreadable'], ['1 cell', 'unreadable'], ['5.', 5], ['-3.', -3], ['4.e0', 4], ['5,', 'unreadable'], ['63.43°', 'unreadable']];
   let bad = 0;
   for (const [text, want] of rows) { const p = parse(text); const ok = typeof want === 'string' ? p.state === want : p.state === 'ok' && close(p.value, want, 1e-12) && Object.is(p.value, p.value + 0); if (!ok) { bad++; console.log('       ', JSON.stringify(text), '→', JSON.stringify(p), ' expected', want); } }
   report(bad === 0, `${rows.length} strings are read as expected`);

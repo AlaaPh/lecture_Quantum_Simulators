@@ -10,7 +10,7 @@ const pic = (o) => () => o;
 
 const steps = [
   { type: 'info', title: 'The Zak phase in ten small questions', button: 'Start',
-    html: `<p class="step-text">The SSH chain has two waveguides in every unit cell, A and B. The coupling J₁ = 1 acts inside the cell, the coupling J₂ = 2 between one cell and the next.</p>
+    html: `<p class="step-text">The SSH chain has two waveguides in every unit cell, A and B. The coupling J₁ = 1 acts inside the unit cell, the coupling J₂ = 2 between one unit cell and the next.</p>
       <p class="step-text">For every wavenumber k, one complex number describes the chain:</p>
       <div class="step-formula">h(k) = J₁ + J₂·e<sup>ik</sup> = 1 + 2·e<sup>ik</sup></div>
       <p class="step-text">You calculate h at four values of k. From these four numbers you read the Zak phase γ.</p>`,
@@ -39,12 +39,12 @@ const steps = [
     after: 'The four angles are 0°, 63.43°, 180° and 296.57°.',
     pic: (ok) => ({ set: 'A', n: 4, circle: true, rays: ok ? [0, 1, 2, 3] : [1], arc: true }) },
   { type: 'number', text: 'From each point to the next the angle φ grows by a step: 63.43°, then 116.57°, then 116.57°, then 63.43°. The last step leads back to the first point.',
-    label: 'sum of the four steps =', unit: '°', ref: 360, tol: 0.06,
+    ask: 'Add the four steps.', label: 'sum =', unit: '°', ref: 360, tol: 0.06,
     hint: '63.43 + 116.57 + 116.57 + 63.43.', how: '63.43° + 116.57° + 116.57° + 63.43° = 360°.',
     wrongs: [{ ref: 2 * Math.PI, tol: 0.011, text: 'This is the angle in radians. The field asks for degrees.' }],
     after: '360°: one full turn, because h goes around the origin once.',
     pic: pic({ set: 'A', n: 4, circle: true, rays: [0, 1, 2, 3], steps: true }) },
-  { type: 'number', text: 'The Zak phase is half of this turn. The reason: the formula of the lecture, γ = −arg(⟨u₁|u₂⟩⟨u₂|u₃⟩⟨u₃|u₄⟩⟨u₄|u₁⟩), takes from every pair of neighbours half of its step of φ.',
+  { type: 'number', text: 'The Zak phase is half of this turn. The reason: in the formula of the lecture, γ = −arg(⟨u₁|u₂⟩⟨u₂|u₃⟩⟨u₃|u₄⟩⟨u₄|u₁⟩), each overlap of two neighbouring eigenvectors contributes half of one step of φ.',
     formula: 'γ = ½ · 360°', label: 'γ =', unit: '°', ref: 180, tol: 0.06,
     hint: 'Half of 360°.', how: 'γ = 360°/2 = 180°.',
     wrongs: [{ ref: Math.PI, tol: 0.011, text: 'This is the angle in radians. The field asks for degrees.' }],
@@ -53,7 +53,7 @@ const steps = [
   { type: 'choice', text: 'Now exchange the two couplings: J₁ = 2, J₂ = 1. The picture shows the four new points. The circle has its centre at 2 and the radius 1.',
     ask: 'How many times does h go around the origin now?', look: true, options: ['0', '1', '2'], ref: '0',
     hint: 'Is the ring inside the new circle?',
-    after: 'Not at all. The four steps of φ now add up to 0°.', pic: pic({ set: 'B', n: 4, circle: true }) },
+    after: 'Zero times. The four steps of φ now add up to 0°.', pic: pic({ set: 'B', n: 4, circle: true }) },
   { type: 'choice', text: 'The Zak phase is half of the total turn of φ.', ask: 'So the Zak phase of this chain is', options: ['0', 'π'], ref: '0',
     hint: 'The total turn of φ is 0°.',
     after: 'γ = 0. The rule: if h goes around the origin once, γ = π (J₂ &gt; J₁). If it does not, γ = 0 (J₁ &gt; J₂).',
@@ -90,7 +90,7 @@ function draw(panel, st, c) {
     if (rays) for (const m of rays) { ctx.save(); ctx.setLineDash([4, 4]); ctx.strokeStyle = c.hpsi; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(X(P[m].re), Y(P[m].im)); ctx.stroke(); ctx.restore(); }
     if (arc) { const a = Math.atan2(P[1].im, P[1].re); ctx.strokeStyle = c.hpsi; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(ox, oy, 30, 0, -a, true); ctx.stroke(); ctx.fillStyle = c.hpsi; ctx.font = font(15, 600); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('φ', ox + 36 * Math.cos(a / 2), oy - 36 * Math.sin(a / 2)); }
     if (stepLabels) {                              // the four steps of φ, written between neighbouring rays
-      const txt = ['63.43°', '116.57°', '116.57°', '63.43°'], mid = [0.553, 2.124, -2.124, -0.553], rad = [0.95, 0.62, 0.62, 0.95];
+      const txt = ['63.43°', '116.57°', '116.57°', '63.43°'], mid = [0.553, 2.267, -2.267, -0.553], rad = [0.95, 0.687, 0.687, 0.95];
       ctx.font = font(s < 60 ? 11.5 : 12.5, 600); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       txt.forEach((t, m) => {
         const x = ox + rad[m] * s * Math.cos(mid[m]), y = oy - rad[m] * s * Math.sin(mid[m]), tw = ctx.measureText(t).width;

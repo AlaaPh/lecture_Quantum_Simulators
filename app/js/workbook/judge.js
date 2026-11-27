@@ -27,7 +27,7 @@ export function judge(step, texts) {
   const a = read(texts[0], step.unit);
   if (a.state === 'empty') return { state: 'empty', text: 'Type your number into the field.' };
   if (a.state !== 'ok') return { state: 'unreadable', text: 'Type a plain number, for example 0.25 or −1.5.' };
-  if (step.mod && Math.abs(a.value) > step.mod) return { state: 'wrong', text: `A phase in units of π lies between −${step.mod} and ${step.mod}. Did you type it in degrees or in radians?` };
+  if (step.mod && Math.abs(a.value) > step.mod) return { state: 'wrong', text: 'This number is too large for a phase in units of π: γ lies between −π and π. Did you type it in degrees or in radians?' };
   if (near(a.value, val(step.ref), step.tol, step.mod)) return { state: 'right', text: null, values: [texts[0]] };
   for (const k of step.wrongs || []) if (near(a.value, val(k.ref), k.tol ?? step.tol, k.mod)) return { state: 'wrong', text: k.text };
   return { state: 'wrong', text: null };

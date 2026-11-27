@@ -8,7 +8,8 @@
 // with hint (shown after a wrong answer), how (text, or { py, m } code; offered after two wrong tries), after (shown
 // after the right answer) and pic(solved) → what the picture shows. ref, after and the ref of a known wrong value may
 // be functions: they are evaluated when needed. mod: 2 compares a phase in units of π up to a full turn.
-// look: true marks a question that is answered from the picture: on a narrow screen the picture is shown first.
+// look: true marks a question that is answered from the picture: on a narrow screen the picture then stands inside
+// the card, between the text and the buttons.
 import { Canvas2D } from '../lecture1/panels.js';
 import { colors, invalidateTheme } from '../theme.js';
 import { judge, val } from './judge.js';
@@ -24,7 +25,7 @@ const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 // ---------- state ----------
 const st = { part: 'zak', pos: {}, solved: {}, lang: 'py' };
 for (const p of PARTS) { st.pos[p.id] = 0; st.solved[p.id] = {}; }
-let tries = 0, howShown = false;
+let tries = 0, howShown = false, shownAt = '';
 function load() {
   try {
     const o = JSON.parse(localStorage.getItem(STORE) || '{}');
@@ -32,7 +33,8 @@ function load() {
     if (PARTS.some((p) => p.id === o.part)) st.part = o.part;
     if (o.lang === 'py' || o.lang === 'm') st.lang = o.lang;
     for (const p of PARTS) {
-      if (o.solved && o.solved[p.id] && typeof o.solved[p.id] === 'object') for (const [k, v] of Object.entries(o.solved[p.id])) if (p.steps[k] && p.steps[k].type !== 'info' && Array.isArray(v)) st.solved[p.id][k] = v.map(String);
+      // a stored answer counts only if it is the right answer of the question that stands at this place now
+      if (o.solved && o.solved[p.id] && typeof o.solved[p.id] === 'object') for (const [k, v] of Object.entries(o.solved[p.id])) if (p.steps[k] && p.steps[k].type !== 'info' && Array.isArray(v) && judge(p.steps[k], v.map(String)).state === 'right') st.solved[p.id][k] = v.map(String);
       if (o.pos && Number.isInteger(o.pos[p.id])) st.pos[p.id] = Math.min(p.steps.length - 1, Math.max(0, o.pos[p.id]));
     }
   } catch (e) { /* no storage */ }
@@ -44,7 +46,8 @@ const allSolved = (p) => p.steps.every((s, n) => isSolved(p, n));
 const questions = (p) => p.steps.filter((s) => s.type !== 'info').length;
 
 // ---------- the picture ----------
-const panel = new Canvas2D($('pic'));
+const panel = new Canvas2D($('pic')), figure = document.querySelector('.step-pic'), frame = document.querySelector('.steps-main');
+const narrow = window.matchMedia('(max-width: 1080px)');       // one column, as in the stylesheet
 function drawPic() {
   const p = part(), i = st.pos[p.id], s = p.steps[i];
   panel.ctx.clearRect(0, 0, panel.w, panel.h);
@@ -52,6 +55,13 @@ function drawPic() {
   $('pic-cap').textContent = p.draw(panel, s.pic(s.type !== 'info' && isSolved(p, i)), colors()) || '';
 }
 panel.onRedraw = drawPic;
+// On a narrow screen the picture of a question that is answered from it stands inside the card, between the text and
+// the buttons. Everywhere else it stands beside or below the card.
+function placePicture() {
+  const s = part().steps[st.pos[st.part]], answer = card.querySelector('.step-choice, .step-ask');
+  if (narrow.matches && s.look && answer) { if (figure.parentElement !== card || figure.nextElementSibling !== answer) card.insertBefore(figure, answer); } else if (figure.parentElement !== frame) frame.appendChild(figure);
+}
+narrow.addEventListener('change', placePicture);
 
 // ---------- the card ----------
 const card = $('card');
@@ -60,10 +70,14 @@ function howHtml(how) {
   const lang = how[st.lang] ? st.lang : 'py';
   return `<div class="step-how code"><div class="step-lang" role="group" aria-label="Language of the code"><button type="button" data-lang="py" class="${lang === 'py' ? 'on' : ''}">Python</button><button type="button" data-lang="m" class="${lang === 'm' ? 'on' : ''}"${how.m ? '' : ' disabled'}>MATLAB</button></div><pre><code>${esc(how[lang])}</code></pre></div>`;
 }
-function putHow() {
-  const s = part().steps[st.pos[st.part]], box = $('how');
+// The worked answer stands below the buttons Back and Check, so that the field and Check stay together.
+function putHow(focusLang) {
+  const s = part().steps[st.pos[st.part]], box = $('howbox');
+  $('how').innerHTML = '';
   box.innerHTML = howHtml(s.how);
-  box.querySelectorAll('.step-lang button').forEach((b) => b.addEventListener('click', () => { st.lang = b.dataset.lang; save(); putHow(); }));
+  box.querySelectorAll('.step-lang button').forEach((b) => b.addEventListener('click', () => { st.lang = b.dataset.lang; save(); putHow(true); }));
+  const to = focusLang ? box.querySelector('.step-lang button.on') : null;
+  if (to) to.focus({ preventScroll: true }); else { box.tabIndex = -1; box.focus({ preventScroll: true }); box.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
 }
 function show(n) {
   const p = part(); st.pos[p.id] = Math.max(0, Math.min(p.steps.length - 1, n)); tries = 0; howShown = false; save();
@@ -88,29 +102,38 @@ function show(n) {
     html += '<div class="step-nav"><button class="btn link" id="back" type="button">← Back</button><span class="grow"></span>';
     if (s.type !== 'choice' && !done) html += '<button class="btn primary" id="check" type="button">Check</button>';
     if (done) html += '<button class="btn primary" id="next" type="button">Next →</button>';
-    html += '</div>';
+    html += '</div><div id="howbox"></div>';
   }
+  if (figure.parentElement !== frame) frame.appendChild(figure);      // out of the card before the card is written anew
   card.innerHTML = html;
-  card.parentElement.classList.toggle('look', Boolean(s.look));      // on a phone the picture then stands above the question
+  placePicture();
   const on = (id, fn) => { const e = $(id); if (e) e.addEventListener('click', fn); };
   on('back', () => show(i - 1)); on('next', () => show(i + 1)); on('check', check);
   on('again', () => { st.solved[p.id] = {}; show(0); chips(); });
   on('nextpart', () => setPart(PARTS[PARTS.indexOf(p) + 1].id));
   card.querySelectorAll('.step-ask input').forEach((inp) => {
     if (done) { inp.classList.add('ok'); inp.readOnly = true; }
+    inp.addEventListener('input', () => inp.classList.remove('no'));
     inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (isSolved(part(), st.pos[st.part])) show(st.pos[st.part] + 1); else check(); } });
   });
   card.querySelectorAll('.step-choice button').forEach((b) => b.addEventListener('click', () => choose(b)));
   const first = card.querySelector(done || s.type === 'info' ? '#next, #nextpart' : '.step-ask input');
-  if (first) first.focus({ preventScroll: true });
+  if (first) first.focus({ preventScroll: true }); else { card.tabIndex = -1; card.focus({ preventScroll: true }); }
+  const at = `${p.id}:${i}`;
+  if (at !== shownAt) { shownAt = at; window.scrollTo(0, 0); }       // a new card starts at its top
   drawPic();
 }
 function wrong(text) {
   const s = part().steps[st.pos[st.part]], msg = $('msg'); tries++;
   msg.className = 'step-msg no'; msg.innerHTML = `<b>Not yet.</b> ${text || s.hint}`;
-  if (tries >= 2 && s.how && !howShown) { $('how').innerHTML = '<button class="btn" id="showhow" type="button">Show me how</button>'; $('showhow').addEventListener('click', () => { howShown = true; putHow(); }); }
+  card.querySelectorAll('.step-ask input').forEach((inp) => inp.classList.add('no'));
+  if (tries >= 2 && s.how && !howShown) { $('how').innerHTML = '<button class="btn" id="showhow" type="button">Show me how</button>'; $('showhow').addEventListener('click', () => { howShown = true; putHow(false); }); }
+  msg.scrollIntoView({ block: 'nearest' });
 }
-function right(values) { const p = part(); st.solved[p.id][st.pos[p.id]] = values; show(st.pos[p.id]); chips(); }
+function right(values) {
+  const p = part(); st.solved[p.id][st.pos[p.id]] = values; show(st.pos[p.id]); chips();
+  const next = $('next') || $('nextpart'); if (next) next.scrollIntoView({ block: 'nearest' });
+}
 function check() {
   const s = part().steps[st.pos[st.part]], r = judge(s, [$('f0').value, $('f1') ? $('f1').value : '']);
   if (r.state === 'right') right(r.values); else wrong(r.text);
@@ -123,12 +146,12 @@ function choose(btn) {
 }
 
 // ---------- the parts, the address and the theme ----------
-function chips() { $('parts').innerHTML = PARTS.map((p) => `<a href="#${p.id}" class="${p.id === st.part ? 'active' : ''}"${p.id === st.part ? ' aria-current="page"' : ''}>${p.chip}${allSolved(p) && questions(p) === Object.keys(st.solved[p.id]).length ? ' ✓' : ''}</a>`).join(''); }
-function setPart(id, { keep = false } = {}) {
+// a finished part shows a tick in place of its number
+function chips() { $('parts').innerHTML = PARTS.map((p) => `<a href="#${p.id}" class="${p.id === st.part ? 'active' : ''}"${p.id === st.part ? ' aria-current="page"' : ''}>${allSolved(p) ? p.chip.replace(/^\d ·/, '✓') : p.chip}</a>`).join(''); }
+function setPart(id) {
   if (!PARTS.some((p) => p.id === id)) return;
   st.part = id; const p = part();
-  let i = keep ? st.pos[id] : st.pos[id];
-  while (i > 0 && !isSolved(p, i - 1)) i--;        // never land behind an open question
+  const open = p.steps.findIndex((x, k) => !isSolved(p, k)), i = open >= 0 ? Math.min(st.pos[id], open) : st.pos[id];      // never land behind an open question
   if (location.hash !== `#${id}`) history.replaceState(null, '', `#${id}`);
   chips(); show(i);
   document.title = `Quantum Simulators Workbook: ${p.chip.replace(/^\d · /, '')}`;

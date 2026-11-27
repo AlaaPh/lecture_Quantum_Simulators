@@ -102,8 +102,14 @@ All numbers below were computed with numpy in two independent ways and by the pa
 - Zak phase of band 3 (M = 50): −0.984π at z = 0, 0.178π at a quarter period; it grows by 2·2π in one period.
 - Plaquette grid: 6 × 6 already gives 2, −3, 2, −3, 2; 4 × 4 and 5 × 5 do not. The workbook uses 10 × 10.
 - In the paper: a soliton that bifurcates from the lowest band moves two unit cells per period at low power
-  (calculated, gP/J_max = 0.55); at gP/J_max = 1.65 it follows the Wannier states of bands 1 and 2 together and moves
-  one unit cell to the left in two periods, f = (2 − 3)/2 = −1/2 (measured).
+  (calculated, gP/J_max = 0.55). At higher power it follows the Wannier states of bands 1 and 2 together and moves
+  one unit cell to the left in two periods, f = (2 − 3)/2 = −1/2 (calculated at gP/J_max = 1.65, measured at 2.15).
+- Compared with the figures of the paper: Fig. 1b shows the five couplings between 0.075 and 0.18 mm⁻¹, as the
+  formulas above give (0.074 to 0.182), and Fig. 1c the same five bands (band 3 between ±0.17 J_max, top of band 5 at
+  1.36 J_max). The distances between neighbours are then 15.35 to 19.15 μm; the Methods of the paper say "between
+  16.25 μm and 18.25 μm", which does not fit its own formula and figure. In Fig. 1b the largest coupling at Ωz = 0 is
+  called J₄, here J₃: the paper counts the couplings one waveguide later (its J_n couples waveguides n − 1 and n).
+  The lattice is the same.
 
 ## Where the app differs
 
