@@ -3,7 +3,7 @@
 // A part is { id, chip, next, steps, draw(panel, spec, colors) → caption }. A step is
 //   { type: 'info', title, html, button, end }                     a card to read
 //   { type: 'complex', text, formula, ref: { re, im } }            two fields: real and imaginary part
-//   { type: 'number', text, formula, extra, ask, label, unit, ref, tol, mod, wrongs }   one field
+//   { type: 'number', text, formula, extra, ask, label, unit, ref, tol, mod, wrongs, ph }   one field (ph: its form)
 //   { type: 'choice', text, ask, options, ref }                    buttons
 // with hint (shown after a wrong answer), how (text, or { py, m } code; offered after two wrong tries), after (shown
 // after the right answer) and pic(solved) → what the picture shows. ref, after and the ref of a known wrong value may
@@ -67,7 +67,7 @@ function putHow() {
 function show(n) {
   const p = part(); st.pos[p.id] = Math.max(0, Math.min(p.steps.length - 1, n)); tries = 0; howShown = false; save();
   const i = st.pos[p.id], s = p.steps[i], done = isSolved(p, i), vals = st.solved[p.id][i] || [], qn = p.steps.slice(0, i + 1).filter((x) => x.type !== 'info').length;
-  const input = (id, label, v) => `<input id="${id}" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="${esc(label)}" value="${esc(v || '')}">`;
+  const input = (id, label, v) => `<input id="${id}" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="${esc(label)}"${s.ph ? ` placeholder="${esc(s.ph)}"` : ''} value="${esc(v || '')}">`;
   let html = '';
   if (s.type === 'info') {
     html += `<h2>${s.title}</h2>${s.html}<div class="step-nav">${i > 0 ? '<button class="btn link" id="back" type="button">← Back</button>' : ''}<span class="grow"></span>`;

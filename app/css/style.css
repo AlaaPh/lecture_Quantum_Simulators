@@ -310,6 +310,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
 .step-ask { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; font: 400 21px var(--font-math); margin: 18px 0 6px; }
 .step-ask input { font: 500 20px var(--font-mono); width: 6.2em; padding: 8px 10px; border: 2px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--fg); text-align: right; }
 .step-ask input:focus { outline: none; border-color: var(--accent); }
+.step-ask input::placeholder { color: var(--fg-2); opacity: 0.45; }
 .step-ask input.ok { border-color: var(--v1); }
 .step-ask input.no { border-color: var(--hpsi); }
 .step-choice { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 6px; }
@@ -347,7 +348,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
   .step-card { padding: 20px 18px; }
   .step-pic { position: static; }
   .step-pic canvas { height: 300px; }
-  .step-formula { font-size: 20px; }
+  .step-formula { font-size: 19px; white-space: normal; }
   .steps-page .top { flex-wrap: wrap; row-gap: 6px; }
   .steps-page .top .acts { flex-wrap: wrap; overflow-x: visible; }
   .steps-page .top h1 { white-space: nowrap; }

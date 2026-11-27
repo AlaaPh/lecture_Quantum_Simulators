@@ -10,7 +10,7 @@ intuition behind them.
 |---|---|
 | `source/` | Source documents. `Coding_sessions_v1_annotated.pdf` is the task sheet with the reviewer's notes, `LectureNotes.md` the conventions of lectures VL1–VL8 that the exercises follow. |
 | `app/` | **Quantum Simulators Lab**, a static web app (no build step). Open `app/index.html` through any static server. |
-| `tools/` | Helper scripts (`make_artifact.py` builds the preview version of the app) and the tests of the workbook: `workbook_numbers.json` holds its reference numbers, `test_workbook.mjs` compares the page with them and tests every question, `check_workbook.cjs` drives the page in a browser. |
+| `tools/` | Helper scripts (`make_artifact.py` builds the preview version of the app) and the tests of the workbook: `workbook_numbers.json` holds its reference numbers, `test_workbook.mjs` compares the page with them and tests every question, `check_workbook.cjs` drives the page in a browser, `test_code_hints.sh` runs the code shown as worked answers. |
 
 ## The app
 
@@ -70,14 +70,16 @@ a hint, and after two wrong tries the worked answer can be shown. Three parts:
 
 1. **Zak phase** (ten questions) — h(k) = J₁ + J₂e^{ik} at k = 0, π/2, π, 3π/2 for J₁ = 1, J₂ = 2; how often h goes
    around the origin; γ is half of the total turn of the angle of h, so γ = π; then J₁ = 2, J₂ = 1 with γ = 0.
-2. **Thouless pump** (seven questions) — the lattice of Jürgensen, Mukherjee, Jörg and Rechtsman, "Quantized
+2. **Thouless pump** (eight questions) — the lattice of Jürgensen, Mukherjee, Jörg and Rechtsman, "Quantized
    fractional Thouless pumping of solitons", Nature Physics 19, 420 (2023): five waveguides per unit cell at
    x_n(z) = n·d + δ·cos(Ωz + 4πn/5 − 3π/10), d = 17.25 μm, δ = 1 μm, coupled by J(s) = 6.672 mm⁻¹ · e^{−0.2348 s/μm}.
-   One position, one distance and one coupling by hand; the 5 × 5 matrix H(k) in the student's own code; the five
-   bands during one period; the light of band 3, which moves by two unit cells in one period.
-3. **Chern number** (seven questions) — the Zak phase of band 3 from the overlap formula in the student's code, at
-   z = 0 and at a quarter period; its growth over the period gives C = 2; then C from the plaquettes of a 10 × 10
-   grid; band 2 with C = −3; the sum over all five bands, 2 − 3 + 2 − 3 + 2 = 0.
+   One position, one distance and one coupling by hand; then the student's own code: the five couplings for any z,
+   the 5 × 5 matrix H(k) and its eigenvalues; the five bands during one period; the light of band 3, which moves by
+   two unit cells in one period.
+3. **Chern number** (eight questions) — in the student's code: one overlap of two eigenvectors of band 3, the Zak
+   phase from the closed product of 50 overlaps at z = 0 and at a quarter period; its growth over the period gives
+   C = 2; then C from the plaquettes of a 10 × 10 grid; band 2 with C = −3; the sum over all five bands,
+   2 − 3 + 2 − 3 + 2 = 0.
 
 For the questions with code the worked answer is a few lines in Python and in MATLAB (the MATLAB lines were run in
 GNU Octave 8 only). Only the linear lattice is used; the solitons of the paper are named on the last card.
@@ -185,4 +187,5 @@ were computed with numpy in two independent ways and are not produced by the pag
 ```bash
 node tools/test_workbook.mjs       # the model against the stored numbers, every question, the reader of typed numbers
 node tools/check_workbook.cjs      # the page in headless Chromium (needs Playwright): every question, hints, phone width
+bash tools/test_code_hints.sh      # the code of "Show me how" as a student would run it: Python, and MATLAB lines in Octave
 ```

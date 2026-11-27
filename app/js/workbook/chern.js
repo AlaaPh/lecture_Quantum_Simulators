@@ -2,60 +2,76 @@
 import { arrow } from '../lecture1/panels.js';
 import { cmapSeq, cmapDiv, rgbToCss } from '../theme.js';
 import { TAU, font, tag, axes, minus, PERIOD_TICKS } from './draw.js';
-import { zak, plaquette, chernGrid, gammaCurve } from './aah.js';
+import { zak, plaquette, chernGrid, gammaCurve, overlapAbs } from './aah.js';
 import { drawBands } from './pump.js';
 import { CODE } from './code.js';
 
 const PI = Math.PI, STEP = TAU / 10;
 const g0 = () => zak(3, 0) / PI, g1 = () => zak(3, PI / 2) / PI;      // γ of band 3 in units of π, M = 50
+const ov12 = () => overlapAbs(3, 0, TAU / 50, 0);
 const f = (v, d) => minus(v.toFixed(d));
 const pic = (o) => () => o;
-const FLIP = 'The sign is reversed. Three things reverse it: +arg instead of −arg, the other direction around the loop, or e<sup>−ik</sup> in the lower left corner of the matrix.';
+const FLIP = 'The sign is reversed. Three things reverse it: +arg instead of −arg; the overlaps written the other way round, ⟨u<sub>s+1</sub>|u<sub>s</sub>⟩; or e<sup>−ik</sup> in the lower left corner of the matrix.';
 
 const steps = [
-  { type: 'info', title: 'The Chern number in seven small questions', button: 'Start',
-    html: `<p class="step-text">In part 1 the Zak phase came from the angle of h. With five waveguides per cell there is no single h, so take the formula of the lecture:</p>
+  { type: 'info', title: 'The Chern number in eight small questions', button: 'Start',
+    html: `<p class="step-text">In part 1 the chain was described by one complex number h. Now the Hamiltonian is a 5 × 5 matrix. So take the formula of the lecture for the Zak phase:</p>
       <div class="step-formula">γ = −arg( ⟨u₁|u₂⟩ ⟨u₂|u₃⟩ … ⟨u<sub>M</sub>|u₁⟩ )</div>
-      <p class="step-text">u<sub>s</sub> is the eigenvector of one band at k<sub>s</sub> = 2π(s − 1)/M, and ⟨u|v⟩ = u₁*·v₁ + … + u₅*·v₅.</p>
-      <p class="step-text">γ/2π is the position of the light of this band, in unit cells.</p>`,
+      <p class="step-text">M is the number of values of k. u<sub>s</sub> is the eigenvector of H for one band at k<sub>s</sub> = 2π(s − 1)/M. arg is the angle of a complex number, between −π and π (Python: <code>np.angle</code>, MATLAB: <code>angle</code>).</p>
+      <p class="step-text">You build this formula in two steps: first one overlap, then the whole product.</p>`,
     pic: pic({ kind: 'bands', hi: 3 }) },
-  { type: 'number', text: 'Take z = 0, M = 50 values of k, and band 3. Band 3 is the third column of the eigenvectors, sorted by eigenvalue (Python: <code>V[:, 2]</code> from <code>np.linalg.eigh</code>; MATLAB: <code>V(:, 3)</code> from <code>eig</code>).',
-    ask: 'Calculate γ.', label: 'γ =', unit: 'π', ref: g0, tol: 0.003, mod: 2,
-    hint: 'Two usual mistakes: the complex conjugate in the overlap is missing (use <code>np.vdot(u, v)</code> or <code>u\'*v</code>), or the loop is not closed with ⟨u<sub>M</sub>|u₁⟩.',
-    how: CODE.zak, wrongs: [{ ref: () => -g0(), tol: 0.003, mod: 2, text: FLIP }, { ref: () => g0() * PI, tol: 0.006, text: 'This is γ in radians. The field is in units of π: divide by π.' }],
-    after: () => `γ = ${f(g0(), 2)}π, so γ/2π = ${f(g0() / 2, 2)}: the position of the light of band 3 at z = 0, in unit cells.`,
+  { type: 'number', text: 'The overlap of two vectors is ⟨u|v⟩ = Σ u<sub>j</sub>*·v<sub>j</sub>: a sum over the five waveguides j, with the complex conjugate of u. Take z = 0 and band 3: the third column of the eigenvectors, sorted by eigenvalue (Python: <code>V[:, 2]</code> from <code>np.linalg.eigh</code>; MATLAB: <code>V(:, 3)</code> from <code>eig</code>).',
+    ask: 'Calculate the overlap of u₁ (at k = 0) and u₂ (at k = 2π/50). Type its absolute value with four decimals.', label: '|⟨u₁|u₂⟩| =', unit: '', ref: ov12, tol: 0.00012, ph: '0.0000',
+    hint: 'For k ≠ 0 the matrix is complex: in Python create it with <code>np.zeros((5, 5), complex)</code>. The overlap is <code>np.vdot(u1, u2)</code> in Python and <code>u1\'*u2</code> in MATLAB.',
+    how: CODE.overlap, wrongs: [{ ref: 1, tol: 0.000004, text: 'Exactly 1? Then both vectors are the same: u₂ belongs to k = 2π/50, not to k = 0.' },
+      { ref: () => overlapAbs(4, 0, TAU / 50, 0), tol: 0.00012, text: 'This is band 4. Python counts the columns from 0: band 3 is <code>V[:, 2]</code>.' },
+      { ref: () => overlapAbs(2, 0, TAU / 50, 0), tol: 0.00012, text: 'This is band 2. MATLAB counts the columns from 1: band 3 is <code>V(:, 3)</code>.' },
+      { ref: 0.99999, tol: 0.00003, text: 'The matrix has lost its imaginary part. In Python create it with <code>np.zeros((5, 5), complex)</code>.' },
+      { ref: 0.997, tol: 0.000001, text: 'Close. Type four decimals.' }],
+    after: 'Almost 1: neighbouring eigenvectors are almost the same. The angle of this number depends on the phases your computer gave to u₁ and u₂; its absolute value does not. In the closed product of the next question these phases cancel.',
+    pic: pic({ kind: 'ring', n: 2 }) },
+  { type: 'number', text: 'Now all M = 50 values of k: k<sub>s</sub> = 2π(s − 1)/50. Multiply the 50 overlaps ⟨u₁|u₂⟩ ⟨u₂|u₃⟩ … ⟨u₅₀|u₁⟩. The last one closes the loop.',
+    ask: 'Calculate γ = −arg(product) for band 3 at z = 0.', label: 'γ =', unit: 'π', ref: g0, tol: 0.003, mod: 2, ph: '0.00',
+    hint: 'Keep the 50 eigenvectors in a list and use the same u₁ at the start and at the end of the product.',
+    how: CODE.zak, wrongs: [{ ref: () => -g0(), tol: 0.003, mod: 2, text: FLIP }, { ref: 0, tol: 0.0005, text: 'Exactly 0? Then the matrix has lost its imaginary part. In Python create it with <code>np.zeros((5, 5), complex)</code>.' }],
+    after: () => `γ = ${f(g0(), 2)}π. γ/2π = ${f(g0() / 2, 2)} is the mean position of the light of band 3 at z = 0, in unit cells. Only the change of γ matters: γ is an angle and is fixed only up to 2π.`,
     pic: (ok) => ({ kind: 'gamma', dots: ok ? 1 : 0 }) },
-  { type: 'number', text: 'Go a quarter of a period further: Ωz = π/2.', ask: 'Calculate γ of band 3 again.', label: 'γ =', unit: 'π', ref: g1, tol: 0.003, mod: 2,
-    hint: 'Only the couplings change: use Ωz = π/2 in the positions of the waveguides.',
-    how: CODE.zak2, wrongs: [{ ref: () => -g1(), tol: 0.003, mod: 2, text: FLIP }, { ref: g0, tol: 0.003, mod: 2, text: 'This is γ at z = 0 again. Put Ωz = π/2 into the positions of the waveguides.' }],
+  { type: 'number', text: 'Go a quarter of a period further: Ωz = π/2. The five couplings have changed, so the matrix and its eigenvectors have changed too.', ask: 'Calculate γ of band 3 again.', label: 'γ =', unit: 'π', ref: g1, tol: 0.003, mod: 2, ph: '0.00',
+    hint: 'Use your code for the couplings with Ωz = π/2. Nothing else changes.',
+    how: CODE.zak2, wrongs: [{ ref: () => -g1(), tol: 0.003, mod: 2, text: FLIP }, { ref: g0, tol: 0.003, mod: 2, text: 'This is γ at z = 0 again. Put Ωz = π/2 into the positions of the waveguides.' },
+      { ref: () => g1() * PI, tol: 0.006, text: 'This is γ in radians. The field is in units of π: divide by π.' }],
     after: () => `γ went from ${f(g0(), 2)}π to ${f(g1(), 2)}π. The light of band 3 moved by (${f(g1(), 2)} + ${(-g0()).toFixed(2)})/2 = ${((g1() - g0()) / 2).toFixed(2)} unit cells.`,
     pic: (ok) => ({ kind: 'gamma', dots: ok ? 2 : 1 }) },
-  { type: 'choice', text: 'The picture shows γ/2π of band 3 for the whole period. Your two values are the dots.',
+  { type: 'choice', text: 'The picture shows γ/2π of band 3 for the whole period. Your two values are the dots. Your code gives γ only between −π and π; in the picture 2π is added after each jump, so the curve has no jumps.',
     ask: 'By how many unit cells does γ/2π grow in one period?', options: ['1', '2', '3'], ref: '2',
     hint: 'Read the curve at z = 0 and at z = L and take the difference.',
     after: 'γ grows by 2 · 2π. This number is the Chern number of band 3: C = 2. It is the number of unit cells the light moved in part 2.',
     pic: (ok) => ({ kind: 'gamma', dots: 2, curve: true, rise: ok }) },
-  { type: 'number', text: 'The Chern number can also be calculated directly. Divide k and Ωz into 10 steps each. This gives 10 × 10 small squares. Walk around one square, a → b → c → d → a, and multiply the four overlaps:',
+  { type: 'info', title: 'The same number, calculated directly',
+    html: `<p class="step-text">Divide k and Ωz, both from 0 to 2π, into 10 steps of 2π/10. This gives 10 × 10 small squares.</p>
+      <p class="step-text">Each square gives a small phase F. The Chern number is the sum of all F, divided by 2π.</p>`,
+    pic: pic({ kind: 'grid', band: 3, shown: false, first: true }) },
+  { type: 'number', text: 'Walk around the first square, a → b → c → d → a, and multiply the four overlaps. The picture shows the four corners.',
     formula: 'F = −arg( ⟨u<sub>a</sub>|u<sub>b</sub>⟩ ⟨u<sub>b</sub>|u<sub>c</sub>⟩ ⟨u<sub>c</sub>|u<sub>d</sub>⟩ ⟨u<sub>d</sub>|u<sub>a</sub>⟩ )',
-    ask: 'Calculate F of band 3 for the first square: its corner a is k = 0, Ωz = 0.', label: 'F =', unit: 'π', ref: () => plaquette(3, 0, 0, STEP) / PI, tol: 0.0008,
-    hint: 'The picture shows the four corners. The first step, a → b, goes in Ωz. Each step is 2π/10.',
+    ask: 'Calculate F of band 3 for this square.', label: 'F =', unit: 'π', ref: () => plaquette(3, 0, 0, STEP) / PI, tol: 0.0008, ph: '0.000',
+    hint: 'u<sub>a</sub> is the eigenvector of band 3 at k = 0, Ωz = 0; u<sub>b</sub> at k = 0, Ωz = 2π/10; u<sub>c</sub> at k = 2π/10, Ωz = 2π/10; u<sub>d</sub> at k = 2π/10, Ωz = 0.',
     how: CODE.plaquette, wrongs: [{ ref: () => -plaquette(3, 0, 0, STEP) / PI, tol: 0.0008, text: 'The sign is reversed: you walked the other way round, or took +arg.' },
       { ref: () => plaquette(3, 0, 0, STEP), tol: 0.002, text: 'This is F in radians. The field is in units of π: divide by π.' }],
-    after: 'F is the Berry phase of one small square.', pic: pic({ kind: 'corner' }) },
-  { type: 'number', text: 'Calculate F for all 100 squares and add them.', label: 'sum =', unit: 'π', ref: () => chernGrid(3, 10).sum / PI, tol: 0.01,
-    hint: 'Take every corner a = (2πi/10, 2πj/10) with i and j from 0 to 9. Add the 100 values of F; do not multiply all overlaps into one product.',
+    after: 'F is a phase like γ, for the closed path around one small square. Such a phase is called a Berry phase.', pic: pic({ kind: 'corner' }) },
+  { type: 'number', text: 'Calculate F for all 100 squares and add them. The corner a of a square is k = 2π·i/10, Ωz = 2π·j/10, with i and j from 0 to 9. At the edge, k = 2π gives the same matrix as k = 0.', label: 'sum =', unit: 'π', ref: () => chernGrid(3, 10).sum / PI, tol: 0.01, ph: '0.00',
+    hint: 'Take −arg for every square first, then add the 100 values. Do not multiply all overlaps into one product.',
     how: CODE.sum, wrongs: [{ ref: () => -chernGrid(3, 10).sum / PI, tol: 0.01, text: 'The sign is reversed: you walked the other way round, or took +arg.' },
       { ref: 0, tol: 0.01, text: 'You took arg of one product of all overlaps. Take −arg for every square first, then add the 100 values.' },
       { ref: 2, tol: 0.01, text: 'This is already sum/2π. The field asks for the sum in units of π.' }],
-    after: '4π = 2 · 2π. The Chern number is C = sum/2π = 2: the same number as from γ, and an exact integer already on this coarse grid.',
+    after: '4π = 2 · 2π. The Chern number is C = sum/2π = 2: the same number as from γ, and an exact integer already with only 10 × 10 squares.',
     pic: (ok) => ({ kind: 'grid', band: 3, shown: ok }) },
-  { type: 'number', text: 'Change one thing: band 2 instead of band 3. Add F of all 100 squares again and divide by 2π.', label: 'C =', unit: '', ref: () => chernGrid(2, 10).C, tol: 0.01,
+  { type: 'number', text: 'Change one thing: band 2 instead of band 3. Add F of all 100 squares again and divide by 2π.', label: 'C =', unit: '', ref: () => chernGrid(2, 10).C, tol: 0.01, ph: '0',
     hint: 'Band 2 is the second column: <code>V[:, 1]</code> in Python, <code>V(:, 2)</code> in MATLAB.',
     how: CODE.band2, wrongs: [{ ref: 3, tol: 0.01, text: 'The sign is reversed: you walked the other way round, or took +arg.' }, { ref: 2, tol: 0.01, text: 'This is still band 3. Take the second column of the eigenvectors.' },
       { ref: -6, tol: 0.02, text: 'This is the sum in units of π. Divide by 2π: C = sum/2π.' }],
-    after: 'Band 2 has C = −3: three unit cells per period, in the other direction.',
+    after: 'Band 2 has C = −3: light in band 2 moves 3 unit cells per period, in the other direction.',
     pic: (ok) => (ok ? { kind: 'grid', band: 2, shown: true } : { kind: 'bands', hi: 2, chern: [3] }) },
-  { type: 'number', text: 'The five bands of this lattice have the Chern numbers 2, −3, 2, −3, 2.', ask: 'Add them.', label: 'sum =', unit: '', ref: 0, tol: 0.001,
+  { type: 'number', text: 'The five bands of this lattice have the Chern numbers 2, −3, 2, −3, 2.', ask: 'Add the five Chern numbers.', label: 'sum =', unit: '', ref: 0, tol: 0.001, ph: '0',
     hint: '2 − 3 + 2 − 3 + 2.', how: '2 − 3 + 2 − 3 + 2 = 0.',
     after: '0, always: the Chern numbers of all bands of a lattice add up to zero.', pic: pic({ kind: 'bands', chern: [1, 2, 3, 4, 5], hiAll: true }) },
   { type: 'info', title: 'Done', end: true,
@@ -99,6 +115,9 @@ function drawCorner(ctx, w, h, c) {
     const p = P[name]; ctx.fillStyle = c.hpsi; ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), 5, 0, TAU); ctx.fill();
     tag(ctx, name, X(p[0]) + off[name][0], Y(p[1]) + off[name][1], { color: c.fg, bg: c.surface, px: 15 });
   }
+  const list = ['a = (0, 0)', 'b = (0, 2π/10)', 'c = (2π/10, 2π/10)', 'd = (2π/10, 0)'];      // written as (k, Ωz)
+  tag(ctx, 'corners (k, Ωz):', X(1.25), Y(2.45), { color: c['fg-2'], bg: c.surface, px: 12.5, wt: 500, align: 'left' });
+  list.forEach((t, i) => tag(ctx, t, X(1.25), Y(2.45) + 18 * (i + 1), { color: c.fg, bg: c.surface, px: 12.5, wt: 500, align: 'left' }));
   tag(ctx, 'F', (X(0) + X(1)) / 2, (Y(0) + Y(1)) / 2, { color: c.psi, px: 17, wt: 600 });
   return 'The lower left corner of the 10 × 10 grid. The first square with its corners a, b, c, d and the direction of the walk.';
 }
@@ -112,12 +131,27 @@ function drawGrid(ctx, w, h, c, st) {
     if (st.shown) { ctx.fillStyle = rgbToCss(allPos ? cmapSeq(F[i][j] / top) : cmapDiv(F[i][j] / top)); ctx.fillRect(X(i), Y(j + 1), X(i + 1) - X(i) + 0.5, Y(j) - Y(j + 1) + 0.5); }
     ctx.strokeStyle = c.line; ctx.lineWidth = 1; ctx.strokeRect(Math.round(X(i)) + 0.5, Math.round(Y(j + 1)) + 0.5, Math.round(X(i + 1) - X(i)), Math.round(Y(j) - Y(j + 1)));
   }
+  if (st.first) { ctx.fillStyle = c.psi; ctx.globalAlpha = 0.85; ctx.fillRect(X(0), Y(1), X(1) - X(0), Y(0) - Y(1)); ctx.globalAlpha = 1; tag(ctx, 'the first square', X(1) + 8, Y(0.5), { color: c.psi, bg: c.surface, px: 12.5, align: 'left' }); }
   if (st.shown) tag(ctx, `sum of all F = ${minus((sum / Math.PI).toFixed(0))}π`, X(5), Y(10) - 12, { color: c.fg, px: 13.5 });
   return st.shown ? `F of band ${st.band} in each of the 100 squares: a strong colour is a large |F|.` : 'The 10 × 10 squares of the grid. Each square gives one F.';
 }
 
+// The M = 50 values of k on a ring (k = 2π is k = 0 again). The first st.n of them are marked and named.
+function drawRing(ctx, w, h, c, st) {
+  const cx = w / 2, cy = h / 2, R = Math.min(w, h) * 0.36, M = 50, at = (s) => [cx + R * Math.sin((TAU * s) / M), cy - R * Math.cos((TAU * s) / M)];
+  ctx.strokeStyle = c.line; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.stroke();
+  for (let s = 0; s < M; s++) { const [x, y] = at(s), on = s < st.n; ctx.fillStyle = on ? c.hpsi : c['fg-2']; ctx.globalAlpha = on ? 1 : 0.55; ctx.beginPath(); ctx.arc(x, y, on ? 6 : 3.2, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; }
+  tag(ctx, 'u₁,  k = 0', at(0)[0] - 8, at(0)[1] - 18, { color: c.hpsi, px: 13.5, align: 'right' });
+  tag(ctx, 'u₂,  k = 2π/50', at(1)[0] + 10, at(1)[1] - 14, { color: c.hpsi, px: 13.5, align: 'left' });
+  const [ax, ay] = at(6), [bx, by] = at(8); arrow(ctx, ax + 16, ay, bx + 13, by + 4, c['fg-2'], 1.8, 8);
+  tag(ctx, 'k grows', at(8)[0] + 22, at(8)[1] + 6, { color: c['fg-2'], px: 12.5, wt: 500, align: 'left' });
+  tag(ctx, '50 values of k', cx, cy - 9, { color: c.fg, px: 14 }); tag(ctx, 'from 0 to 2π', cx, cy + 11, { color: c['fg-2'], px: 12.5, wt: 500 });
+  return 'The 50 values of k. After the last one comes the first again: k = 2π is the same as k = 0.';
+}
+
 function draw(panel, st, c) {
   const { ctx, w, h } = panel;
+  if (st.kind === 'ring') return drawRing(ctx, w, h, c, st);
   if (st.kind === 'gamma') return drawGamma(ctx, w, h, c, st);
   if (st.kind === 'corner') return drawCorner(ctx, w, h, c);
   if (st.kind === 'grid') return drawGrid(ctx, w, h, c, st);

@@ -31,6 +31,9 @@ const ov = (u, v) => { let re = 0, im = 0; for (let j = 0; j < u.re.length; j++)
 const mul = (a, b) => [a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0]];
 const arg = (a) => Math.atan2(a[1], a[0]);
 
+// |⟨u(k1)|u(k2)⟩| of one band: it does not depend on the phases that the eigenvectors happen to have.
+export const overlapAbs = (band, k1, k2, phase) => { const o = ov(bandVector(band, k1, phase), bandVector(band, k2, phase)); return Math.hypot(o[0], o[1]); };
+
 // Zak phase of one band at fixed phase: γ = −arg ∏ ⟨u_s|u_{s+1}⟩, k_s = 2πs/M, the loop closed.
 export function zak(band, phase, M = 50) {
   const us = []; for (let s = 0; s < M; s++) us.push(bandVector(band, (TAU * s) / M, phase));

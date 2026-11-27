@@ -27,12 +27,14 @@ console.log('1. the model against the independent numbers');
 list('positions x_1 … x_6 at z = 0 (μm)', [1, 2, 3, 4, 5, 6].map((n) => A.xPos(n, 0)), R.x_um_z0, 1e-9);
 num('distance of waveguides 1 and 2 (μm)', A.xPos(2, 0) - A.xPos(1, 0), R.s12_um_z0, 1e-9);
 list('couplings J_1 … J_5 at z = 0 (1/mm)', A.couplings(0), R.J_z0, 1e-9);
+list('couplings J_1 … J_5 at a quarter period (1/mm)', A.couplings(PI / 2), R.J_quarter, 1e-9);
 list('eigenvalues of H(k = 0) at z = 0', A.eig(0, 0).values, R.eig_k0_z0, 1e-9);
 num('smallest eigenvalue without the corners J_5', A.eig(0, 0, { corners: false }).values[0], R.eig_k0_z0_no_corners_min, 1e-9);
 {
   const E = A.bandEdges(200, 200), gaps = [0, 1, 2, 3].map((b) => Math.min(...E.map((e) => e.lo[b + 1] - e.hi[b])));
   list('smallest gaps between neighbouring bands (1/mm)', gaps, R.min_gaps, 2e-5);
 }
+list('|⟨u(0)|u(2π/50)⟩| at z = 0, bands 1 … 5', [1, 2, 3, 4, 5].map((b) => A.overlapAbs(b, 0, TAU / 50, 0)), R.abs_overlap_k0_k2pi50_phi0_bands, 1e-9);
 num('γ/π of band 3, M = 50, z = 0', A.zak(3, 0, 50) / PI, R.zak3_M50_phi0_over_pi, 1e-8);
 num('γ/π of band 3, M = 50, Ωz = π/2', A.zak(3, PI / 2, 50) / PI, R.zak3_M50_phiquarter_over_pi, 1e-8);
 list('γ/2π gained in one period, bands 1 … 5', [1, 2, 3, 4, 5].map((b) => { const g = A.gammaCurve(b, 96, 100); return g[g.length - 1] - g[0]; }), R.zak_winding_per_period, 1e-6);
@@ -93,32 +95,40 @@ for (const p of PARTS) {
       }
     }
   }
-  report(q === (p.id === 'zak' ? 10 : 7), `${p.id}: ${q} questions`);
+  report(q === (p.id === 'zak' ? 10 : 8), `${p.id}: ${q} questions`);
+  report(p.steps[0].title.includes(p.id === 'zak' ? 'ten small questions' : 'eight small questions'), `${p.id}: the first card names the number of questions`);
   report(p.steps[0].type === 'info' && p.steps[p.steps.length - 1].type === 'info' && p.steps[p.steps.length - 1].end === true, `${p.id}: starts and ends with a card`);
 }
 // what the usual mistakes of the code give, and that the page tells them apart
 {
   const q = (p, n) => p.steps.filter((s) => s.type !== 'info')[n - 1];
   const E = A.eig(0, 0).values;
-  report(/corners/.test(judge(q(pump, 5), [A.eig(0, 0, { corners: false }).values[0].toFixed(4)]).text), 'pump 5: matrix without the corners → hint about the corners');
-  report(/−H/.test(judge(q(pump, 5), [(-E[4]).toFixed(4)]).text), 'pump 5: matrix with −J → hint about the sign');
-  report(/largest/.test(judge(q(pump, 5), [E[4].toFixed(4)]).text), 'pump 5: the largest eigenvalue → hint');
+  report(/corners/.test(judge(q(pump, 6), [A.eig(0, 0, { corners: false }).values[0].toFixed(4)]).text), 'pump 6: matrix without the corners → hint about the corners');
+  report(/−H/.test(judge(q(pump, 6), [(-E[4]).toFixed(4)]).text), 'pump 6: matrix with −J → hint about the sign');
+  report(/highest/.test(judge(q(pump, 6), [E[4].toFixed(4)]).text) && /closest to zero/.test(judge(q(pump, 6), [E[2].toFixed(4)]).text), 'pump 6: the highest eigenvalue and the one closest to zero → their hints');
+  const Jq = A.couplings(PI / 2);
+  report(judge(q(pump, 5), [Jq[2].toFixed(3)]).state === 'right' && judge(q(pump, 5), [Jq[2].toFixed(4)]).state === 'right' && /z = 0/.test(judge(q(pump, 5), [A.couplings(0)[2].toFixed(3)]).text) && /J₂/.test(judge(q(pump, 5), [Jq[1].toFixed(3)]).text) && /J₄/.test(judge(q(pump, 5), [Jq[3].toFixed(3)]).text) && judge(q(pump, 5), [Jq[0].toFixed(3)]).state === 'wrong' && judge(q(pump, 5), [Jq[4].toFixed(3)]).state === 'wrong', 'pump 5: J₃ at a quarter period with three or four decimals; J₃ at z = 0, J₂ and J₄ get their hints; J₁ and J₅ are wrong', Jq.map((v) => v.toFixed(4)).join(' '));
   const Jr = A.couplings(0).map((v) => Number(v.toFixed(3)));                // a student who types the five rounded couplings of the picture
   const re = Array.from({ length: 5 }, () => [0, 0, 0, 0, 0]), im = Array.from({ length: 5 }, () => [0, 0, 0, 0, 0]);
   for (let i = 0; i < 4; i++) { re[i][i + 1] = Jr[i]; re[i + 1][i] = Jr[i]; } re[4][0] = Jr[4]; re[0][4] = Jr[4];
   const { hermEig } = await import('../app/js/linalg.js');
   const Er = hermEig(re, im).values[0];
-  report(judge(q(pump, 5), [Er.toFixed(4)]).state === 'right', 'pump 5: with the couplings rounded to three decimals the answer is still right', Er.toFixed(5));
+  report(judge(q(pump, 6), [Er.toFixed(4)]).state === 'right' && judge(q(pump, 6), [Er.toFixed(3)]).state === 'right', 'pump 6: with the couplings rounded to three decimals the answer is still right', Er.toFixed(5));
   report(judge(q(pump, 3), ['0.13']).state === 'wrong' && judge(q(pump, 3), ['0.133']).state === 'right' && judge(q(pump, 3), ['0.1334']).state === 'right' && judge(q(pump, 3), ['0.1335']).state === 'right', 'pump 3: 0.133, 0.1334 and 0.1335 (from the rounded distance) are right, 0.13 is not');
   report(judge(q(pump, 1), ['33.9']).state === 'right' && judge(q(pump, 1), ['33.912']).state === 'right' && judge(q(pump, 1), ['34.5']).state === 'wrong', 'pump 1: 33.9 and 33.912 are right, 34.5 is not');
   report(judge(q(pump, 2), ['16.66']).state === 'right' && judge(q(pump, 2), ['16.7']).state === 'wrong', 'pump 2: 16.66 is right, 16.7 is not');
-  for (const [M, ok] of [[20, true], [100, true], [400, true], [10, true]]) report((judge(q(chern, 1), [(A.zak(3, 0, M) / PI).toFixed(4)]).state === 'right') === ok, `chern 1: γ with M = ${M} is accepted`, (A.zak(3, 0, M) / PI).toFixed(4));
-  report(judge(q(chern, 1), [(A.zak(1, 0, 50) / PI).toFixed(4)]).state === 'wrong' && judge(q(chern, 1), [(A.zak(5, 0, 50) / PI).toFixed(4)]).state === 'wrong' && judge(q(chern, 1), [(A.zak(2, 0, 50) / PI).toFixed(4)]).state === 'wrong', 'chern 1: γ of another band is wrong');
-  report(/reversed/.test(judge(q(chern, 1), [(-A.zak(3, 0, 50) / PI).toFixed(4)]).text) && /reversed/.test(judge(q(chern, 2), [(-A.zak(3, PI / 2, 50) / PI).toFixed(4)]).text), 'chern 1 and 2: −γ → hint about the sign');
-  report(judge(q(chern, 4), [(A.plaquette(3, 0, 0, TAU / 20) / PI).toFixed(4)]).state === 'wrong' && judge(q(chern, 4), [(A.plaquette(1, 0, 0, TAU / 10) / PI).toFixed(4)]).state === 'wrong', 'chern 4: F on a 20 × 20 grid or of band 1 is wrong');
-  report(judge(q(chern, 5), ['4']).state === 'right' && judge(q(chern, 5), ['4.0000000000000036']).state === 'right' && judge(q(chern, 5), ['3.9999999999999996']).state === 'right' && judge(q(chern, 5), ['4pi']).state === 'right', 'chern 5: 4, 4.0000000000000036 and 4pi are right');
-  report(judge(q(chern, 6), ['-3']).state === 'right' && judge(q(chern, 6), ['-3.0000000000000004']).state === 'right' && judge(q(chern, 6), ['−3']).state === 'right', 'chern 6: −3 is right, also as the computer prints it');
-  report(judge(q(chern, 7), ['0']).state === 'right' && judge(q(chern, 7), ['1']).state === 'wrong', 'chern 7: 0 is right');
+  const o3 = A.overlapAbs(3, 0, TAU / 50, 0);
+  report(judge(q(chern, 1), [o3.toFixed(4)]).state === 'right' && judge(q(chern, 1), [o3.toFixed(5)]).state === 'right' && /four decimals/.test(judge(q(chern, 1), [o3.toFixed(3)]).text), 'chern 1: the overlap with four or five decimals is right, with three it asks for four', o3.toFixed(6));
+  report(/band 4/.test(judge(q(chern, 1), [A.overlapAbs(4, 0, TAU / 50, 0).toFixed(4)]).text) && /band 2/.test(judge(q(chern, 1), [A.overlapAbs(2, 0, TAU / 50, 0).toFixed(4)]).text) && judge(q(chern, 1), [A.overlapAbs(1, 0, TAU / 50, 0).toFixed(4)]).state === 'wrong' && judge(q(chern, 1), [A.overlapAbs(5, 0, TAU / 50, 0).toFixed(4)]).state === 'wrong', 'chern 1: the overlap of band 4 and of band 2 get their hints, bands 1 and 5 are wrong');
+  report(/imaginary/.test(judge(q(chern, 1), ['0.99999']).text) && /same/.test(judge(q(chern, 1), ['1']).text), 'chern 1: a matrix without imaginary part (0.99999) and two equal vectors (1) get their hints');
+  for (const [M, ok] of [[20, true], [100, true], [400, true], [10, true]]) report((judge(q(chern, 2), [(A.zak(3, 0, M) / PI).toFixed(4)]).state === 'right') === ok, `chern 2: γ with M = ${M} is accepted`, (A.zak(3, 0, M) / PI).toFixed(4));
+  report([1, 2, 4, 5].every((b) => judge(q(chern, 2), [(A.zak(b, 0, 50) / PI).toFixed(4)]).state === 'wrong'), 'chern 2: γ of another band is wrong', [1, 2, 4, 5].map((b) => (A.zak(b, 0, 50) / PI).toFixed(3)).join(' '));
+  report(/imaginary/.test(judge(q(chern, 2), ['0']).text), 'chern 2: γ = 0 → hint about the complex matrix');
+  report(/reversed/.test(judge(q(chern, 2), [(-A.zak(3, 0, 50) / PI).toFixed(4)]).text) && /reversed/.test(judge(q(chern, 3), [(-A.zak(3, PI / 2, 50) / PI).toFixed(4)]).text), 'chern 2 and 3: −γ → hint about the sign');
+  report(judge(q(chern, 5), [(A.plaquette(3, 0, 0, TAU / 20) / PI).toFixed(4)]).state === 'wrong' && judge(q(chern, 5), [(A.plaquette(1, 0, 0, TAU / 10) / PI).toFixed(4)]).state === 'wrong', 'chern 5: F on a 20 × 20 grid or of band 1 is wrong');
+  report(judge(q(chern, 6), ['4']).state === 'right' && judge(q(chern, 6), ['4.0000000000000036']).state === 'right' && judge(q(chern, 6), ['3.9999999999999996']).state === 'right' && judge(q(chern, 6), ['4pi']).state === 'right', 'chern 6: 4, 4.0000000000000036 and 4pi are right');
+  report(judge(q(chern, 7), ['-3']).state === 'right' && judge(q(chern, 7), ['-3.0000000000000004']).state === 'right' && judge(q(chern, 7), ['−3']).state === 'right', 'chern 7: −3 is right, also as the computer prints it');
+  report(judge(q(chern, 8), ['0']).state === 'right' && judge(q(chern, 8), ['1']).state === 'wrong', 'chern 8: 0 is right');
 }
 
 console.log('3. the numbers in the texts');
@@ -130,10 +140,11 @@ console.log('3. the numbers in the texts');
   report(close(Math.cos((234 * PI) / 180), -0.588, 5e-4) && close((4 * PI * 2) / 5 - 0.3 * PI, (234 * PI) / 180, 1e-12) && close(4 * PI / 5 - 0.3 * PI, PI / 2, 1e-12), 'cos 234° = −0.588, the angle of waveguide 2 is 234°, of waveguide 1 is 90°');
   report(has(m(A.xPos(2, 0), 2)) && has(m(A.xPos(2, 0) - A.xPos(1, 0), 2)) && close(34.5 - A.xPos(2, 0), 0.59, 0.005), 'x₂ = 33.91 μm, s = 16.66 μm, moved 0.59 μm');
   report(close(0.2348 * 16.66, 3.912, 5e-4) && close(Math.exp(-3.912), 0.02, 5e-5) && close(6.672 * 0.02, 0.133, 1e-3), 'the hint of the coupling: 0.2348 · 16.66 = 3.912, e^−3.912 = 0.0200, J₁ = 0.133');
-  report(has(J.map((v) => v.toFixed(3)).join(', ')), 'the five couplings in the text', J.map((v) => v.toFixed(3)).join(', '));
+  report(has(J.map((v) => v.toFixed(3)).join(', ')) && has(A.couplings(PI / 2).map((v) => v.toFixed(3)).join(', ')), 'the five couplings at z = 0 and at a quarter period in the text', J.map((v) => v.toFixed(3)).join(', '));
   report(has(E.map((v) => m(v, 3)).join(', ')), 'the five eigenvalues in the text', E.map((v) => m(v, 3)).join(', '));
   report(has(`(${A.pumpRun().shift.toFixed(2)} here`) && Math.round(A.pumpRun().shift) === 2, 'the shift of the pump in the text', A.pumpRun().shift.toFixed(3));
   const g0 = A.zak(3, 0) / PI, g1 = A.zak(3, PI / 2) / PI;
+  report(!/wiggl|coarse/.test(T), 'no word that a reader named as unknown (wiggle, coarse)');
   report(has(`γ = ${m(g0, 2)}π`) && has(`γ/2π = ${m(g0 / 2, 2)}`) && has(`to ${m(g1, 2)}π`) && has(`= ${((g1 - g0) / 2).toFixed(2)} unit cells`), 'γ at z = 0 and at a quarter period, and the distance between them', `${g0.toFixed(4)}π, ${g1.toFixed(4)}π`);
   report(has('2, −3, 2, −3, 2') && has('(2 − 3)/2 = −1/2'), 'the Chern numbers and the fraction of the paper');
   const E2 = A.bandEdges(), gap = (b) => Math.min(...E2.map((e) => e.lo[b + 1] - e.hi[b]));

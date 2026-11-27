@@ -58,6 +58,7 @@ async function walk(browser, width, height, label) {
     await page.click('#next');
     for (let n = 0; n < qs.length; n++) {
       const q = qs[n], name = `${label} ${part} ${n + 1}`;
+      if (await page.$('.step-count') === null) { report(await inked(page) > 500, `${name}: a card to read stands before it, with a picture`); await page.click('#next'); }
       report((await text(page, '.step-count')) === `Question ${n + 1} of ${qs.length}`, `${name}: "Question ${n + 1} of ${qs.length}"`);
       report(await inked(page) > 500, `${name}: the picture is drawn`);
       report(await overflow(page) <= 0, `${name}: no sideways scroll`, String(await overflow(page)));
@@ -113,7 +114,7 @@ async function walk(browser, width, height, label) {
   // never behind an open question: the stored place is beyond the first open question
   await page.evaluate(() => { const o = JSON.parse(localStorage.getItem('qsl-workbook-v2')); o.pos.chern = 5; localStorage.setItem('qsl-workbook-v2', JSON.stringify(o)); });
   await page.reload(); await page.waitForSelector('.step-count');
-  report((await text(page, '.step-count')) === 'Question 1 of 7' && await page.$('#check') !== null, 'a stored place behind an open question is not used: the first open question is shown');
+  report(/^Question 1 of \d+$/.test(await text(page, '.step-count')) && await page.$('#check') !== null, 'a stored place behind an open question is not used: the first open question is shown');
   // unreadable storage
   await page.evaluate(() => localStorage.setItem('qsl-workbook-v2', '{"part":"nowhere","pos":7,"solved":[1,2]'));
   await page.goto(`${BASE}/workbook.html`); await page.reload(); await page.waitForSelector('#next');
