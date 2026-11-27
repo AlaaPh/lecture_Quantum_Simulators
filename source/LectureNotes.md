@@ -73,7 +73,31 @@ Checked numerically (numpy and JavaScript, random phase on every eigenvector) an
 - Grid sizes: 4 × 4 is enough for the Rice–Mele pump (3 × 3 gives 0 for the numbers of the task sheet). Three k points give
   a zero overlap for J₁ = 1, J₂ = 2. Harper–Hofstadter at flux 1/4 has touching bands and needs the two-band form.
 
-## The lattice of the workbook (parts 2 and 3)
+## Numbers of the workbook for Exercises 1 to 3
+
+Computed with numpy by `tools/workbook_reference.py` and by the page (`app/js/workbook/lattice.js`); the test
+`tools/test_workbook.mjs` compares the two. Conventions: i dψ/dz = Hψ, +J next to the diagonal, waveguides from 1.
+
+- Three waveguides, J = 1: E = √2, 0, −√2. Light from waveguide 1: |ψ₃(z)|² = ¼(1 − cos √2 z)², all of it in
+  waveguide 3 at z = π/√2 = 2.221.
+- Chain of 20 waveguides: E_n = 2cos(nπ/21), lowest −1.97766. Light from waveguide 10: 0.0501 left at z = 1; at
+  z = 4 the outer maxima are 6 to 7 waveguides away (J₆(8)² = 0.114, J₇(8)² = 0.103; the limit 2J·z is 8).
+- One Runge–Kutta step, E = 1, dz = 1, ψ₀ = 1: k₁ = −i, k₂ = −0.5 − i, k₃ = −0.5 − 0.75i, k₄ = −0.75 − 0.5i,
+  ψ₁ = 13/24 − (5/6)i, |ψ₁| = 0.99390 (exact e^{−i}); Euler |ψ| = √2. |ψ₁| ≤ 1 for |E|·dz ≤ 2√2.
+  41 waveguides, light in 21, 20 steps of 0.1: |ψ₂₁|² = 0.157733 (exact 0.157728), sum 0.999994; Euler 0.3417, sum 1.54.
+- Beam ψ_j ∝ e^{−(j−26)²/18}·e^{iπj/2} in 41 waveguides: centre 16.274 at z = 5 (−9.726 = −10·e^{−1/36}).
+  With −J the beam moves the other way. Gradient F·j with F = 0.5, k₀ = 0, start at 16: period 4π = 12.566,
+  centre 23.78 after half a period (4J/F = 8 for one wavenumber), 16.00 after one period.
+- SSH, 20 waveguides, J₁ = 2, J₂ = 1: smallest positive eigenvalue 1.06665; lowest eigenvector antiphase in all
+  10 pairs, highest in phase. 21 waveguides: eigenvalue 11 is 0, ψ₃/ψ₁ = −2, 75 % of the light in waveguide 21.
+  J₁ = 1, J₂ = 2, 20 waveguides: ±0.0014649.
+- k-space, J₁ = 2, J₂ = 1: |h| = 3, √5, 1 at k = 0, π/2, π; E(2π/3) = −√3.
+- Zak phase by program, J₁ = 1, J₂ = 2: |⟨u(0)|u(π/2)⟩| = 0.85065, product of four overlaps −0.2, product for
+  M = 50 is −0.891, M = 3 gives 0. γ = π; J₁ = 2, J₂ = 1: γ = 0.
+- On-site term Δ = 0.5: 21 waveguides (2, 1): eigenvalue 11 is 0.5 with the unchanged eigenvector; band edge
+  √1.25 = 1.11803; 20 waveguides (1, 2): ±0.5000021; γ = 0.70791π (M = 400; 0.70742π for M = 50) and 0.03699π.
+
+## The lattice of the workbook (Thouless pump and Chern number)
 
 Model of M. Jürgensen, S. Mukherjee, C. Jörg, M. C. Rechtsman, "Quantized fractional Thouless pumping of solitons",
 Nature Physics 19, 420 (2023): off-diagonal Aubry–André–Harper model, five waveguides per unit cell, no on-site term.

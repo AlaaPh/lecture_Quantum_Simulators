@@ -40,7 +40,7 @@ const steps = [
     pic: (ok) => ({ kind: 'band', flat: ok }) },
   { type: 'choice', text: 'The picture shows a beam with k = π/2 in a chain of 41 waveguides, from z = 0 to z = 5. It starts at waveguide 26.',
     ask: 'Where is its centre at z = 5?', look: true, options: ['waveguide 16', 'waveguide 26', 'waveguide 36'], ref: 'waveguide 16',
-    hint: 'Follow the bright line to the top of the picture.',
+    hint: 'Follow the line of strong colour to the top of the picture.',
     after: 'It moved 10 waveguides toward lower numbers: v · z = −2 · 5 = −10.',
     pic: (ok) => ({ kind: 'run', which: 'beam', line: ok }) },
   { type: 'number', text: 'Now with your program: 41 waveguides, J = 1. At z = 0 the beam has its centre at j₀ = 26, the width σ = 3 and the wavenumber k = π/2:',

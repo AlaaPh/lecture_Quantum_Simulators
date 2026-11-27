@@ -10,7 +10,7 @@ intuition behind them.
 |---|---|
 | `source/` | Source documents. `Coding_sessions_v1_annotated.pdf` is the task sheet with the reviewer's notes, `LectureNotes.md` the conventions of lectures VL1–VL8 that the exercises follow. |
 | `app/` | **Quantum Simulators Lab**, a static web app (no build step). Open `app/index.html` through any static server. |
-| `tools/` | Helper scripts (`make_artifact.py` builds the preview version of the app) and the tests of the workbook: `workbook_numbers.json` holds its reference numbers, `test_workbook.mjs` compares the page with them and tests every question, `check_workbook.cjs` drives the page in a browser, `test_code_hints.sh` runs the code shown as worked answers. |
+| `tools/` | Helper scripts (`make_artifact.py` builds the preview version of the app) and the tests of the workbook: `workbook_numbers.json` holds its reference numbers (`workbook_reference.py` computes those of Exercises 1 to 3), `test_workbook.mjs` compares the page with them and tests every question, `check_workbook.cjs` drives the page in a browser, `test_code_hints.sh` runs the code shown as worked answers. |
 
 ## The app
 
@@ -64,32 +64,65 @@ the same picture with more guides.
 4. **Task 3** — on-site potential +Δ on A, −Δ on B: the edge state of 21 guides moves to exactly +Δ with unchanged
    shape, 20 guides give ±Δ at the two ends, and the Zak phase is no longer quantized.
 
-**Workbook** (`app/workbook.html`): the student calculates the Zak phase, a Thouless pump and its Chern number.
-One small question is on the screen at a time, with one picture. Every answer is checked at once; a wrong answer gets
-a hint, and after two wrong tries the worked answer can be shown. Three parts:
+**Workbook** (`app/workbook.html`): the student does the calculations of all exercises. One small question is on
+the screen at a time, with one picture. Every answer is checked at once; a wrong answer gets a hint, and after two
+wrong tries the worked answer can be shown. The first card lists the parts, grouped by exercise, with what is done.
+Twelve parts:
 
-1. **Zak phase** (ten questions) — h(k) = J₁ + J₂e^{ik} at k = 0, π/2, π, 3π/2 for J₁ = 1, J₂ = 2; how often h goes
-   around the origin; γ is half of the total turn of the angle of h, so γ = π; then J₁ = 2, J₂ = 1 with γ = 0.
-2. **Thouless pump** (eight questions) — the lattice of Jürgensen, Mukherjee, Jörg and Rechtsman, "Quantized
+*Exercise 1*
+1. **Three waveguides** (nine questions, by hand) — the state as three complex numbers, |ψ|² and phase, the matrix
+   H, the three supermodes with E = √2, 0, −√2, the overlap ⟨s|ψ⟩, and the light that is in waveguide 3 at z = π/√2.
+2. **The chain (task 0)** (eight questions) — two waveguides by hand; then the student's program: the 20 × 20
+   matrix, its lowest eigenvalue, E_n = 2J·cos(nπ/(N + 1)), the band from −2J to 2J, one component of the highest
+   eigenvector, the eigenvectors as a colour plot, and the light of waveguide 10 at z = 1.
+
+*Exercise 2*
+3. **Runge–Kutta step** (nine questions) — one step by hand for i dψ/dz = Eψ with E = 1, dz = 1, ψ₀ = 1: the four
+   slopes k₁ … k₄, the Euler step for comparison (length 1.414), ψ₁ = 0.5417 − 0.8333i with the length 0.994, the
+   largest step that does not grow (|E|·dz < 2√2); then 20 steps of dz = 0.1 for 41 waveguides in the program.
+4. **Beam and wavenumber** (eight questions) — E(k) = 2J·cos k, the group velocity −2J·sin k, a Gaussian beam with
+   k = π/2 in the program (its centre moves from 26 to 16.27), and the Bloch oscillation: period 2π/F, distance 4J/F.
+5. **SSH chain (tasks 1, 2)** (nine questions) — one pair; 20 waveguides with J₁ = 2, J₂ = 1: the two bands and the
+   gap; how the eigenvectors of the two bands differ; 21 waveguides: the state with E = 0 by hand from
+   J₁ψ₁ + J₂ψ₃ = 0; 20 waveguides with J₁ = 1, J₂ = 2: two edge states at ±0.0015.
+
+*Exercise 3*
+6. **k-space (task 8a)** (seven questions) — the unit cell, H(k) with h(k) = J₁ + J₂e^{ik}, |h| at k = 0, π/2, π,
+   one eigenvalue in the program, and the eigenvalues of the chain of 20 waveguides against the two bands.
+7. **Zak phase by hand** (ten questions) — h(k) at k = 0, π/2, π, 3π/2 for J₁ = 1, J₂ = 2; how often h goes around
+   the origin; γ is half of the total turn of the angle of h, so γ = π; then J₁ = 2, J₂ = 1 with γ = 0.
+8. **Zak phase by program (task 8b)** (five questions) — |⟨u₁|u₂⟩| = 0.8507, the product of four overlaps −0.2,
+   γ = −arg of the closed product for M = 50 for both chains, and why random phases of the eigenvectors drop out.
+9. **On-site term (task 3)** (six questions) — +Δ on A, −Δ on B, Δ = 0.5: the edge state at E = Δ by hand and in
+   the program, the band edge √(Δ² + 1) = 1.118, the two edge states at ±0.5, and γ = 0.708π and 0.037π.
+
+*Exercise 4*
+10. **Thouless pump** (eight questions) — the lattice of Jürgensen, Mukherjee, Jörg and Rechtsman, "Quantized
    fractional Thouless pumping of solitons", Nature Physics 19, 420 (2023): five waveguides per unit cell at
    x_n(z) = n·d + δ·cos(Ωz + 4πn/5 − 3π/10), d = 17.25 μm, δ = 1 μm, coupled by J(s) = 6.672 mm⁻¹ · e^{−0.2348 s/μm}.
    One position, one distance and one coupling by hand; then the student's own code: the five couplings for any z,
    the 5 × 5 matrix H(k) and its eigenvalues; the five bands during one period; the light of band 3, which moves by
    two unit cells in one period.
-3. **Chern number** (eight questions) — in the student's code: one overlap of two eigenvectors of band 3, the Zak
+11. **Chern number** (eight questions) — in the student's code: one overlap of two eigenvectors of band 3, the Zak
    phase from the closed product of 50 overlaps at z = 0 and at a quarter period; its growth over the period gives
    C = 2; then C from the plaquettes of a 10 × 10 grid; band 2 with C = −3; the sum over all five bands,
    2 − 3 + 2 − 3 + 2 = 0.
 
+The three interactive pages of Exercises 1 to 3 stay as they are; the first card of the workbook links to them.
+
 For the questions with code the worked answer is a few lines in Python and in MATLAB (the MATLAB lines were run in
 GNU Octave 8 only). Only the linear lattice is used; the solitons of the paper are named on the last card.
 
-Conventions: +J as in the hands-on code (the paper writes −J; bands and Chern numbers are the same). H(k) has
+Conventions: i dψ/dz = Hψ with +J as in the hands-on code (the lecture and the paper write −J; eigenvalues, Zak
+phases and Chern numbers are the same, the signs of eigenvector components and the direction of a beam are not).
+Waveguides are numbered from 1; in the SSH chain waveguide 1 is an A waveguide, J₁ couples 1–2, 3–4, … and J₂
+couples 2–3, 4–5, …; H(k) = [[Δ, h*], [h, −Δ]]. In the lattice of five waveguides H(k) has
 J₁ … J₄ next to the diagonal, J₅e^{ik} bottom left and J₅e^{−ik} top right. Band b is the b-th eigenvalue.
 γ = −arg ∏⟨uₛ|uₛ₊₁⟩ with the loop closed. Plaquette with the same −arg, walked
 (k, Ωz) → (k, Ωz + d) → (k + d, Ωz + d) → (k + d, Ωz); C = sum/2π. The position of the light counts every waveguide
-with the number of its unit cell. The model is in `app/js/workbook/aah.js`, the reference numbers, computed
-independently with numpy, in `tools/workbook_numbers.json`.
+with the number of its unit cell. The models are in `app/js/workbook/lattice.js` (Exercises 1 to 3) and
+`app/js/workbook/aah.js` (Exercise 4); the reference numbers, computed independently with numpy, are in
+`tools/workbook_numbers.json`. A part is one file in `app/js/workbook/`; `parts.js` lists them in their order.
 
 **Hamiltonian builder** (`app/builder.html`): a free instrument instead of a guided exercise. A tight-binding
 Hamiltonian is built by plugging couplings into a matrix, and its spectrum is shown at once.
@@ -181,11 +214,13 @@ console.log(s.chiral.nu, s.inGap.filter(Boolean).length);      // winding number
 "
 ```
 
-The workbook has its own tests. `tools/workbook_numbers.json` holds the numbers of the five-waveguide lattice; they
-were computed with numpy in two independent ways and are not produced by the page.
+The workbook has its own tests. `tools/workbook_numbers.json` holds its reference numbers. They are not produced
+by the page: the numbers of the five-waveguide lattice were computed with numpy in two independent ways, the numbers
+of Exercises 1 to 3 (key `exercises`) by `tools/workbook_reference.py`.
 
 ```bash
 node tools/test_workbook.mjs       # the model against the stored numbers, every question, the reader of typed numbers
 node tools/check_workbook.cjs      # the page in headless Chromium (needs Playwright): every question, hints, phone width
 bash tools/test_code_hints.sh      # the code of "Show me how" as a student would run it: Python, and MATLAB lines in Octave
+python3 tools/workbook_reference.py   # writes the numbers of Exercises 1 to 3 again (numpy)
 ```

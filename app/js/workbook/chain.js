@@ -63,10 +63,10 @@ const steps = [
       { ref: () => spread(eig(), START, 1)[START], tol: 0.002, text: 'This is a neighbouring waveguide. Waveguide 10 is the index 9 in Python and the index 10 in MATLAB.' }, { ref: 1, tol: 0.001, text: '1 is the value at z = 0. Check that z = 1 stands in the factor e<sup>−iEz</sup>, and the i.' }],
     after: 'Only 0.05 is left: the light has spread to the neighbours. In a chain of straight waveguides this is called discrete diffraction.',
     pic: (ok) => ({ kind: 'spread', zmax: 2, mark: ok ? 1 : null }) },
-  { type: 'choice', text: 'The picture shows the light from z = 0 to z = 4. Follow the two bright outer lines.',
-    ask: 'At z = 4, how far from waveguide 10 are they?', look: true, options: ['2 to 3 waveguides', '4 to 5 waveguides', '6 to 7 waveguides'], ref: '6 to 7 waveguides',
-    hint: 'Read the position of the two outer bright lines at the top of the picture and count from waveguide 10.',
-    after: '6 to 7 waveguides at z = 4. No light is faster than 2J = 2 waveguides per unit of z (8 waveguides here); the brightest lines are just behind this limit. The part on the beam shows where the 2J comes from.',
+  { type: 'choice', text: 'The picture shows the light from z = 0 to z = 4. Much of it runs outward in two lines of strong colour, one to each side.',
+    ask: 'At z = 4, how far from waveguide 10 are these two outer lines?', look: true, options: ['2 to 3 waveguides', '4 to 5 waveguides', '6 to 7 waveguides'], ref: '6 to 7 waveguides',
+    hint: 'Read at the top of the picture where the two outer lines of strong colour are, and count from waveguide 10.',
+    after: '6 to 7 waveguides at z = 4. No light is faster than 2J = 2 waveguides per unit of z (8 waveguides here); the two lines are just behind this limit. The part on the beam shows where the 2J comes from.',
     pic: pic({ kind: 'spread', zmax: 4 }) },
   { type: 'info', title: 'This part is done', end: true,
     html: `<p class="step-text">You have done task 0: the 20 eigenvalues lie in a band from −2J to 2J, the eigenvectors are sine waves, and light that starts in one waveguide spreads.</p>
@@ -106,7 +106,7 @@ function drawVectors(ctx, w, h, c) {
   let m = 0; for (const v of V) for (const a of v) m = Math.max(m, Math.abs(a));
   const dx = X(2) - X(1), dy = Y(1) - Y(2);
   V.forEach((v, n) => v.forEach((a, j) => { ctx.fillStyle = rgbToCss(cmapDiv(a / m)); ctx.fillRect(X(j + 0.5), Y(n + 1.5), dx + 0.6, dy + 0.6); }));
-  return 'All 20 eigenvectors: one row for each, the lowest eigenvalue at the bottom. One colour is positive, the other negative; pale is close to zero.';
+  return 'All 20 eigenvectors: one row for each, the lowest eigenvalue at the bottom. One colour is positive, the other negative; a weak colour is close to zero.';
 }
 
 function drawSpread(ctx, w, h, c, st) {
