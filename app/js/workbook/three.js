@@ -16,52 +16,52 @@ const steps = [
   { type: 'info', title: 'Three waveguides in nine small questions', button: 'Start',
     html: `<p class="step-text">Three waveguides lie next to each other. The light in them is described by three complex numbers, one for each waveguide:</p>
       <div class="step-formula">ψ = (ψ<sub>1</sub>, ψ<sub>2</sub>, ψ<sub>3</sub>)</div>
-      <p class="step-text">|ψ<sub>n</sub>|² is the part of the light in waveguide n. The angle of ψ<sub>n</sub> is its phase. This list of numbers is the state.</p>
+      <p class="step-text">|ψ<sub>j</sub>|² is the part of the light in waveguide j. The angle of ψ<sub>j</sub> is its phase. This list of numbers is the state.</p>
       <p class="step-text">You find out how the light moves from one waveguide to the next.</p>`,
     pic: pic({ kind: 'guides', psi: START, bars: true }) },
   { type: 'number', text: 'The state is ψ = (0.6, 0.8i, 0).', formula: '|ψ<sub>2</sub>|² = |0.8i|²', ask: 'How much of the light is in waveguide 2?', label: '|ψ₂|² =', unit: '', ref: 0.64, tol: 0.006, ph: '0.00',
-    hint: 'The length of 0.8i is 0.8.', how: '|ψ₂|² = 0.8² = 0.64.',
-    wrongs: [{ ref: 0.8, tol: 0.006, text: 'This is the length |ψ₂|. The part of the light is its square.' }, { ref: -0.64, tol: 0.006, text: 'This is (0.8i)², the square of the number. Take the square of its length: |0.8i| = 0.8.' },
+    hint: 'The absolute value of 0.8i, the length of its arrow, is 0.8.', how: '|ψ₂|² = 0.8² = 0.64.',
+    wrongs: [{ ref: 0.8, tol: 0.006, text: 'This is the absolute value |ψ₂|. The part of the light is its square.' }, { ref: -0.64, tol: 0.006, text: 'This is (0.8i)², the square of the number. Take the square of its absolute value: |0.8i| = 0.8.' },
       { ref: 64, tol: 0.6, text: 'Type it as a part of 1, not in per cent.' }],
     after: '0.64 of the light is in waveguide 2 and 0.6² = 0.36 in waveguide 1. Together 1: the state is normalised.',
     pic: (ok) => ({ kind: 'guides', psi: START, bars: true, values: ok }) },
   { type: 'number', text: 'The phase of ψ₂ = 0.8i is the angle of this complex number, counted from the positive real axis.', ask: 'What is the phase of ψ₂?', label: 'phase =', unit: '°', ref: 90, tol: 0.6, ph: '00',
     hint: 'The number i lies on the imaginary axis.', how: '0.8i points straight up in the complex plane: 90°.',
     wrongs: [{ ref: Math.PI / 2, tol: 0.011, text: 'This is the angle in radians. The field asks for degrees.' }, { ref: 0, tol: 0.6, text: '0° is the phase of ψ₁ = 0.6, a positive real number.' }],
-    after: 'ψ₁ has the phase 0° and ψ₂ the phase 90°. The phases do not change the intensities now, but they decide where the light goes next.',
+    after: 'ψ₁ has the phase 0° and ψ₂ the phase 90°. The phases do not change how much light is in each waveguide, but they decide where the light goes next.',
     pic: (ok) => ({ kind: 'guides', psi: START, bars: true, values: true, angle: ok }) },
-  { type: 'choice', text: 'The light moves according to i dψ/dz = Hψ. z is the distance along the waveguides; it plays the role of time. With the coupling J = 1 between neighbours:', extra: MATRIX,
+  { type: 'choice', text: 'The light moves along z, the direction of the waveguides, according to <span class="nb">i dψ/dz = Hψ.</span> The matrix H holds the coupling J wherever two waveguides are neighbours: J tells how strongly light passes from one to the other. Here <span class="nb">J = 1:</span>', extra: MATRIX,
     ask: 'All the light starts in waveguide 1: ψ = (1, 0, 0). Which component of Hψ is not zero?', options: ['first', 'second', 'third'], ref: 'second',
     hint: 'Multiply each row of H with (1, 0, 0). Row 2 is (1, 0, 1).',
     after: 'Hψ = (0, 1, 0). So only ψ₂ changes at first: the light goes from waveguide 1 to waveguide 2. H couples neighbours only.',
     pic: (ok) => ({ kind: 'guides', psi: ONE, bars: true, flow: ok }) },
-  { type: 'number', text: 'Some states keep their intensities for all z. They are the eigenvectors of H and are called supermodes: Hψ = E·ψ with one number E. Try ψ = (0.5, 0.707, 0.5).',
-    ask: 'Calculate Hψ and find E.', label: 'E =', unit: '', ref: R2, tol: 0.003, ph: '0.000',
+  { type: 'number', text: 'In some states the light stays where it is: every |ψ<sub>j</sub>|² is the same for all z. These states are the eigenvectors of H: <span class="nb">Hψ = E·ψ</span> with one number E. They are called supermodes. Try <span class="nb">ψ = (0.5, 0.707, 0.5).</span>', extra: MATRIX,
+    ask: 'Calculate Hψ and find E.', label: 'E =', unit: '', ref: R2, tol: 0.006, ph: '0.00',
     hint: 'The first component of Hψ is 1 · ψ₂ = 0.707. Divide it by ψ₁ = 0.5.', how: 'Hψ = (0.707, 1, 0.707) = 1.414 · (0.5, 0.707, 0.5). So E = √2 = 1.414.',
-    wrongs: [{ ref: 0.707, tol: 0.003, text: 'This is the first component of Hψ. Divide it by ψ₁ = 0.5.' }, { ref: 1, tol: 0.003, text: 'This is the second component of Hψ. Divide it by ψ₂ = 0.707.' }],
+    wrongs: [{ ref: 0.707, tol: 0.006, text: 'This is the first component of Hψ. Divide it by ψ₁ = 0.5.' }, { ref: 1, tol: 0.006, text: 'This is the second component of Hψ. Divide it by ψ₂ = 0.707.' }],
     after: 'E = √2. In this supermode all three waveguides have the same sign: they are in phase.',
     pic: (ok) => ({ kind: 'mode', v: MODES3[0].v, E: ok ? '√2 = 1.414' : '?' }) },
-  { type: 'number', text: 'Now ψ = (0.707, 0, −0.707).', ask: 'Calculate Hψ. What is E?', label: 'E =', unit: '', ref: 0, tol: 0.001, ph: '0',
+  { type: 'number', text: 'Now <span class="nb">ψ = (0.707, 0, −0.707).</span>', extra: MATRIX, ask: 'Calculate Hψ. What is E?', label: 'E =', unit: '', ref: 0, tol: 0.001,
     hint: 'The second component of Hψ is 1 · ψ₁ + 1 · ψ₃.', how: 'Hψ = (0, 0.707 − 0.707, 0) = (0, 0, 0) = 0 · ψ. So E = 0.',
     after: 'E = 0. The light of waveguides 1 and 3 arrives in waveguide 2 with opposite signs and cancels.',
     pic: (ok) => ({ kind: 'mode', v: MODES3[1].v, E: ok ? '0' : '?' }) },
-  { type: 'number', text: 'The third supermode is ψ = (0.5, −0.707, 0.5).', ask: 'What is E?', label: 'E =', unit: '', ref: -R2, tol: 0.003, ph: '−0.000',
+  { type: 'number', text: 'The third supermode is <span class="nb">ψ = (0.5, −0.707, 0.5).</span>', extra: MATRIX, ask: 'Calculate Hψ. What is E?', label: 'E =', unit: '', ref: -R2, tol: 0.006, ph: '0.00',
     hint: 'The first component of Hψ is 1 · ψ₂ = −0.707. Divide it by ψ₁ = 0.5.', how: 'Hψ = (−0.707, 1, −0.707) = −1.414 · (0.5, −0.707, 0.5). So E = −√2 = −1.414.',
-    wrongs: [{ ref: R2, tol: 0.003, text: 'Check the sign: ψ₂ is negative here.' }],
+    wrongs: [{ ref: R2, tol: 0.006, text: 'Check the sign: ψ₂ is negative here.' }],
     after: 'The three supermodes have E = √2, 0 and −√2. Three waveguides, three supermodes.',
     pic: (ok) => ({ kind: 'mode', v: MODES3[2].v, E: ok ? '−√2 = −1.414' : '?' }) },
   { type: 'number', text: 'A supermode only turns its phase along z: ψ(z) = e<sup>−iEz</sup>·ψ(0). Take the first supermode, ψ(0) = (0.5, 0.707, 0.5), with E = √2.',
     ask: 'How much of the light is in waveguide 1 at z = 3?', label: '|ψ₁|² =', unit: '', ref: 0.25, tol: 0.006, ph: '0.00',
-    hint: 'The factor e<sup>−iEz</sup> has the length 1.', how: '|ψ₁(3)|² = |e<sup>−iEz</sup>|² · 0.5² = 1 · 0.25 = 0.25.',
-    wrongs: [{ ref: 0.5, tol: 0.006, text: 'This is the length |ψ₁|. The part of the light is its square.' }],
-    after: '0.25 at every z: in a supermode only the phases turn, the intensities never change.',
-    pic: (ok) => ({ kind: 'guides', psi: MODES3[0].v.map((a) => (ok ? [a * Math.cos(-3 * R2), a * Math.sin(-3 * R2)] : [a, 0])), bars: true, values: true, note: ok ? 'z = 3' : 'z = 0' }) },
-  { type: 'number', text: 'Every other state is a sum of the three supermodes. How much of a supermode s a state ψ contains is told by the overlap:',
+    hint: 'The factor e<sup>−iEz</sup> has the absolute value 1.', how: '|ψ₁(3)|² = |e<sup>−iEz</sup>|² · 0.5² = 1 · 0.25 = 0.25.',
+    wrongs: [{ ref: 0.5, tol: 0.006, text: 'This is the absolute value |ψ₁|. The part of the light is its square.' }],
+    after: '0.25 at every z: in a supermode only the phases turn; how much light is in each waveguide never changes.',
+    pic: (ok) => ({ kind: 'guides', psi: MODES3[0].v.map((a) => (ok ? [a * Math.cos(-3 * R2), a * Math.sin(-3 * R2)] : [a, 0])), bars: ok, values: ok, note: ok ? 'z = 3' : 'z = 0' }) },
+  { type: 'number', text: 'Every other state is a sum of the three supermodes. The overlap tells how much of a supermode s a state ψ contains (the star * is the complex conjugate):',
     formula: '<span class="nb">⟨s|ψ⟩ =</span> <span class="nb">s<sub>1</sub>*·ψ<sub>1</sub> + s<sub>2</sub>*·ψ<sub>2</sub> + s<sub>3</sub>*·ψ<sub>3</sub></span>',
     ask: 'Take ψ = (1, 0, 0) and the supermode s = (0.707, 0, −0.707). What is ⟨s|ψ⟩?', label: '⟨s|ψ⟩ =', unit: '', ref: R2 / 2, tol: 0.003, ph: '0.000',
-    hint: 'The star means the complex conjugate; here all numbers are real, so it changes nothing. Only the first term is not zero: s₁ · ψ₁.', how: '⟨s|ψ⟩ = 0.707 · 1 + 0 · 0 + (−0.707) · 0 = 0.707.',
+    hint: 'All numbers are real here, so the star changes nothing. Only the first term is not zero: s₁ · ψ₁.', how: '⟨s|ψ⟩ = 0.707 · 1 + 0 · 0 + (−0.707) · 0 = 0.707.',
     wrongs: [{ ref: 0.5, tol: 0.003, text: 'This is |⟨s|ψ⟩|², the weight of this supermode. The question asks for the overlap itself.' }],
-    after: 'The weight of this supermode is 0.707² = 0.5. With the other two overlaps, 0.5 and 0.5: the light in waveguide 1 is made of the three supermodes with the weights 0.25, 0.5 and 0.25.',
+    after: 'The square of the overlap is called the weight of the supermode: 0.707² = 0.5. The other two overlaps are 0.5 and 0.5. So the light in waveguide 1 is made of the three supermodes with the weights 0.25, 0.5 and 0.25.',
     pic: (ok) => ({ kind: 'mix', known: ok }) },
   { type: 'number', text: 'The three supermodes turn their phases at different rates E. That moves the light. For light that starts in waveguide 1, the part in waveguide 3 is',
     formula: '<span class="nb">|ψ<sub>3</sub>(z)|² =</span> <span class="nb">¼ · (1 − cos(√2 · z))²</span>',
@@ -115,32 +115,32 @@ function drawMode(ctx, w, h, c, st) {
   return `The state ψ = ${vec(st.v)}: one bar for each waveguide, upward for a positive and downward for a negative number.`;
 }
 
-// ψ = (1, 0, 0) as a sum of the three supermodes with their weights
+// the three supermodes and the overlap of each with ψ = (1, 0, 0); the weight is the square of the overlap
 function drawMix(ctx, w, h, c, st) {
-  const rows = [0.2, 0.5, 0.8].map((t) => t * h), unit = h * 0.11, x0 = w * 0.36, weights = ['0.25', st.known ? '0.5' : '?', '0.25'];
+  const rows = [0.2, 0.5, 0.8].map((t) => t * h), unit = h * 0.11, x0 = w * 0.4, ov = ['0.5', '0.707', '0.5'], wt = ['0.25', '0.5', '0.25'];
   MODES3.forEach((m, r) => {
     const y = rows[r];
-    tag(ctx, `weight ${weights[r]}`, w * 0.04, y - 9, { color: weights[r] === '?' ? c.hpsi : c.fg, px: 14, align: 'left' });
-    tag(ctx, `E = ${['√2', '0', '−√2'][r]}`, w * 0.04, y + 11, { color: c['fg-2'], px: 12.5, wt: 500, align: 'left' });
+    tag(ctx, `E = ${['√2', '0', '−√2'][r]}`, w * 0.04, y - 20, { color: c['fg-2'], px: 12.5, wt: 500, align: 'left' });
+    if (st.known) { tag(ctx, `overlap ${ov[r]}`, w * 0.04, y, { color: c.fg, px: 13.5, align: 'left' }); tag(ctx, `weight ${wt[r]}`, w * 0.04, y + 20, { color: c.fg, px: 13.5, align: 'left' }); }
+    else if (r === 1) tag(ctx, 'overlap ?', w * 0.04, y, { color: c.hpsi, px: 13.5, align: 'left' });
     ctx.strokeStyle = c.line; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(w * 0.96, y); ctx.stroke();
-    m.v.forEach((a, n) => { const x = x0 + (w * 0.6 * (n + 0.5)) / 3; ctx.fillStyle = c.v[n]; ctx.fillRect(x - 20, a >= 0 ? y - unit * a * 2 : y, 40, unit * Math.abs(a) * 2); if (Math.abs(a) < 1e-9) ctx.fillRect(x - 20, y - 1.5, 40, 3); });
+    m.v.forEach((a, n) => { const x = x0 + (w * 0.56 * (n + 0.5)) / 3; ctx.fillStyle = c.v[n]; ctx.fillRect(x - 20, a >= 0 ? y - unit * a * 2 : y, 40, unit * Math.abs(a) * 2); if (Math.abs(a) < 1e-9) ctx.fillRect(x - 20, y - 1.5, 40, 3); });
   });
-  return 'The three supermodes, and how much of each the state ψ = (1, 0, 0) contains.';
+  return st.known ? 'The three supermodes as bars. Beside each: its overlap with ψ = (1, 0, 0), and the square of the overlap, the weight.'
+    : 'The three supermodes as bars, one bar for each waveguide. The question asks for the overlap of the middle one, s = (0.707, 0, −0.707), with ψ = (1, 0, 0).';
 }
 
 // light that starts in waveguide 1: the three intensities along z
 function drawCoupler(ctx, w, h, c, st) {
-  const { X, Y } = axes(ctx, c, w, h, { xlim: [0, 5], ylim: [0, 1.05], xticks: [0, 1, 2, 3, 4, 5], yticks: [0, 0.5, 1], xlabel: 'z', ylabel: 'part of the light', pad: { t: 26 } });
+  const { X, Y } = axes(ctx, c, w, h, { xlim: [0, 5], ylim: [0, 1.05], xticks: [0, 1, 2, 3, 4, 5], yticks: [0, 0.5, 1], xlabel: 'z', ylabel: 'part of the light', pad: { t: 32 } });
   for (let n = 0; n < 3; n++) {
     ctx.strokeStyle = c.v[n]; ctx.lineWidth = 2.6; ctx.lineJoin = 'round'; ctx.beginPath();
     for (let i = 0; i <= 200; i++) { const z = (5 * i) / 200, v = coupler3(z)[n]; if (i) ctx.lineTo(X(z), Y(v)); else ctx.moveTo(X(z), Y(v)); }
     ctx.stroke();
+    tag(ctx, `waveguide ${n + 1}`, X(5 * (n + 0.5) / 3), 13, { color: c.v[n], px: 12.5 });           // the legend above the plot
   }
-  tag(ctx, 'waveguide 1', X(0.12), Y(1) - 13, { color: c.v[0], px: 12.5, align: 'left' });
-  tag(ctx, 'waveguide 2', X(1.11), Y(0.5) - 13, { color: c.v[1], px: 12.5, bg: c.surface });
-  tag(ctx, 'waveguide 3', X(Z_CROSS) - 10, Y(1) - 13, { color: c.v[2], px: 12.5, align: 'left' });
-  if (st.mark) { ctx.save(); ctx.strokeStyle = c.hpsi; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(Z_CROSS), Y(0)); ctx.lineTo(X(Z_CROSS), Y(1)); ctx.stroke(); ctx.restore(); tag(ctx, `z = ${Z_CROSS.toFixed(2)}`, X(Z_CROSS) + 6, Y(0.08), { color: c.hpsi, px: 12.5, align: 'left', bg: c.surface }); }
-  return 'All the light starts in waveguide 1. The three curves show the part of the light in each waveguide along z.';
+  if (st.mark) { ctx.save(); ctx.strokeStyle = c.hpsi; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(X(Z_CROSS), Y(0)); ctx.lineTo(X(Z_CROSS), Y(1)); ctx.stroke(); ctx.restore(); }
+  return `All the light starts in waveguide 1. The three curves show the part of the light in each waveguide along z.${st.mark ? ` Dashed line: z = ${Z_CROSS.toFixed(2)}, where all the light is in waveguide 3.` : ''}`;
 }
 
 function draw(panel, st, c) {

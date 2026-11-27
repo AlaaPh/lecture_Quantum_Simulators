@@ -17,17 +17,19 @@ const steps = [
   { type: 'info', title: 'A beam and its wavenumber in eight small questions', button: 'Start',
     html: `<p class="step-text">Light in one waveguide spreads to both sides. A wide beam can move to one side instead. What decides it is the phase.</p>
       <p class="step-text">In the beam of the picture the phase grows by the same angle k from each waveguide to the next:</p>
-      <div class="step-formula">ψ<sub>j</sub> = (envelope) · e<sup>ikj</sup></div>
-      <p class="step-text">k is called the wavenumber. In the picture k = π/2: each arrow is turned by 90° against the one before.</p>`,
+      <div class="step-formula">ψ<sub>j</sub> = A<sub>j</sub> · e<sup>ikj</sup></div>
+      <p class="step-text">A<sub>j</sub> is a positive number, the height of the beam in waveguide j. k is called the wavenumber. In the picture k = π/2: each arrow is turned by 90° against the one before.</p>`,
     pic: pic({ kind: 'beam' }) },
-  { type: 'number', text: 'Take a wave ψ<sub>j</sub> = e<sup>ikj</sup> in a long chain. Row j of Hψ is J·ψ<sub>j−1</sub> + J·ψ<sub>j+1</sub> = J·(e<sup>−ik</sup> + e<sup>ik</sup>)·ψ<sub>j</sub>. So the wave is an eigenvector of H, with the eigenvalue',
-    formula: 'E(k) = 2J · cos k', ask: 'Calculate E for k = π/3 and J = 1.', label: 'E =', unit: '', ref: 1, tol: 0.006, ph: '0.0',
+  { type: 'number', text: 'Take a wave <span class="nb">ψ<sub>j</sub> = e<sup>ikj</sup></span> in a long chain. Its neighbours are <span class="nb">ψ<sub>j−1</sub> = e<sup>−ik</sup> · ψ<sub>j</sub></span> and <span class="nb">ψ<sub>j+1</sub> = e<sup>ik</sup> · ψ<sub>j</sub>.</span> So row j of Hψ is',
+    formula: '<span class="nb">J·ψ<sub>j−1</sub> + J·ψ<sub>j+1</sub></span> <span class="nb">= J·(e<sup>−ik</sup> + e<sup>ik</sup>)·ψ<sub>j</sub></span> <span class="nb">= 2J·cos k · ψ<sub>j</sub></span>',
+    extra: '<p class="step-text">The last step uses <span class="nb">e<sup>−ik</sup> + e<sup>ik</sup> = 2·cos k.</span> So the wave is an eigenvector of H with the eigenvalue <span class="nb">E(k) = 2J · cos k.</span></p>',
+    ask: 'Calculate E for k = π/3 and J = 1.', label: 'E =', unit: '', ref: 1, tol: 0.006, ph: '0.0',
     hint: 'cos(π/3) = cos 60° = 0.5.', how: 'E = 2 · 1 · cos 60° = 2 · 0.5 = 1.',
     wrongs: [{ ref: 0.5, tol: 0.006, text: 'This is cos k. Multiply it by 2J = 2.' }, { ref: 2 * Math.cos((PI / 3) * (PI / 180)), tol: 0.004, text: 'Your calculator is set to degrees: π/3 is an angle in radians, or 60°.' }],
     after: 'E = 1. Every wavenumber has its eigenvalue: the curve E(k) is the band, from −2J to 2J. The eigenvalues of task 0 lie on this curve.',
     pic: (ok) => ({ kind: 'band', at: ok ? PI / 3 : null }) },
   { type: 'number', text: 'A beam is made of waves with wavenumbers close to one k. Its centre moves with the group velocity, the slope of the band:',
-    formula: 'v = dE/dk = −2J · sin k', ask: 'Calculate v for k = π/2 and J = 1.', label: 'v =', unit: '', ref: -2, tol: 0.006, ph: '−0.0',
+    formula: 'v = dE/dk = −2J · sin k', ask: 'Calculate v for k = π/2 and J = 1.', label: 'v =', unit: '', ref: -2, tol: 0.006, ph: '0.0',
     hint: 'sin(π/2) = sin 90° = 1.', how: 'v = −2 · 1 · sin 90° = −2.',
     wrongs: [{ ref: 2, tol: 0.006, text: 'Check the sign: v = −2J · sin k.' }, { ref: 0, tol: 0.006, text: 'This is −2J · cos k. The slope of cos k is −sin k, and sin(π/2) = 1.' },
       { ref: -2 * Math.sin((PI / 2) * (PI / 180)), tol: 0.004, text: 'Your calculator is set to degrees: π/2 is an angle in radians, or 90°.' }],
@@ -44,35 +46,35 @@ const steps = [
     after: 'It moved 10 waveguides toward lower numbers: v · z = −2 · 5 = −10.',
     pic: (ok) => ({ kind: 'run', which: 'beam', line: ok }) },
   { type: 'number', text: 'Now with your program: 41 waveguides, J = 1. At z = 0 the beam has its centre at j₀ = 26, the width σ = 3 and the wavenumber k = π/2:',
-    formula: '<span class="nb">ψ<sub>j</sub> = e<sup>−(j − j₀)²/(2σ²)</sup> · e<sup>ikj</sup>,</span> <span class="nb">j = 1 … 41</span>',
+    formula: '<span class="nb">ψ<sub>j</sub> = A<sub>j</sub> · e<sup>ikj</sup>,</span> <span class="nb">j = 1 … 41,</span><br><span class="nb">A<sub>j</sub> = exp(−(j − j₀)²/(2σ²))</span>',
     extra: '<p class="step-text">Normalise it, so that Σ|ψ<sub>j</sub>|² = 1, and move it to z = 5: with the eigenvectors as in task 0, or with Runge–Kutta steps.</p>',
-    ask: 'Where is the centre of the light, Σ j · |ψ<sub>j</sub>|², at z = 5?', label: 'centre =', unit: '', ref: moved, tol: 0.06, ph: '00.0',
-    hint: 'Build ψ(0) for j = 1 … 41 and divide it by its length. Then move it with the eigenvectors, as in task 0: ψ(z) = Σ c<sub>n</sub> · e<sup>−iE<sub>n</sub>z</sup> · v<sub>n</sub>.',
+    ask: 'Where is the centre of the light, <span class="nb">Σ j · |ψ<sub>j</sub>|²,</span> at z = 5?', label: 'centre =', unit: '', ref: moved, tol: 0.06, ph: '00.0',
+    hint: 'Build ψ(0) for j = 1 … 41 and divide it by √(Σ|ψ<sub>j</sub>|²). Then move it with the eigenvectors, as in task 0: ψ(z) = Σ c<sub>n</sub> · e<sup>−iE<sub>n</sub>z</sup> · v<sub>n</sub>.',
     how: CODE.beam,
     wrongs: [{ ref: () => last(beamRun({ ...BEAM, k: -PI / 2 })).x, tol: 0.06, text: 'The beam moved the other way. Check the sign in e<sup>ikj</sup> and in e<sup>−iEz</sup>, and that your matrix has +1 next to the diagonal: with −1 the band is turned upside down and the beam moves the other way.' },
-      { ref: BEAM.j0, tol: 0.06, text: 'The beam did not move. Is the factor e<sup>ikj</sup> in your start? Without it k = 0, and such a beam stays.' },
+      { ref: BEAM.j0, tol: 0.06, text: 'The centre did not move. Is the factor e<sup>ikj</sup> in your start, and is ψ(0) complex? Without the factor k = 0 and the beam stays; with the real part alone it splits into two halves that move apart.' },
       { ref: () => moved() * sum2(), tol: 0.4, text: 'The beam is not normalised: divide ψ(0) by √(Σ|ψ<sub>j</sub>|²) before you move it.' }],
     after: () => `The centre moved from 26 to ${f(moved(), 2)}: by ${f(BEAM.j0 - moved(), 2)} waveguides. This is a little less than 10, because the beam also contains wavenumbers next to π/2, and they are slower.`,
     pic: (ok) => ({ kind: 'run', which: 'beam', line: ok }) },
-  { type: 'number', text: 'Now give every waveguide its own propagation constant, growing in equal steps F from one waveguide to the next: the diagonal of H becomes F · j. Then the wavenumber of the beam changes at a constant rate:',
-    formula: 'k(z) = k<sub>0</sub> − F · z', ask: 'After which distance z has k changed by 2π, for F = 0.5?', label: 'z =', unit: '', ref: 2 * PI / BLOCH.F, tol: 0.01, ph: '00.00',
+  { type: 'number', text: 'Now make the waveguides different: waveguide j gets the number F · j on the diagonal of H, so the diagonal grows by F from each waveguide to the next. (The diagonal entry of a waveguide is called its propagation constant.) Then the wavenumber of the beam changes at a constant rate:',
+    formula: 'k(z) = k<sub>0</sub> − F · z', ask: 'After which distance z has k changed by 2π, for F = 0.5?', label: 'z =', unit: '', ref: 2 * PI / BLOCH.F, tol: 0.04, ph: '00.0',
     hint: 'F · z = 2π.', how: 'z = 2π/F = 6.283/0.5 = 12.57.',
-    wrongs: [{ ref: PI / BLOCH.F, tol: 0.01, text: 'This is π/F: there k has changed by π only.' }, { ref: 2 * PI * BLOCH.F, tol: 0.01, text: 'Divide 2π by F, do not multiply.' }],
-    after: 'z = 2π/F = 12.57. A change of k by 2π changes nothing: e<sup>i(k + 2π)j</sup> = e<sup>ikj</sup>. So after this distance the beam is the same as at the start. The motion repeats: this is a Bloch oscillation, and 2π/F is its period.',
+    wrongs: [{ ref: PI / BLOCH.F, tol: 0.04, text: 'This is π/F: there k has changed by π only.' }, { ref: 2 * PI * BLOCH.F, tol: 0.04, text: 'Divide 2π by F, do not multiply.' }],
+    after: 'z = 2π/F = 12.57. A change of k by 2π changes nothing: <span class="nb">e<sup>i(k + 2π)j</sup> = e<sup>ikj</sup>.</span> So after this distance the beam is the same as at the start. The motion repeats: this is a Bloch oscillation, and 2π/F is its period.',
     pic: (ok) => ({ kind: 'band', sweep: true, flat: ok }) },
   { type: 'number', text: 'While k runs once through the band, the beam moves to one side, stops and comes back. The distance between its two turning points is the width of the band, 4J, divided by F:',
-    formula: 'distance = 4J / F', ask: 'Calculate it for J = 1 and F = 0.5, in waveguides.', label: 'distance =', unit: '', ref: 4 / BLOCH.F, tol: 0.06, ph: '0',
+    formula: 'distance = 4J / F', ask: 'Calculate it for J = 1 and F = 0.5, in waveguides.', label: 'distance =', unit: '', ref: 4 / BLOCH.F, tol: 0.06,
     hint: '4 · 1 / 0.5.', how: '4J/F = 4/0.5 = 8 waveguides.',
     wrongs: [{ ref: 4 * BLOCH.F, tol: 0.06, text: 'This is 4J · F. Divide by F.' }, { ref: 2 / BLOCH.F, tol: 0.06, text: 'This is 2J/F, half of the way. The distance between the two turning points is 4J/F.' }],
-    after: '8 waveguides. The reason: E(k) + F · j stays the same along the way, and E(k) can change by 4J at most. A stronger gradient F makes the oscillation shorter and narrower.',
+    after: '8 waveguides. The reason: E(k) + F · j stays the same along the way, and E(k) can change by 4J at most. This holds for one wavenumber; the beam of the picture contains several and its centre moves a little less, 7.8 waveguides. A larger F makes the oscillation shorter and narrower.',
     pic: (ok) => ({ kind: 'run', which: 'bloch', span: ok }) },
-  { type: 'choice', text: 'The picture shows a beam with k₀ = 0 in a chain with F = 0.5, from z = 0 to z = 25. It starts at waveguide 16.',
+  { type: 'choice', text: 'The picture shows a beam with k₀ = 0 in a chain with F = 0.5, from z = 0 to z = 26. It starts at waveguide 16.',
     ask: 'How many times does it come back to waveguide 16?', look: true, options: ['1', '2', '4'], ref: '2',
-    hint: 'One period is z = 2π/F = 12.57.',
-    after: 'Twice: 25 is two periods of 12.57. The centre goes from waveguide 16 to about 24 and back, 8 waveguides, as you calculated. A constant gradient does not push the light away; it makes it oscillate.',
+    hint: 'Follow the line of strong colour from the bottom to the top of the picture. One period is z = 2π/F = 12.57.',
+    after: 'Twice: 26 is a little more than two periods of 12.57. The centre goes from waveguide 16 to 23.8 and back. A diagonal that grows from waveguide to waveguide does not push the light away; it makes it oscillate.',
     pic: (ok) => ({ kind: 'run', which: 'bloch', line: ok, span: true }) },
   { type: 'info', title: 'This part is done', end: true,
-    html: `<p class="step-text">The wavenumber k is the phase step between neighbouring waveguides. The band E(k) = 2J·cos k gives the eigenvalue of each wave, and its slope is the group velocity of a beam. With a gradient F the wavenumber runs through the band and the beam oscillates.</p>
+    html: `<p class="step-text">The wavenumber k is the phase step between neighbouring waveguides. The band E(k) = 2J·cos k gives the eigenvalue of each wave, and its slope is the group velocity of a beam. If the diagonal of H grows by F from each waveguide to the next, the wavenumber runs through the band and the beam oscillates.</p>
       <p class="step-text">Next: the chain with two different couplings.</p>`,
     pic: pic({ kind: 'run', which: 'bloch', line: true, span: true }) },
 ];
@@ -99,25 +101,28 @@ function drawBand(ctx, w, h, c, st) {
   const { X, Y } = axes(ctx, c, w, h, { xlim: [-PI, PI], ylim: [-2.5, 2.5], xticks: [[-PI, '−π'], [-PI / 2, '−π/2'], [0, '0'], [PI / 2, 'π/2'], [PI, 'π']], yticks: [-2, 0, 2], xlabel: 'wavenumber k', ylabel: 'E', grid: [0] });
   curve(ctx, X, Y, (k) => band(k), -PI, PI, c.psi, 2.8);
   const slope = (k, half, color) => { const v = velocity(k); ctx.strokeStyle = color; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(X(k - half), Y(band(k) - v * half)); ctx.lineTo(X(k + half), Y(band(k) + v * half)); ctx.stroke(); };
-  if (st.flat) for (const k of [-PI, 0, PI]) { slope(k, k === 0 ? 0.55 : 0.4, c.hpsi); dot(ctx, X(k), Y(band(k)), 5, c.hpsi); }
-  if (st.flat) tag(ctx, 'flat: v = 0', X(0), Y(2) - 14, { color: c.hpsi, px: 12.5 });
-  if (st.sweep) { arrow(ctx, X(-0.25), Y(band(0.25)) + 20, X(-1.25), Y(band(1.25)) + 20, c.fg, 2.2, 9); tag(ctx, 'k(z) = k₀ − F·z', X(0), Y(-1.2), { color: c.fg, px: 12.5 }); }
+  if (st.flat) for (const k of [-PI, 0, PI]) { slope(k, k === 0 ? 0.55 : 0.4, c.hpsi); if (k > -3) dot(ctx, X(k), Y(band(k)), 5, c.hpsi); }      // no dot on the axis: it would cover the tick
+  if (st.flat) tag(ctx, st.sweep ? 'flat, v = 0: the beam turns around' : 'flat: v = 0', X(0), st.sweep ? Y(-1.8) : Y(2) - 14, { color: c.hpsi, px: 12.5 });
+  if (st.sweep) {                                                          // the wavenumber starts at k₀ = 0 and runs to the left
+    dot(ctx, X(0), Y(2), 6, c.fg); tag(ctx, 'start: k₀ = 0', X(0), Y(2) - 14, { color: c.fg, px: 12.5 });
+    arrow(ctx, X(-0.3), Y(band(0.3)) + 18, X(-1.3), Y(band(1.3)) + 18, c.fg, 2.2, 9); tag(ctx, 'k(z) = k₀ − F·z', X(0), Y(0.25), { color: c.fg, px: 12.5 });
+  }
   if (st.at != null) {
     if (st.tangent) slope(st.at, 0.6, c.hpsi);
     dot(ctx, X(st.at), Y(band(st.at)), 6, c.hpsi);
     tag(ctx, st.tangent ? 'slope v = −2' : `E = ${f(band(st.at), 0)}`, X(st.at) + 12, Y(band(st.at)) - 12, { color: c.hpsi, px: 12.5, align: 'left' });
   }
-  return st.sweep ? 'The band. With a gradient F the wavenumber of the beam moves along the band at a constant rate and re-enters on the other side: k = −π and k = π are the same wave.'
-    : 'The band E(k) = 2J·cos k for J = 1. The slope of this curve is the group velocity of a beam.';
+  return st.sweep ? 'The band. With the growing diagonal the wavenumber of the beam moves along the band at a constant rate and re-enters on the other side: k = −π and k = π are the same wave.'
+    : `The band E(k) = 2J·cos k for J = 1.${st.tangent || st.flat ? ' The slope of this curve is the group velocity of a beam.' : ''}`;
 }
 
 // the light in the chain of 41 waveguides along z: the beam, or the beam in a chain with a gradient
 function drawRun(ctx, w, h, c, st) {
   const P = st.which === 'beam' ? BEAM : BLOCH, R = beamRun(P), rows = R.slice(0, R.length - 1).map((r) => r.I), top = Math.max(...R[0].I);
-  const yt = st.which === 'beam' ? [0, 1, 2, 3, 4, 5] : [0, 5, 10, 15, 20, 25];
+  const yt = st.which === 'beam' ? [0, 1, 2, 3, 4, 5] : [0, 5, 10, 15, 20, 25];      // the Bloch picture reaches z = 26
   const { X, Y } = heat(ctx, c, w, h, rows, (v) => rgbToCss(cmapSeq(Math.min(1, Math.sqrt(v / top)))), { xlim: [0.5, 41.5], ylim: [0, P.zmax], xticks: [1, 6, 11, 16, 21, 26, 31, 36, 41], yticks: yt, xlabel: 'waveguide', ylabel: 'z' });
   if (st.line) { ctx.strokeStyle = c.hpsi; ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.beginPath(); R.forEach((r, i) => { if (i) ctx.lineTo(X(r.x), Y(r.z)); else ctx.moveTo(X(r.x), Y(r.z)); }); ctx.stroke(); ctx.setLineDash([]); }
-  if (st.span) { const y = Y(PI / P.F); arrow(ctx, X(16.4), y, X(23.6), y, c.fg, 2, 8); arrow(ctx, X(23.6), y, X(16.4), y, c.fg, 2, 8); tag(ctx, '8 waveguides', X(20), y - 12, { color: c.fg, px: 12.5, bg: c.surface }); }
+  if (st.span) { const y = Y(PI / P.F), far = R.reduce((m, r) => Math.max(m, r.x), 0); arrow(ctx, X(P.j0 + 0.3), y, X(far - 0.3), y, c.fg, 2, 8); arrow(ctx, X(far - 0.3), y, X(P.j0 + 0.3), y, c.fg, 2, 8); tag(ctx, 'about 8 waveguides', X(20), y - 12, { color: c.fg, px: 12.5, bg: c.surface }); }
   return st.which === 'beam' ? `A beam with k = π/2 in 41 waveguides: a strong colour means much light.${st.line ? ' Dashed line: the centre of the light.' : ''}`
     : `A beam with k₀ = 0 in a chain whose propagation constants grow by F = 0.5 from one waveguide to the next.${st.line ? ' Dashed line: the centre of the light.' : ''}`;
 }

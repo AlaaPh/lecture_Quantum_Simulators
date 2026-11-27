@@ -66,7 +66,8 @@ the same picture with more guides.
 
 **Workbook** (`app/workbook.html`): the student does the calculations of all exercises. One small question is on
 the screen at a time, with one picture. Every answer is checked at once; a wrong answer gets a hint, and after two
-wrong tries the worked answer can be shown. The first card lists the parts, grouped by exercise, with what is done.
+wrong tries the worked answer can be shown. A right number with too few decimals is told as such and is no wrong try;
+the usual mistakes (a wrong index, a missing complex conjugate, a loop that is not closed, …) get their own hint. The first card lists the parts, grouped by exercise, with what is done.
 Twelve parts:
 
 *Exercise 1*
@@ -79,7 +80,8 @@ Twelve parts:
 *Exercise 2*
 3. **Runge–Kutta step** (nine questions) — one step by hand for i dψ/dz = Eψ with E = 1, dz = 1, ψ₀ = 1: the four
    slopes k₁ … k₄, the Euler step for comparison (length 1.414), ψ₁ = 0.5417 − 0.8333i with the length 0.994, the
-   largest step that does not grow (|E|·dz < 2√2); then 20 steps of dz = 0.1 for 41 waveguides in the program.
+   largest step for which the light does not grow (|E|·dz ≤ 2√2); then 20 steps of dz = 0.1 for 41 waveguides in
+   the program.
 4. **Beam and wavenumber** (eight questions) — E(k) = 2J·cos k, the group velocity −2J·sin k, a Gaussian beam with
    k = π/2 in the program (its centre moves from 26 to 16.27), and the Bloch oscillation: period 2π/F, distance 4J/F.
 5. **SSH chain (tasks 1, 2)** (nine questions) — one pair; 20 waveguides with J₁ = 2, J₂ = 1: the two bands and the
@@ -91,10 +93,11 @@ Twelve parts:
    one eigenvalue in the program, and the eigenvalues of the chain of 20 waveguides against the two bands.
 7. **Zak phase by hand** (ten questions) — h(k) at k = 0, π/2, π, 3π/2 for J₁ = 1, J₂ = 2; how often h goes around
    the origin; γ is half of the total turn of the angle of h, so γ = π; then J₁ = 2, J₂ = 1 with γ = 0.
-8. **Zak phase by program (task 8b)** (five questions) — |⟨u₁|u₂⟩| = 0.8507, the product of four overlaps −0.2,
+8. **Zak phase by program (task 8b)** (five questions) — |⟨u₁|u₂⟩| = 0.8507, the product of four overlaps −0.2 + 0·i,
    γ = −arg of the closed product for M = 50 for both chains, and why random phases of the eigenvectors drop out.
 9. **On-site term (task 3)** (six questions) — +Δ on A, −Δ on B, Δ = 0.5: the edge state at E = Δ by hand and in
-   the program, the band edge √(Δ² + 1) = 1.118, the two edge states at ±0.5, and γ = 0.708π and 0.037π.
+   the program, the band edge √(Δ² + 1) = 1.118, where the two edge states of 20 waveguides go (±0.5), and
+   γ = 0.708π and 0.037π.
 
 *Exercise 4*
 10. **Thouless pump** (eight questions) — the lattice of Jürgensen, Mukherjee, Jörg and Rechtsman, "Quantized

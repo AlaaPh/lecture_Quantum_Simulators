@@ -47,14 +47,14 @@ d, have = sys.argv[1], sys.argv[2] == '1'
 R = json.load(open('tools/workbook_numbers.json')); X = R['exercises']
 # what each program prints, in the order of its questions
 WANT = {
-    'chain': [X['chain20_lowest'], X['chain20_top_abs'][9], X['chain20_I10_z1']],
+    'chain': [X['chain20_lowest'], X['chain20_top_abs'][3], X['chain20_I10_z1']],
     'rk': [X['rk41_I21']],
     'beam': [X['beam_centre_z5']],
     'ssh': [X['ssh20_21_smallest_positive'], 0.0, round(X['ssh20_12_smallest_positive'], 4)],
     'kspace': [X['kspace_lower_2pi3']],
     # a Zak phase in units of pi is compared up to a full turn: (value, 2)
-    'zakcode': [X['zak_overlap_abs_0_pi2'], X['zak_product_M4'][0], (X['zak_gamma_over_pi_M50_12'], 2), (X['zak_gamma_over_pi_M50_21'], 2)],
-    'onsite': [X['onsite21_mid'], X['onsite20_12_closest'][1], (X['onsite_gamma_over_pi_M400'], 2), (X['onsite_gamma_over_pi_M400_21'], 2)],
+    'zakcode': [X['zak_overlap_abs_0_pi2'], X['zak_product_M4'][0], 0.0, (X['zak_gamma_over_pi_M50_12'], 2), (X['zak_gamma_over_pi_M50_21'], 2)],
+    'onsite': [X['onsite21_mid'], (X['onsite_gamma_over_pi_M400'], 2), (X['onsite_gamma_over_pi_M400_21'], 2)],
     'aah': R['J_z0'] + R['J_quarter'] + R['eig_k0_z0'] + [R['abs_overlap3_k0_k2pi50_phi0'], R['zak3_M50_phi0_over_pi'], R['zak3_M50_phiquarter_over_pi'], R['F3_first_plaquette_N10_over_pi'], R['sumF3_N10_over_pi'], R['chern_N10'][1]],
 }
 def numbers(text):                      # every number on the lines that hold nothing but numbers

@@ -123,9 +123,10 @@ function show(n) {
   if (at !== shownAt) { shownAt = at; window.scrollTo(0, 0); }       // a new card starts at its top
   drawPic();
 }
-function wrong(text) {
-  const s = part().steps[st.pos[st.part]], msg = $('msg'); tries++;
-  msg.className = 'step-msg no'; msg.innerHTML = `<b>Not yet.</b> ${text || s.hint}`;
+// counts: false for the right number with too few decimals; it is no wrong try
+function wrong(text, counts = true) {
+  const s = part().steps[st.pos[st.part]], msg = $('msg'); if (counts) tries++;
+  msg.className = 'step-msg no'; msg.innerHTML = `<b>${counts ? 'Not yet.' : 'Almost.'}</b> ${text || s.hint}`;
   card.querySelectorAll('.step-ask input').forEach((inp) => inp.classList.add('no'));
   if (tries >= 2 && s.how && !howShown) { $('how').innerHTML = '<button class="btn" id="showhow" type="button">Show me how</button>'; $('showhow').addEventListener('click', () => { howShown = true; putHow(false); }); }
   msg.scrollIntoView({ block: 'nearest' });
@@ -136,7 +137,7 @@ function right(values) {
 }
 function check() {
   const s = part().steps[st.pos[st.part]], r = judge(s, [$('f0').value, $('f1') ? $('f1').value : '']);
-  if (r.state === 'right') right(r.values); else wrong(r.text);
+  if (r.state === 'right') right(r.values); else wrong(r.text, r.state !== 'short');
 }
 function choose(btn) {
   const p = part(), s = p.steps[st.pos[p.id]]; if (isSolved(p, st.pos[p.id])) return;
@@ -152,7 +153,7 @@ function showContents() {
   if (figure.parentElement !== frame) frame.appendChild(figure);
   frame.classList.add('home');
   const row = (p) => { const n = questions(p), k = solvedCount(p); return `<a class="toc-part${k === n ? ' done' : ''}" href="#${p.id}"><span class="toc-title">${p.title}</span><span class="toc-meta">${k === n ? '✓ done' : k ? `${k} of ${n}` : `${n} questions`}</span></a>`; };
-  card.innerHTML = `<h2>Workbook</h2><p class="step-text">Small questions, one on the screen at a time. Every answer is checked at once. Choose a part.</p>${GROUPS.map((g) => `<section class="toc-group"><h3><b>${g.title}</b> · ${g.about}${g.demo ? ` <a class="toc-demo" href="${g.demo}">interactive page</a>` : ''}</h3>${g.parts.map(row).join('')}</section>`).join('')}`;
+  card.innerHTML = `<h2>Workbook</h2><p class="step-text">Small questions, one on the screen at a time. Every answer is checked at once. A wrong answer gets a hint; after two wrong answers you can open the worked answer. Choose a part.</p>${GROUPS.map((g) => `<section class="toc-group"><h3><b>${g.title}</b> · ${g.about}${g.demo ? ` <a class="toc-demo" href="${g.demo}">interactive page</a>` : ''}</h3>${g.parts.map(row).join('')}</section>`).join('')}`;
   chips(); document.title = 'Quantum Simulators Workbook';
   if (location.hash && location.hash !== `#${HOME}`) history.replaceState(null, '', `#${HOME}`);
   window.scrollTo(0, 0);

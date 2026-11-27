@@ -33,12 +33,12 @@ disp(E(1))               % the lowest`,
   chainV: {
     py: `# uses E, V from question 2
 top = V[:, -1]           # the last column
-# waveguide 10 is the index 9
-print(abs(top[9]))`,
+# waveguide 4 is the index 3
+print(abs(top[3]))`,
     m: `% uses E, V from question 2
 top = V(:, end);         % the last column
-% waveguide 10 is the index 10
-disp(abs(top(10)))`,
+% waveguide 4 is the index 4
+disp(abs(top(4)))`,
   },
   chainProp: {
     py: `# uses N, E, V from question 2
@@ -47,7 +47,8 @@ psi0[9] = 1              # waveguide 10
 z = 1
 # the 20 overlaps <v_n|psi(0)>
 c = V.T @ psi0
-# every eigenvector gets its factor
+# V @ x adds the columns of V,
+# each multiplied by its number in x
 psi = V @ (np.exp(-1j*E*z)*c)
 print(abs(psi[9])**2)`,
     m: `% uses N, E, V from question 2
@@ -56,7 +57,8 @@ psi0(10) = 1;            % waveguide 10
 z = 1;
 % the 20 overlaps <v_n|psi(0)>
 c = V'*psi0;
-% every eigenvector gets its factor
+% V*x adds the columns of V,
+% each multiplied by its number in x
 psi = V*(exp(-1i*E*z).*c);
 disp(abs(psi(10))^2)`,
   },
@@ -267,7 +269,7 @@ p = 1
 for s in range(4):
     # the last overlap closes the loop
     p = p*np.vdot(us[s], us[(s + 1) % 4])
-print(p.real)`,
+print(p.real, p.imag)`,
     m: `% uses u_lower.m from question 1
 ks = [0, pi/2, pi, 3*pi/2];
 U = zeros(2, 4);         % the 4 eigenvectors
@@ -279,7 +281,7 @@ for s = 1:4
     t = mod(s, 4) + 1;   % after the last: 1
     p = p*(U(:, s)'*U(:, t));
 end
-disp(real(p))`,
+disp([real(p), imag(p)])`,
   },
   zakLoop: {
     py: `# uses u_lower from question 1
@@ -353,16 +355,6 @@ end
 H = ssh_chain(21, 2, 1, 0.5);
 E = sort(eig(H));        % lowest first
 disp(E(11))              % number 11`,
-  },
-  onsiteEdge: {
-    py: `# uses ssh_chain from question 2
-H = ssh_chain(20, 1, 2, 0.5)
-E, V = np.linalg.eigh(H)
-print(E[E > 0].min())    # closest to zero`,
-    m: `% uses ssh_chain.m from question 2
-H = ssh_chain(20, 1, 2, 0.5);
-E = sort(eig(H));
-disp(min(E(E > 0)))      % closest to zero`,
   },
   onsiteZak: {
     py: `# H(k) with the on-site term D
@@ -620,6 +612,6 @@ export const PROGRAMS = [
   { id: 'ssh', blocks: ['sshE', 'sshOdd', 'sshEdge'] },
   { id: 'kspace', blocks: ['kspaceE'] },
   { id: 'zakcode', blocks: ['zakOverlap', 'zakFour', 'zakLoop', 'zakSwap'] },
-  { id: 'onsite', blocks: ['onsiteE', 'onsiteEdge', 'onsiteZak', 'onsiteZak2'] },
+  { id: 'onsite', blocks: ['onsiteE', 'onsiteZak', 'onsiteZak2'] },
   { id: 'aah', blocks: ['couplings', 'matrix', 'overlap', 'zak', 'zak2', 'plaquette', 'sum', 'band2'] },
 ];

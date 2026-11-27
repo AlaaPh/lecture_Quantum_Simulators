@@ -93,7 +93,17 @@ Computed with numpy by `tools/workbook_reference.py` and by the page (`app/js/wo
   J₁ = 1, J₂ = 2, 20 waveguides: ±0.0014649.
 - k-space, J₁ = 2, J₂ = 1: |h| = 3, √5, 1 at k = 0, π/2, π; E(2π/3) = −√3.
 - Zak phase by program, J₁ = 1, J₂ = 2: |⟨u(0)|u(π/2)⟩| = 0.85065, product of four overlaps −0.2, product for
-  M = 50 is −0.891, M = 3 gives 0. γ = π; J₁ = 2, J₂ = 1: γ = 0.
+  M = 50 is −0.891, M = 3 gives 0. γ = π; J₁ = 2, J₂ = 1: γ = 0. Usual mistakes: without the closing overlap the
+  product of four k is −0.2 ∓ 0.1236i and γ(M = 50) = ±0.9867π (the sign depends on the phases the eigensolver
+  returns); without the complex conjugate the product is +0.2 and γ = 0; with ⟨u_{s+1}|u_s⟩ the sign of γ flips.
+- The two SSH chains (J₁, J₂) = (2, 1) and (1, 2) are the same lattice inside, shifted by one waveguide. They differ
+  in where the chain is cut, that is which coupling lies inside the unit cells 1–2, 3–4, …; the Zak phase is the Zak
+  phase of this unit cell. "Opposite signs inside a pair in the lower band" holds for the strongly coupled pairs,
+  except next to a zero of the eigenvector (4 of 200 pairs for 20 waveguides with J₁ = 2, J₂ = 1). An edge state in
+  an even chain of M pairs needs J_weak/J_strong < M/(M + 1).
+- Chain of 20 waveguides, light from waveguide 10, z = 4: 4.3 % of the light is further than 2J·z = 8 waveguides.
+  Highest eigenvector: |ψ₄| = 0.17384 (waveguides 3 and 5: 0.13390, 0.20991). Without the i in e^{−iEz} the value
+  of |ψ₁₀|² at z = 1 is 5.197. Runge–Kutta with the plain mean of the four slopes gives 0.15816 in place of 0.15773.
 - On-site term Δ = 0.5: 21 waveguides (2, 1): eigenvalue 11 is 0.5 with the unchanged eigenvector; band edge
   √1.25 = 1.11803; 20 waveguides (1, 2): ±0.5000021; γ = 0.70791π (M = 400; 0.70742π for M = 50) and 0.03699π.
 

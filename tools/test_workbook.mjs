@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs';
 import * as A from '../app/js/workbook/aah.js';
 import * as L from '../app/js/workbook/lattice.js';
 import { parse } from '../app/js/workbook/answers.js';
-import { judge, val } from '../app/js/workbook/judge.js';
+import { judge, val, neededDecimals } from '../app/js/workbook/judge.js';
 import { zak } from '../app/js/workbook/zak.js';
 import { pump } from '../app/js/workbook/pump.js';
 import { chern } from '../app/js/workbook/chern.js';
@@ -106,7 +106,8 @@ console.log('1b. the models of Exercises 1 to 3 (app/js/workbook/lattice.js) aga
   num('Bloch oscillation: period 2π/F', period, X.bloch_period, 1e-12);
   num('Bloch oscillation: centre after half a period', L.beamRun({ ...L.BLOCH, zmax: period / 2, rows: 1 })[1].x, X.bloch_centre_half, 1e-7);
   num('Bloch oscillation: centre after one period', L.beamRun({ ...L.BLOCH, zmax: period, rows: 1 })[1].x, X.bloch_centre_full, 1e-7);
-  { const b = L.beamRun(L.BLOCH); num('Bloch oscillation: centre at z = 25', b[b.length - 1].x, X.bloch_centre_z25, 1e-7); }
+  num('Bloch oscillation: centre at z = 25', L.beamRun({ ...L.BLOCH, zmax: 25, rows: 1 })[1].x, X.bloch_centre_z25, 1e-7);
+  report(L.BLOCH.zmax > 2 * period && L.BLOCH.zmax < 2.2 * period, 'the picture of the Bloch oscillation shows a little more than two periods', `${L.BLOCH.zmax} against ${(2 * period).toFixed(2)}`);
   // the SSH chain
   list('SSH chain, 20 waveguides, J₁ = 2, J₂ = 1: eigenvalues', L.sshEig(20, 2, 1).values, X.ssh20_21_E, 1e-9);
   num('the smallest positive one', L.smallestPositive(L.sshEig(20, 2, 1).values), X.ssh20_21_smallest_positive, 1e-9);
@@ -162,6 +163,10 @@ for (const p of PARTS) {
       if (s.ph) { const shown = (s.ph.split('.')[1] || '').length; report(judge(s, [ref.toFixed(shown)]).state === 'right', `${name}: with the ${shown} decimals that the empty field shows (${s.ph}) the answer is right`, ref.toFixed(shown)); }
       report(judge(s, [(ref + 6 * s.tol).toFixed(d + 1)]).state === 'wrong' && judge(s, [(ref - 6 * s.tol).toFixed(d + 1)]).state === 'wrong', `${name}: six tolerances away is wrong`);
       report(judge(s, ['']).state === 'empty' && judge(s, ['abc']).state === 'unreadable' && judge(s, ['1..2']).state === 'unreadable', `${name}: an empty field and letters are told`);
+      {                                             // the right number with one decimal less than the field needs: right, or asked for more decimals, never a misleading hint
+        const need = neededDecimals(s), isWrongRef = (v) => (s.wrongs || []).some((k) => Math.abs(v - val(k.ref)) < 1e-9);
+        if (need >= 1) { const t = ref.toFixed(need - 1), r = judge(s, [t]); report(r.state === 'right' || r.state === 'short' || isWrongRef(Number(t)), `${name}: ${t} (one decimal too few) is right or is asked for ${need} decimals`, r.state); }
+      }
       if (s.unit === 'π') report(judge(s, [`${ref.toFixed(d)}pi`]).state === 'right' && judge(s, [`${ref.toFixed(d)} π`]).state === 'right', `${name}: "${ref.toFixed(d)}pi" in a field with the unit π is read as ${ref.toFixed(d)}`);
       if (s.unit === '°') report(judge(s, [`${ref.toFixed(d)}°`]).state === 'right', `${name}: "${ref.toFixed(d)}°" is read`);
       if (s.mod) {
@@ -202,9 +207,9 @@ for (const p of PARTS) {
   const { hermEig } = await import('../app/js/linalg.js');
   const Er = hermEig(re, im).values[0];
   report(judge(q(pump, 6), [Er.toFixed(4)]).state === 'right' && judge(q(pump, 6), [Er.toFixed(3)]).state === 'right', 'pump 6: with the couplings rounded to three decimals the answer is still right', Er.toFixed(5));
-  report(judge(q(pump, 3), ['0.13']).state === 'wrong' && judge(q(pump, 3), ['0.133']).state === 'right' && judge(q(pump, 3), ['0.1334']).state === 'right' && judge(q(pump, 3), ['0.1335']).state === 'right', 'pump 3: 0.133, 0.1334 and 0.1335 (from the rounded distance) are right, 0.13 is not');
+  report(judge(q(pump, 3), ['0.13']).state === 'short' && judge(q(pump, 3), ['0.133']).state === 'right' && judge(q(pump, 3), ['0.1334']).state === 'right' && judge(q(pump, 3), ['0.1335']).state === 'right', 'pump 3: 0.133, 0.1334 and 0.1335 (from the rounded distance) are right, 0.13 asks for more decimals');
   report(judge(q(pump, 1), ['33.9']).state === 'right' && judge(q(pump, 1), ['33.912']).state === 'right' && judge(q(pump, 1), ['34.5']).state === 'wrong', 'pump 1: 33.9 and 33.912 are right, 34.5 is not');
-  report(judge(q(pump, 2), ['16.66']).state === 'right' && judge(q(pump, 2), ['16.7']).state === 'wrong', 'pump 2: 16.66 is right, 16.7 is not');
+  report(judge(q(pump, 2), ['16.66']).state === 'right' && judge(q(pump, 2), ['16.7']).state === 'short' && judge(q(pump, 2), ['16.8']).state === 'wrong', 'pump 2: 16.66 is right, 16.7 asks for more decimals, 16.8 is wrong');
   const o3 = A.overlapAbs(3, 0, TAU / 50, 0);
   report(judge(q(chern, 1), [o3.toFixed(4)]).state === 'right' && judge(q(chern, 1), [o3.toFixed(5)]).state === 'right' && /four decimals/.test(judge(q(chern, 1), [o3.toFixed(3)]).text), 'chern 1: the overlap with four or five decimals is right, with three it asks for four', o3.toFixed(6));
   report(/band 4/.test(judge(q(chern, 1), [A.overlapAbs(4, 0, TAU / 50, 0).toFixed(4)]).text) && /band 2/.test(judge(q(chern, 1), [A.overlapAbs(2, 0, TAU / 50, 0).toFixed(4)]).text) && judge(q(chern, 1), [A.overlapAbs(1, 0, TAU / 50, 0).toFixed(4)]).state === 'wrong' && judge(q(chern, 1), [A.overlapAbs(5, 0, TAU / 50, 0).toFixed(4)]).state === 'wrong', 'chern 1: the overlap of band 4 and of band 2 get their hints, bands 1 and 5 are wrong');
@@ -263,20 +268,28 @@ console.log('3b. the numbers in the texts of Exercises 1 to 3');
   report(has('chain', '2 · cos(8.571°) = 2 · 0.98883 = 1.978') && close(180 / 21, 8.571, 5e-4) && close(Math.cos(PI / 21), 0.98883, 5e-6) && close(X.chain20_highest, 1.978, 5e-4), 'chain: E₁ = 2·cos(8.571°) = 1.978');
   report(has('chain', 'Only 0.05 is left') && close(X.chain20_I10_z1, 0.05, 0.005), 'chain: 0.05 of the light is left in waveguide 10 at z = 1');
   { const I = X.chain20_I_z4, peak = I.indexOf(Math.max(...I.slice(0, 7))) + 1; report((10 - peak === 6 || 10 - peak === 7) && I[10 - 1 - 4] < 0.5 * I[peak - 1] && has('chain', '6 to 7 waveguides at z = 4'), 'chain: at z = 4 the outer bright line is 6 to 7 waveguides from waveguide 10', `waveguide ${peak}`); }
-  report(has('chain', 'ψ(j) ∝ sin(jπ/21)') && X.chain20_top_abs.every((v, i) => close(v / X.chain20_top_abs[0], Math.sin(((i + 1) * PI) / 21) / Math.sin(PI / 21), 1e-9)), 'chain: the highest eigenvector is sin(jπ/21)');
+  report(has('chain', 'proportional to sin(jπ/21)') && X.chain20_top_abs.every((v, i) => close(v / X.chain20_top_abs[0], Math.sin(((i + 1) * PI) / 21) / Math.sin(PI / 21), 1e-9)), 'chain: the highest eigenvector is sin(jπ/21)');
   // one Runge–Kutta step
   const rk = L.rkStep(), c2 = (a, re, im) => close(a[0], re, 1e-12) && close(a[1], im, 1e-12);
-  report(has('rk', 'P₂ = ψ₀ + (dz/2)·k₁ = 1 − 0.5i') && c2(rk.P2, 1, -0.5) && has('rk', 'P₃ = ψ₀ + (dz/2)·k₂ = 0.75 − 0.5i') && c2(rk.P3, 0.75, -0.5) && has('rk', 'P₄ = ψ₀ + dz·k₃ = 0.5 − 0.75i') && c2(rk.P4, 0.5, -0.75), 'rk: the points P₂, P₃, P₄ of the text');
+  report(has('rk', 'P₂ = ψ(0) + (dz/2)·k₁ = 1 − 0.5i') && c2(rk.P2, 1, -0.5) && has('rk', 'P₃ = ψ(0) + (dz/2)·k₂ = 0.75 − 0.5i') && c2(rk.P3, 0.75, -0.5) && has('rk', 'P₄ = ψ(0) + dz·k₃ = 0.5 − 0.75i') && c2(rk.P4, 0.5, -0.75), 'rk: the points P₂, P₃, P₄ of the text');
   report(has('rk', 'The sum in the bracket is −2.75 − 5i') && c2(rk.sum, -2.75, -5) && has('rk', '0.5417 − 0.8333i') && close(rk.psi1[0], 0.5417, 5e-5) && close(rk.psi1[1], -0.8333, 5e-5), 'rk: the sum of the slopes and ψ₁');
   report(has('rk', 'e<sup>−i</sup> = 0.540 − 0.841i') && close(rk.exact[0], 0.540, 5e-4) && close(rk.exact[1], -0.841, 5e-4), 'rk: the exact result e^−i');
-  report(has('rk', 'loses 1.2 % of the light (|ψ₁|² = 0.988)') && close(X.rk_abs_psi1 ** 2, 0.988, 5e-4) && close(1 - X.rk_abs_psi1 ** 2, 0.012, 5e-4) && has('rk', 'the length is 0.99999999') && X.rk_abs_step_x01.toFixed(8) === '0.99999999', 'rk: the big step loses 1.2 %; with dz = 0.1 the length is 0.99999999');
+  report(has('rk', 'loses 1.2 % of the light (|ψ(dz)|² = 0.988)') && close(X.rk_abs_psi1 ** 2, 0.988, 5e-4) && close(1 - X.rk_abs_psi1 ** 2, 0.012, 5e-4) && has('rk', 'the absolute value is 0.99999999') && X.rk_abs_step_x01.toFixed(8) === '0.99999999', 'rk: the big step loses 1.2 %; with dz = 0.1 the length is 0.99999999');
   report(has('rk', '0.1577, and the exact value is 0.1577') && has('rk', 'is 0.99999:') && has('rk', 'give 1.54.'), 'rk: the chain of 41 waveguides: 0.1577, the sum 0.99999, Euler 1.54', `${X.rk41_I21}, ${X.rk41_norm}, ${X.euler41_norm}`);
   // a beam
   report(has('beam', 'from 26 to 16.27: by 9.73 waveguides') && close(X.beam_centre_z5, 16.27, 0.005), 'beam: the centre moves from 26 to 16.27');
   report(has('beam', 'z = 2π/F = 6.283/0.5 = 12.57') && close(X.bloch_period, 12.57, 0.005) && close(X.bloch_width, 8, 1e-12) && Math.abs(X.bloch_centre_half - 24) < 0.5 && Math.abs(X.bloch_centre_full - 16) < 0.01, 'beam: the period 12.57, the distance 8, the centre goes from 16 to about 24 and back', `${X.bloch_centre_half}, ${X.bloch_centre_full}`);
   // the SSH chain
   report(has('ssh', '10 below −1.067 and 10 above +1.067') && L.sshEig(20, 2, 1).values.filter((v) => v < 0).length === 10, 'ssh: two groups of 10 eigenvalues, below −1.067 and above +1.067');
-  report(X.ssh20_21_lowest_pair_product_negative && X.ssh20_21_highest_pair_product_positive && has('ssh', 'In the lower band the two waveguides of a pair are in antiphase'), 'ssh: lowest eigenvector antiphase in every pair, highest in phase');
+  report(X.ssh20_21_lowest_pair_product_negative && X.ssh20_21_highest_pair_product_positive && has('ssh', 'In the lower band the two waveguides of a strongly coupled pair have opposite signs'), 'ssh: lowest eigenvector antiphase in every pair, highest in phase');
+  { // in every eigenvector of a band most pairs follow the rule; an exception is a pair where the eigenvector is small
+    const e = L.sshEig(20, 2, 1); let worst = 0, except = 0;
+    e.vectors.forEach((v, n) => { const big = Math.max(...v.map(Math.abs)); for (let m = 0; m < 10; m++) { const pr = v[2 * m] * v[2 * m + 1]; if ((n < 10 ? pr : -pr) > 1e-12) { except++; worst = Math.max(worst, Math.min(Math.abs(v[2 * m]), Math.abs(v[2 * m + 1])) / big); } } });
+    report(except > 0 && except <= 8 && worst < 0.2 && has('ssh', 'Exceptions are a few pairs next to a zero of the eigenvector'), 'ssh: the few pairs against the rule lie next to a zero of the eigenvector', `${except} of 200 pairs; there the smaller component is at most ${worst.toFixed(2)} of the largest one`);
+    // with J₁ = 1, J₂ = 2 the rule does not hold for the weakly coupled pairs 1–2, 3–4, …: it is a rule for the strong pairs
+    const w = L.sshEig(20, 1, 2); let against = 0; w.vectors.slice(0, 9).forEach((v) => { for (let m = 0; m < 10; m++) if (v[2 * m] * v[2 * m + 1] > 1e-12) against++; });
+    report(against > 20, 'ssh: for J₁ = 1, J₂ = 2 many pairs 1–2, 3–4, … of the lower band have equal signs: the rule is for the strongly coupled pairs', `${against} of 90`);
+  }
   report(has('ssh', 'three quarters of it in waveguide 21') && close(X.ssh21_21_weight_guide21, 0.75, 1e-6) && X.ssh21_21_even_weight < 1e-20, 'ssh: the edge state has no light in the even waveguides and three quarters in waveguide 21');
   report(has('ssh', '+0.0015 and −0.0015') && close(X.ssh20_12_smallest_positive, 0.0015, 5e-5) && L.sshEig(20, 2, 1).values.every((v) => Math.abs(v) > 1), 'ssh: two eigenvalues ±0.0015 for J₁ = 1, J₂ = 2; none in the gap for J₁ = 2, J₂ = 1');
   // k-space
@@ -284,16 +297,37 @@ console.log('3b. the numbers in the texts of Exercises 1 to 3');
   report(X.kspace_task1_inside_bands === true && X.kspace_task12_in_gap === 2 && has('kspace', 'Two: the edge states with E = ±0.0015'), 'kspace: all 20 eigenvalues of task 1 inside the bands; two in the gap for J₁ = 1, J₂ = 2');
   report([0, 1, 2, 3].every((k) => close(L.bandSSH(k, 2, 1), L.bandSSH(k, 1, 2), 1e-12)) && has('kspace', '|h(k)| does not change'), 'kspace: the bands are the same when the couplings are exchanged');
   // the Zak phase with the own program
-  report(has('zakcode', '0.8507 = cos 31.7°') && close(Math.cos((31.7 * PI) / 180), X.zak_overlap_abs_0_pi2, 2e-4) && close(Math.atan2(2, 1) * 90 / PI, 31.7, 0.05), 'zakcode: the overlap 0.8507 is the cosine of half the step of φ (63.43°/2)');
+  report(has('zakcode', '0.8507 is the cosine of 31.7°, half of 63.43°') && close(Math.cos((31.7 * PI) / 180), X.zak_overlap_abs_0_pi2, 2e-4) && close(Math.atan2(2, 1) * 90 / PI, 31.7, 0.05), 'zakcode: the overlap 0.8507 is the cosine of half the step of φ (63.43°/2)');
   report(has('zakcode', 'The product is −0.2') && close(X.zak_product_M4[0], -0.2, 1e-12) && Math.abs(X.zak_product_M4[1]) < 1e-12, 'zakcode: the product of the four overlaps is −0.2');
   report(has('zakcode', 'the product is −0.891') && close(L.zakSSH(1, 2, 0, 50).product[0], -0.891, 5e-4) && X.zak_product_M3_abs < 1e-12 && has('zakcode', 'with M = 3 one overlap is exactly 0'), 'zakcode: the product for M = 50 is −0.891; for M = 3 it is 0');
   report(close(X.zak_gamma_over_pi_random_phases, 1, 1e-9), 'zakcode: random phases on the eigenvectors do not change γ (numpy)');
   // the on-site term
   report(has('onsite', '√(0.25 + 1) = √1.25 = 1.118') && close(X.onsite_band_pi, 1.118, 5e-4) && has('onsite', 'from −1.118 to 1.118'), 'onsite: the gap reaches to ±1.118');
   report(close(X.onsite21_overlap_with_zero_state, 1, 1e-9) && has('onsite', 'The edge state keeps its shape'), 'onsite: the edge state keeps its shape (overlap 1 with the state at Δ = 0)');
-  report(has('onsite', 'now at +0.5 and −0.5') && close(X.onsite20_12_closest[0], -0.5, 1e-5) && close(X.onsite20_12_closest[1], 0.5, 1e-5), 'onsite: the two edge states of 20 waveguides at ±0.5');
+  report(has('onsite', 'the two eigenvalues closest to zero are ±0.5000') && close(X.onsite20_12_closest[0], -0.5, 1e-5) && close(X.onsite20_12_closest[1], 0.5, 1e-5), 'onsite: the two edge states of 20 waveguides at ±0.5');
   { const v = L.sshEig(20, 1, 2, 0.5), up = v.vectors[v.values.findIndex((e) => close(e, 0.5, 1e-4))], dn = v.vectors[v.values.findIndex((e) => close(e, -0.5, 1e-4))]; report(up[0] ** 2 > 0.7 && dn[19] ** 2 > 0.7, 'onsite: the state at +0.5 sits on waveguide 1, the one at −0.5 on waveguide 20', `${(up[0] ** 2).toFixed(3)}, ${(dn[19] ** 2).toFixed(3)}`); }
   report(has('onsite', 'γ = 0.708π: no longer π') && has('onsite', 'γ = 0.037π: no longer 0') && close(X.onsite_gamma_over_pi_M400, 0.708, 5e-4) && close(X.onsite_gamma_over_pi_M400_21, 0.037, 5e-4) && Math.abs(X.onsite_gamma_over_pi_M50 - X.onsite_gamma_over_pi_M400) < 0.003, 'onsite: γ = 0.708π and 0.037π; M = 50 gives the same within the tolerance of the field');
+}
+
+console.log('3c. usual mistakes of the new parts, and the right number with too few decimals');
+{
+  const q = (id, n) => ALL_PARTS.find((p) => p.id === id).steps.filter((s) => s.type !== 'info')[n - 1], X = R.exercises;
+  const st = (id, n, ...t) => judge(q(id, n), t);
+  report(st('chain', 2, '-1.98').state === 'short' && /four decimals/.test(st('chain', 2, '-1.98').text) && st('chain', 2, '-2').state === 'wrong' && /ring/.test(st('chain', 2, '-2').text) && st('chain', 2, '-1.9796').state === 'wrong' && /21 waveguides/.test(st('chain', 2, '-1.9796').text), 'chain 2: −1.98 asks for four decimals; −2 is the ring; −1.9796 is the chain of 21');
+  report(st('three', 4, '1.41').state === 'right' && st('three', 6, '-1.41').state === 'right' && st('rk', 2, '1.41').state === 'right' && st('beam', 6, '12.6').state === 'right', 'two decimals are enough for √2 by hand, one for the period 12.57');
+  report(['2.24', '2.2'].every((t) => st('kspace', 4, t).state === 'short') && st('kspace', 5, '-1.73').state === 'short' && st('zakcode', 1, '0.85').state === 'short' && st('onsite', 6, '0.04').state === 'short' && st('chain', 3, '1.98').state === 'short' && st('chain', 5, '0.17').state === 'short', 'rounded answers of the readers (2.24, −1.73, 0.85, 0.04, 1.98, 0.17) ask for more decimals and get no other hint');
+  report(st('zakcode', 3, '3.14').state === 'wrong' && /units of π/.test(st('zakcode', 3, '3.14').text) && /radians/.test(st('onsite', 6, (X.onsite_gamma_over_pi_M400_21 * Math.PI).toFixed(4)).text) && st('zakcode', 4, '-6.7e-18').state === 'right', 'a phase typed in radians is told; −6.7e−18 is read as 0');
+  report(st('zakcode', 2, '-0.2', '0').state === 'right' && st('zakcode', 2, '-0.2', '6.9e-17').state === 'right' && /closes the loop/.test(st('zakcode', 2, '-0.2', '0.1236').text) && /closes the loop/.test(st('zakcode', 2, '-0.2', '-0.1236').text) && /complex conjugate/.test(st('zakcode', 2, '0.2', '0').text) && /J₁ = 2/.test(st('zakcode', 2, '0.8972', '0').text), 'zakcode 2: −0.2 + 0·i is right; −0.2 ± 0.1236i is the open loop; +0.2 is the missing complex conjugate');
+  { const open = L.zakSSH(1, 2, 0, 4, false).product, g = L.zakSSH(1, 2, 0, 50, false).gamma / Math.PI;
+    report(close(open[0], -0.2, 1e-12) && close(Math.abs(open[1]), 0.12360679775, 1e-9) && close(Math.abs(g), 0.9866627624, 1e-9), 'an open loop: three overlaps give −0.2 ∓ 0.1236i, 49 overlaps give γ = ±0.9867π', `${open[1].toFixed(4)}, ${g.toFixed(4)}`);
+    report(/closes the loop/.test(st('zakcode', 3, '-0.987').text) && /closes the loop/.test(st('zakcode', 3, '0.987').text) && st('zakcode', 3, '1').state === 'right' && st('zakcode', 3, '-1').state === 'right', 'zakcode 3: ±0.987 is the open loop, ±1 is right'); }
+  report(/J₁ = 1, J₂ = 2/.test(st('zakcode', 4, '-1').text) && /without the on-site term/.test(st('onsite', 5, '-1').text), 'zakcode 4 and onsite 5: −1 gets the same hint as 1');
+  { const mean = L.rkChainPlainMean()[20]; report(close(mean, 0.1581554, 1e-6) && /plain mean/.test(st('rk', 9, mean.toFixed(4)).text) && st('rk', 9, '0.1577').state === 'right' && st('rk', 9, '0.158').state === 'short', 'rk 9: the plain mean of the four slopes (0.1582) gets its hint; 0.1577 is right', mean.toFixed(6)); }
+  { const e = L.chainEig(20); let a = 0; for (let n = 0; n < 20; n++) a += e.vectors[n][9] ** 2 * Math.exp(-e.values[n]);
+    report(close(a * a, 5.1965, 1e-3) && /i is missing/.test(st('chain', 7, (a * a).toFixed(3)).text), 'chain 7: without the i in the exponential the result is 5.197, larger than 1', (a * a).toFixed(4)); }
+  { const top = L.chainEig(20).vectors[19].map(Math.abs); report(close(top[3], X.chain20_top_abs[3], 1e-9) && !close(top[3], top[4], 0.02) && !close(top[3], top[2], 0.02) && /waveguide 5/.test(st('chain', 5, top[4].toFixed(4)).text) && /waveguide 3/.test(st('chain', 5, top[2].toFixed(4)).text), 'chain 5: waveguide 4 differs from its two neighbours, so an index that is off by one is noticed', `${top[2].toFixed(4)} ${top[3].toFixed(4)} ${top[4].toFixed(4)}`); }
+  { const far = X.chain20_I_z4.reduce((s, v, i) => s + (Math.abs(i + 1 - 10) > 8 ? v : 0), 0); report(far > 0.03 && far < 0.05 && ALL_PARTS.find((p) => p.id === 'chain').steps.some((s) => s.type !== 'info' && /about 4 % of the light is ahead/.test(val(s.after))), 'chain 8: about 4 % of the light is further than 8 waveguides at z = 4', far.toFixed(4)); }
+  report(/splits/.test(st('beam', 5, '25.997').text) && /other way/.test(st('beam', 5, '35.72').text), 'beam 5: a start without imaginary part (centre 25.997) and a beam that moved the other way get their hints');
 }
 
 console.log('4. the reader of typed numbers');

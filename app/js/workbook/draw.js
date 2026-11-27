@@ -74,8 +74,18 @@ export function pairPicture(ctx, w, h, c, J, solved) {
   [[1, `E = +${J}`], [-1, `E = −${J}`]].forEach(([b, name], k) => {
     const y0 = h * (0.56 + 0.26 * k), u = h * 0.085;
     ctx.strokeStyle = c.line; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(xs[0], y0); ctx.lineTo(xs[1], y0); ctx.stroke();
-    [1, b].forEach((v, m) => { ctx.fillStyle = c.v[m ? 2 : 0]; ctx.fillRect(xs[m] - 22, v > 0 ? y0 - u : y0, 44, u); });
+    [1, b].forEach((v, m) => { ctx.fillStyle = c.psi; ctx.fillRect(xs[m] - 22, v > 0 ? y0 - u : y0, 44, u); });
     tag(ctx, name, w * 0.86, y0, { color: c.fg, px: 14 }); tag(ctx, `(1, ${minus(b)})`, w * 0.13, y0, { color: c['fg-2'], px: 13.5, wt: 500 });
   });
-  return `Two waveguides and their two eigenvectors: in phase with E = +${J}, in antiphase with E = −${J}.`;
+  return `Two waveguides and their two eigenvectors as bars, upward for +1 and downward for −1: in phase with E = +${J}, in antiphase with E = −${J}.`;
+}
+// A text with one raised part (the canvas has no superscript): base, then exp smaller and higher, then tail.
+export function tagSup(ctx, base, exp, x, y, { color, px = 13, wt = 600, align = 'center', tail = '' } = {}) {
+  ctx.save(); ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; ctx.fillStyle = color;
+  ctx.font = font(px, wt); const wb = ctx.measureText(base).width, wt2 = ctx.measureText(tail).width;
+  ctx.font = font(px * 0.76, wt); const we = ctx.measureText(exp).width + 1;
+  const x0 = align === 'center' ? x - (wb + we + wt2) / 2 : align === 'right' ? x - wb - we - wt2 : x;
+  ctx.fillText(exp, x0 + wb + 1, y - px * 0.36);
+  ctx.font = font(px, wt); ctx.fillText(base, x0, y); if (tail) ctx.fillText(tail, x0 + wb + we, y);
+  ctx.restore();
 }

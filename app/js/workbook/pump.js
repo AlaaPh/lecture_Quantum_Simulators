@@ -58,7 +58,7 @@ const steps = [
       <p class="step-text">J₁ … J₄ couple neighbours inside the unit cell. J₅ couples waveguide 5 with waveguide 1 of the next unit cell. It carries the phase e<sup>±ik</sup> and stands in the two corners.</p>`,
     pic: pic({ kind: 'chain', J: 3, cells: true, names: true }) },
   { type: 'number', text: 'Write this matrix in your program, as a function of k and Ωz. You need it again for the Chern number.', extra: MATRIX,
-    ask: 'Take z = 0 and k = 0 and calculate the five eigenvalues.', label: 'lowest =', unit: 'mm⁻¹', ph: '−0.000',
+    ask: 'Take z = 0 and k = 0 and calculate the five eigenvalues.', label: 'lowest =', unit: 'mm⁻¹', ph: '0.000',
     ref: () => E00()[0], tol: 0.0008,
     hint: 'For k = 0 both corners are just J₅. The lowest eigenvalue is the most negative one.',
     how: CODE.matrix,

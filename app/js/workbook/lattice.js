@@ -58,6 +58,17 @@ export function rkChain(steps = 20, dz = 0.1, N = 41, start = 21) {
   });
 }
 
+// the same 20 steps with a usual mistake: the plain mean (k₁ + k₂ + k₃ + k₄)/4 in place of the weights 1, 2, 2, 1
+export function rkChainPlainMean(steps = 20, dz = 0.1, N = 41, start = 21) {
+  return once(`rkmean:${steps}:${dz}:${N}:${start}`, () => {
+    const f = (p) => { const re = zeros(N), im = zeros(N); for (let i = 0; i < N; i++) for (const j of [i - 1, i + 1]) if (j >= 0 && j < N) { re[i] += p.im[j]; im[i] -= p.re[j]; } return { re, im }; };      // −iHψ
+    const add = (p, k, h) => ({ re: p.re.map((v, i) => v + h * k.re[i]), im: p.im.map((v, i) => v + h * k.im[i]) });
+    let p = delta(N, start);
+    for (let s = 0; s < steps; s++) { const k1 = f(p), k2 = f(add(p, k1, dz / 2)), k3 = f(add(p, k2, dz / 2)), k4 = f(add(p, k3, dz)); for (const k of [k1, k2, k3, k4]) p = add(p, k, dz / 4); }
+    return intens(p);
+  });
+}
+
 // ---------- a beam with the wavenumber k ----------
 export const band = (k, J = 1) => 2 * J * Math.cos(k);
 export const velocity = (k, J = 1) => -2 * J * Math.sin(k);
@@ -76,7 +87,7 @@ export function beamRun({ N = 41, j0 = 26, sigma = 3, k = Math.PI / 2, F = 0, zm
   });
 }
 export const BEAM = { N: 41, j0: 26, sigma: 3, k: Math.PI / 2, zmax: 5 };
-export const BLOCH = { N: 41, j0: 16, sigma: 3, k: 0, F: 0.5, zmax: 25 };
+export const BLOCH = { N: 41, j0: 16, sigma: 3, k: 0, F: 0.5, zmax: 26 };      // a little more than two periods 2π/F
 
 // ---------- the SSH chain in real space ----------
 export const sshEig = (N, J1, J2, d = 0) => once(`ssh:${N}:${J1}:${J2}:${d}`, () => symEig(sshChain(N, J1, J2, d)));
@@ -92,9 +103,12 @@ export function uLower(k, J1, J2, d = 0) {
   return [[-hr / n, hi / n], [(d + E0) / n, 0]];
 }
 export const overlap2 = (u, v) => cadd(cmul([u[0][0], -u[0][1]], v[0]), cmul([u[1][0], -u[1][1]], v[1]));
-// the product ⟨u₁|u₂⟩⟨u₂|u₃⟩ … ⟨u_M|u₁⟩ over M values k = 2π(s − 1)/M, and γ = −arg of it
-export function zakSSH(J1, J2, d = 0, M = 50) {
+// the product ⟨u₁|u₂⟩⟨u₂|u₃⟩ … ⟨u_M|u₁⟩ over M values k = 2π(s − 1)/M, and γ = −arg of it.
+// closed: false leaves out the last overlap ⟨u_M|u₁⟩ (a usual mistake); the result then depends on the phases of the
+// eigenvectors. Here the second component is real; if the first one is real (as numpy returns), the imaginary part
+// of the product and γ change their sign.
+export function zakSSH(J1, J2, d = 0, M = 50, closed = true) {
   const us = []; for (let s = 0; s < M; s++) us.push(uLower((2 * Math.PI * s) / M, J1, J2, d));
-  let p = [1, 0]; for (let s = 0; s < M; s++) p = cmul(p, overlap2(us[s], us[(s + 1) % M]));
+  let p = [1, 0]; for (let s = 0; s < (closed ? M : M - 1); s++) p = cmul(p, overlap2(us[s], us[(s + 1) % M]));
   return { product: p, gamma: -Math.atan2(p[1], p[0]) };
 }
