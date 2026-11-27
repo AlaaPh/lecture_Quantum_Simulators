@@ -64,6 +64,9 @@ the same picture with more guides.
 4. **Task 3** — on-site potential +Δ on A, −Δ on B: the edge state of 21 guides moves to exactly +Δ with unchanged
    shape, 20 guides give ±Δ at the two ends, and the Zak phase is no longer quantized.
 
+**Step by step** (`app/steps.html`): the Zak phase of the SSH chain in ten small questions, one on the screen at a
+time, each with one picture and checked at once. Test: `node tools/check_steps.cjs`.
+
 **Workbook** (`app/workbook.html`): the student calculates the Zak phase, the Thouless pump of task 9 and its
 Chern number, in small steps that are checked at once. The same steps and numbers in three forms:
 
@@ -139,7 +142,7 @@ demand from the Actions tab). Three one-time settings on github.com, all of whic
    "No restriction"), otherwise the job is rejected before it starts.
 
 The app is then at <https://alaaph.github.io/lecture_Quantum_Simulators/>, Exercise 2 at `/exercise2.html`, Exercise 3 at `/exercise3.html`, the
-workbook at `/workbook.html`, the Hamiltonian builder at `/builder.html`, the geometry appendix at `/chapters.html`, and a QR code to project at `/share.html`.
+step-by-step questions at `/steps.html`, workbook at `/workbook.html`, the Hamiltonian builder at `/builder.html`, the geometry appendix at `/chapters.html`, and a QR code to project at `/share.html`.
 
 ### Publish with GitLab Pages (university GitLab)
 
