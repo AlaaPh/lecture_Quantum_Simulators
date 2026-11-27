@@ -70,25 +70,27 @@ Chern number, in small steps that are checked at once. The same steps and number
 - **Page.** Every hand step is an input field. A right value is marked, a wrong one gets the hint for its mistake,
   and the figure fills in with the right answers. Four tabs:
   1. **Zak phase by hand (task 8)** — h(k), its angle, the eigenvector and the four overlaps at k = 0, π/2, π, 3π/2
-     for J₁ = 1, J₂ = 2; product −0.2, γ = π; then J₁ = 2, J₂ = 1, γ = 0.
-  2. **Zak phase, your code** — the same loop with `eigh` and random phases; with on-site term the exact check
-     J₁ = 0, J₂ = 4, Δ = 3 → γ = 0.4π: γ/2π is the position of the light inside the unit cell.
+     for J₁ = 1, J₂ = 2, their product and γ; then the same for J₁ = 2, J₂ = 1.
+  2. **Zak phase, your code** — the same loop with `eigh` and random phases; then with on-site term, where a case
+     with a known result shows that γ/2π is the position of the light inside the unit cell.
   3. **Thouless pump (task 9)** — the pump to play: the cycle in the (J₁ − J₂, Δ) plane, the two bands, the
-     eigenvalues of the open chain with the two edge states that cross the gap, the light in the chain and its
-     position X(t), which follows γ(t)/2π. Fields for bands (9a), edge states (9b) and the shift per cycle (9c).
-  4. **Chern number** — one plaquette by hand, all plaquettes of the 4 × 4 grid, C = 1; predictions for the upper
-     band, the reversed cycle and a cycle that does not go around the point where the gap closes.
+     eigenvalues of the open chain with the two states in the gap, the light in the chain and its position X(t).
+     Fields for the bands (9a), the states in the gap (9b), the shift per cycle (9c), and the Zak phase over the
+     cycle, which gives C.
+  4. **Chern number** — one plaquette by hand, all plaquettes of the 4 × 4 grid and C; predictions for the upper
+     band, the reversed cycle and a cycle that lies aside.
 - **Code skeleton.** `app/code/zak_chern.py` with `zak_chern_check.py` (Python, numpy) and `app/code/zak_chern.m`
-  with `zak_chern_check.m` (MATLAB; tested with GNU Octave 8.4 only). One missing line per step. The file stops at the
-  first open step and names the mistake where a test identifies it. The last block applies the same functions to the
-  Harper–Hofstadter model at flux 1/3 and to the Haldane model.
+  with `zak_chern_check.m` (MATLAB; run with GNU Octave 8.4 only, not yet in MATLAB). One or two missing lines per
+  step. The file stops at the first open step and names the mistake where a test identifies it. The last block
+  applies the same functions to the Harper–Hofstadter model at flux 1/3 and to the Haldane model.
 - **Worksheet.** `app/pdf/zak_chern_worksheet.pdf`, two double-sided sheets with the tables of the hand steps and
   four questions to answer in words.
 
 Conventions of all three: H(k) = [[Δ, h*], [h, −Δ]], h = J₁ + J₂e^{ik}; lower band; γ = −arg ∏⟨uₛ|uₛ₊₁⟩; plaquette
 with the same −arg, walked (k, t) → (k, t+dt) → (k+dk, t+dt) → (k+dk, t); C = sum/2π; position X counted in unit cells
-from the cell where the light starts. Lower band and the cycle of task 9: C = +1, the light moves one unit cell toward
-higher cell numbers. Solutions are not in this repository.
+from the cell where the light starts. The filled skeletons and the solution pages are not in this repository. The
+expected numbers are, because the page and its tests need them: in `tools/zak_chern_numbers.json`, in the two check
+files and in `app/js/workbook/`.
 
 **Hamiltonian builder** (`app/builder.html`): a free instrument instead of a guided exercise. A tight-binding
 Hamiltonian is built by plugging couplings into a matrix, and its spectrum is shown at once.
