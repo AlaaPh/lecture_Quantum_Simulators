@@ -64,8 +64,9 @@ Checked numerically (numpy and JavaScript, random phase on every eigenvector) an
   above: the −i reverses the sign of A, the order (k, t) of the curl reverses it back.
 - On-site term in the pump: VL8 p27 writes ±Δ/2, the task sheet "potential difference Δ", VL6 and Exercise 3 ±Δ.
   The workbook uses +Δ on A and −Δ on B. C is the same for both readings; the shift at finite T is not.
-- Shift per cycle, input (A − B)/√2 on one cell, δJ = 1, Δ₀ = 0.5: 0.889 (T = 20), 0.967 (T = 50), 0.999 (T = 100,
-  at least 100 cells). Numbers of the task sheet (δJ = 0.5, Δ₀ = 0.2) with the same input: 0.55 at T = 20. Two
+- Shift per cycle X(T), with X counted in unit cells from the cell where the light starts, Runge–Kutta with
+  dt = 0.05, input (A − B)/√2 on one cell, δJ = 1, Δ₀ = 0.5: 0.8891 (T = 20, 40 cells), 0.9673 (T = 50, 60 cells),
+  0.9989 (T = 100, 120 cells). Numbers of the task sheet (δJ = 0.5, Δ₀ = 0.2) with the same input: 0.55 at T = 20. Two
   reasons: the cycle is too fast, and (A − B)/√2 is not exactly the lower band at t = 0, because J₂ = 0.5 there and
   not 0. A slow cycle therefore ends near 0.95 (0.849 at T = 100, 0.949 at T = 200, 0.952 at T = 400), not at 1.
   The exact lower-band state of one cell (the Wannier state) reaches 1.
